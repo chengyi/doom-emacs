@@ -520,6 +520,8 @@
       (cond ((featurep! :completion ivy)   #'ivy-resume)
             ((featurep! :completion helm)  #'helm-resume))
 
+      :desc "Search for symbol in project" "*" #'+default/search-project-for-symbol-at-point
+
       :desc "Find file in project"  "SPC"  #'projectile-find-file
       :desc "Blink cursor line"     "DEL"  #'+nav-flash/blink-cursor
       :desc "Jump to bookmark"      "RET"  #'bookmark-jump
@@ -578,7 +580,7 @@
         :desc "Bury buffer"                 "z"   #'bury-buffer)
 
       (:prefix ("c" . "code")
-        :desc "Compile project"             "c"   #'projectile-compile-project
+        :desc "Compile"                     "c"   #'compile
         :desc "Jump to definition"          "d"   #'+lookup/definition
         :desc "Jump to references"          "D"   #'+lookup/references
         :desc "Evaluate buffer/region"      "e"   #'+eval/buffer-or-region
