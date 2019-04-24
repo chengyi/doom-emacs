@@ -11,6 +11,9 @@
         doom-modules-dir)
   "A list of module root directories. Order determines priority.")
 
+(defvar doom-inhibit-module-warnings (not noninteractive)
+  "If non-nil, don't emit deprecated or missing module warnings at startup.")
+
 (defconst doom-obsolete-modules
   '((:feature (version-control (:emacs vc) (:ui vc-gutter))
               (spellcheck (:tools flyspell))
@@ -19,7 +22,8 @@
     (:emacs (electric-indent (:emacs electric))
             (hideshow (:editor fold)))
     (:ui (doom-modeline (:ui modeline)))
-    (:ui (fci (:ui fill-column))))
+    (:ui (fci (:ui fill-column)))
+    (:ui (evil-goggles (:ui ophints))))
   "An alist of deprecated modules, mapping deprecated modules to an optional new
 location (which will create an alias). Each CAR and CDR is a (CATEGORY .
 MODULES). E.g.
@@ -308,7 +312,8 @@ to least)."
           (make-hash-table :test 'equal
                            :size (if modules (length modules) 150)
                            :rehash-threshold 1.0)))
-  (let (category m)
+  (let ((inhibit-message doom-inhibit-module-warnings)
+        category m)
     (while modules
       (setq m (pop modules))
       (cond ((keywordp m) (setq category m))
@@ -320,16 +325,22 @@ to least)."
                              (new (assq module obsolete)))
                    (let ((newkeys (cdr new)))
                      (if (null newkeys)
-                         (message "Warning: the %s module is deprecated" key)
-                       (message "Warning: the %s module is deprecated. Use %s instead."
+                         (message "WARNING %s is deprecated" key)
+                       (message "WARNING %s is deprecated, enabling %s instead"
                                 (list category module) newkeys)
                        (push category modules)
                        (dolist (key newkeys)
-                         (setq modules (append key modules)))
+                         (push (if flags
+                                   (nconc (cdr key) flags)
+                                 (cdr key))
+                               modules)
+                         (push (car key) modules))
                        (throw 'doom-modules t))))
                  (if-let* ((path (doom-module-locate-path category module)))
                      (doom-module-set category module :flags flags :path path)
-                   (message "Warning: couldn't find the %s %s module" category module))))))))
+                   (message "WARNING Couldn't find the %s %s module" category module))))))))
+  (when noninteractive
+    (setq doom-inhibit-module-warnings t))
   `(setq doom-modules ',doom-modules))
 
 (defvar doom-disabled-packages)
@@ -398,22 +409,29 @@ to have them return non-nil (or exploit that to overwrite Doom's config)."
                          (substring (symbol-name when) 1)))
        ,@body)))
 
-(defmacro require! (category module &rest plist)
-  "Loads the module specified by CATEGORY (a keyword) and MODULE (a symbol)."
-  `(let ((module-path (doom-module-locate-path ,category ',module)))
+(defmacro require! (category module &rest flags)
+  "Loads the CATEGORY MODULE module with FLAGS.
+
+CATEGORY is a keyword, MODULE is a symbol and FLAGS are symbols.
+
+  (require! :lang php +lsp)
+
+This is for testing and internal use. This is not the correct way to enable a
+module."
+  `(let ((doom-modules ,doom-modules)
+         (module-path (doom-module-locate-path ,category ',module)))
      (doom-module-set
       ,category ',module
-      ,@(when plist
-          (let ((old-plist (doom-module-get category module)))
-            (unless (plist-member plist :flags)
-              (plist-put plist :flags (plist-get old-plist :flags)))
-            (unless (plist-member plist :path)
-              (plist-put plist :path (or (plist-get old-plist :path)
-                                         (doom-module-locate-path category module)))))
+      ,@(let ((plist (doom-module-get category module)))
+          (when flags
+            (plist-put plist :flags flags))
+          (unless (plist-member plist :path)
+            (plist-put plist :path (doom-module-locate-path category module)))
           plist))
      (if (directory-name-p module-path)
          (condition-case-unless-debug ex
-             (let ((doom--current-module ',(cons category module)))
+             (let ((doom--current-module ',(cons category module))
+                   (doom--current-flags ',flags))
                (load! "init" module-path :noerror)
                (let ((doom--stage 'config))
                  (load! "config" module-path :noerror)))
@@ -426,8 +444,9 @@ to have them return non-nil (or exploit that to overwrite Doom's config)."
              ,category ',module))))
 
 (defmacro featurep! (category &optional module flag)
-  "Returns t if CATEGORY MODULE is enabled. If FLAG is provided, returns t if
-CATEGORY MODULE has FLAG enabled.
+  "Returns t if CATEGORY MODULE is enabled.
+
+If FLAG is provided, returns t if CATEGORY MODULE has FLAG enabled.
 
   (featurep! :config default)
 
@@ -436,8 +455,8 @@ Module FLAGs are set in your config's `doom!' block, typically in
 
   :config (default +flag1 -flag2)
 
-When this macro is used from inside a module, CATEGORY and MODULE can be
-omitted. eg. (featurep! +flag1)"
+CATEGORY and MODULE can be omitted When this macro is used from inside a module
+(except your DOOMDIR, which is a special moduel). e.g. (featurep! +flag)"
   (and (cond (flag (memq flag (doom-module-get category module :flags)))
              (module (doom-module-p category module))
              (doom--current-flags (memq category doom--current-flags))
@@ -445,7 +464,7 @@ omitted. eg. (featurep! +flag1)"
                      (or doom--current-module
                          (doom-module-from-path (FILE!)))))
                 (unless module-pair
-                  (error "featurep! couldn't detect what module its in! (in %s)" (FILE!)))
+                  (error "featurep! call couldn't auto-detect what module its in (from %s)" (FILE!)))
                 (memq category (doom-module-get (car module-pair) (cdr module-pair) :flags)))))
        t))
 

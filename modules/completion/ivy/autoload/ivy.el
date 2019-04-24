@@ -364,7 +364,7 @@ the search."
            directory))
 
 ;;;###autoload
-(defun +ivy/project-search-from-cwd (&optional arg initial-query directory)
+(defun +ivy/project-search-from-cwd (&optional arg initial-query)
   "Performs a project search recursively from the current directory.
 
 Uses the first available search backend from `+ivy-project-search-engines'. If
@@ -373,11 +373,9 @@ ARG (universal argument), include all files, even hidden or compressed ones."
   (funcall (or (+ivy--get-command "+ivy/%s-from-cwd")
                #'+ivy/grep-from-cwd)
            arg
-           initial-query
-           directory))
+           initial-query))
 
 
-;; Relative to project root
 ;;;###autoload (autoload '+ivy/rg "completion/ivy/autoload/ivy")
 ;;;###autoload (autoload '+ivy/rg-from-cwd "completion/ivy/autoload/ivy")
 ;;;###autoload (autoload '+ivy/ag "completion/ivy/autoload/ivy")
