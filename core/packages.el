@@ -14,8 +14,6 @@
 (package! all-the-icons)
 (package! hide-mode-line)
 (package! highlight-numbers)
-(package! highlight-escape-sequences
-  :recipe (:fetcher github :repo "hlissner/highlight-escape-sequences"))
 (unless (locate-library "display-line-numbers")
   (package! nlinum)
   (package! nlinum-hl)
@@ -49,5 +47,6 @@
 ;; autoload/debug.el
 (package! esup)
 
-;; autoload/test.el
-(package! buttercup)
+;; cli/test.el
+;; buttercup is installed on demand, so avoid uninstalling it if present
+(package! buttercup :ignore t)
