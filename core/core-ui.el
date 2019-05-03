@@ -143,7 +143,7 @@ read-only or not file-visiting."
              (cl-union (if indent-tabs-mode '(indentation) '(tabs tab-mark))
                        whitespace-style)
            `(face ,@(if indent-tabs-mode '(indentation) '(tabs tab-mark))
-             trailing-lines tail)))
+             trailing)))
     (whitespace-mode +1)))
 
 
@@ -316,10 +316,6 @@ read-only or not file-visiting."
 
 ;;
 ;;; Third party packages
-
-;;;###package avy
-(setq avy-all-windows nil
-      avy-background t)
 
 (def-package! all-the-icons
   :commands (all-the-icons-octicon all-the-icons-faicon all-the-icons-fileicon
