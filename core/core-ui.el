@@ -147,8 +147,7 @@ read-only or not file-visiting."
          (if (bound-and-true-p whitespace-newline-mode)
              (cl-union (if indent-tabs-mode '(indentation) '(tabs tab-mark))
                        whitespace-style)
-           `(face ,@(if indent-tabs-mode '(indentation) '(tabs tab-mark))
-             trailing)))
+           `(face ,@(if indent-tabs-mode '(indentation) '(tabs tab-mark)))))
     (whitespace-mode +1)))
 
 
@@ -222,6 +221,10 @@ read-only or not file-visiting."
 (add-to-list 'default-frame-alist '(vertical-scroll-bars))
 ;; prompts the user for confirmation when deleting a non-empty frame
 (global-set-key [remap delete-frame] #'doom/delete-frame)
+
+;; Show trailing whitespace
+(setq show-trailing-whitespace t)
+(setq-hook! 'minibuffer-setup-hook show-trailing-whitespace nil) ; except in minibuffers
 
 
 ;;
