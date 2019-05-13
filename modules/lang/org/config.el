@@ -235,6 +235,7 @@ between the two."
         [remap doom/forward-to-last-non-comment-or-eol] #'org-end-of-line
 
         :localleader
+        "'" #'org-edit-special
         "," #'org-switchb
         "." #'org-goto
         (:when (featurep! :completion ivy)
@@ -245,13 +246,16 @@ between the two."
           "/" #'helm-org-agenda-files-headings)
         "d" #'org-deadline
         "f" #'org-footnote-new
-        "t" #'org-todo
-        "T" #'org-todo-list
+        "h" #'org-toggle-heading
+        "i" #'org-toggle-item
+        "I" #'org-toggle-inline-images
         "l" #'org-insert-link
         "L" #'org-store-link
+        "q" #'org-set-tags
         "r" #'org-refile
         "s" #'org-schedule
-        "'" #'org-edit-special
+        "t" #'org-todo
+        "T" #'org-todo-list
         (:prefix ("c" . "clock")
           "c" #'org-clock-in
           "C" #'org-clock-out
@@ -303,8 +307,15 @@ between the two."
             "c" #'org-table-create
             "r" #'org-table-recalculate
             "e" #'org-table-edit-formulas
-            "=" #'org-table-eval-formulas))))
+            "=" #'org-table-eval-formulas)))
 
+  (map! :map org-agenda-mode-map
+        :localleader
+        "d" #'org-agenda-deadline
+        "q" #'org-agenda-set-tags
+        "r" #'org-agenda-refile
+        "s" #'org-agenda-schedule
+        "t" #'org-agenda-todo))
 
 (defun +org|setup-evil-keybinds (&rest args)
   (unless args ; lookout for recursive requires

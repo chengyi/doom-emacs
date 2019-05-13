@@ -9,7 +9,7 @@ line with a linewise comment.")
 
 ;; Set these defaults before `evil'; use `defvar' so they can be changed prior
 ;; to loading.
-(defvar evil-want-C-i-jump (display-graphic-p))
+(defvar evil-want-C-i-jump (or (daemonp) (display-graphic-p)))
 (defvar evil-want-C-u-scroll t)
 (defvar evil-want-C-w-scroll t)
 (defvar evil-want-Y-yank-to-eol t)
@@ -148,7 +148,8 @@ line with a linewise comment.")
    '+evil:align :move-point t :ex-arg 'buffer-match :ex-bang t :keep-visual t :suppress-operator t)
 
   ;; `evil-collection'
-  (when (featurep! +everywhere)
+  (when (and (featurep! +everywhere)
+             (not doom-reloading-p))
     (load! "+everywhere"))
 
   ;; Custom evil ex commands
