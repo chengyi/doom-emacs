@@ -37,7 +37,7 @@ detected.")
  hscroll-margin 2
  hscroll-step 1
  scroll-conservatively 1001
- scroll-margin 2
+ scroll-margin 1
  scroll-preserve-screen-position t
  mouse-wheel-scroll-amount '(5 ((shift) . 2))
  mouse-wheel-progressive-speed nil ; don't accelerate scrolling
@@ -136,8 +136,8 @@ savehist file."
         recentf-exclude
         (list "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$" "^/tmp/" "^/ssh:"
               "\\.?ido\\.last$" "\\.revive$" "/TAGS$" "^/var/folders/.+$"
-              ;; ignore private DOOM temp files (but not all of them)
-              (lambda (file) (file-in-directory-p file doom-local-dir))))
+              ;; ignore private DOOM temp files
+              (recentf-apply-filename-handlers doom-local-dir)))
   (unless noninteractive
     (add-hook 'kill-emacs-hook #'recentf-cleanup)
     (quiet! (recentf-mode +1))))
@@ -263,6 +263,20 @@ savehist file."
         undo-tree-enable-undo-in-region nil
         undo-tree-history-directory-alist
         `(("." . ,(concat doom-cache-dir "undo-tree-hist/"))))
+
+  (when (executable-find "zstd")
+    (defun doom*undo-tree-make-history-save-file-name (file)
+      (concat file ".zst"))
+    (advice-add #'undo-tree-make-history-save-file-name :filter-return
+                #'doom*undo-tree-make-history-save-file-name))
+
+  (defun doom*strip-text-properties-from-undo-history (&rest _)
+    (dolist (item buffer-undo-list)
+      (and (consp item)
+           (stringp (car item))
+           (setcar item (substring-no-properties (car item))))))
+  (advice-add #'undo-list-transfer-to-tree :before #'doom*strip-text-properties-from-undo-history)
+
   (global-undo-tree-mode +1))
 
 

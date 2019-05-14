@@ -23,8 +23,7 @@
 (package! restart-emacs)
 
 ;; core-editor.el
-(package! better-jumper
-  :recipe (:fetcher github :repo "gilbertw1/better-jumper"))
+(package! better-jumper)
 (package! command-log-mode)
 (package! dtrt-indent)
 (package! helpful)
@@ -40,6 +39,9 @@
 (package! general)
 (package! which-key)
 (package! hydra)
+
+;; core-packages.el
+(package! gnu-elpa-keyring-update)
 
 ;; autoload/debug.el
 (package! esup)
