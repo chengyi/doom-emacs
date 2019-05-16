@@ -163,7 +163,7 @@ Doom was setup, which may cause problems.")
   (setq selection-coding-system 'utf-8))  ; with sugar on top
 
 (setq-default
- ad-redefinition-action 'accept   ; silence advised function warnings
+ ad-redefinition-action 'accept   ; silence redefined function warnings
  apropos-do-all t                 ; make `apropos' more useful
  auto-mode-case-fold nil
  autoload-compute-prefixes nil
@@ -171,7 +171,7 @@ Doom was setup, which may cause problems.")
  jka-compr-verbose doom-debug-mode ; silence compression messages
  ffap-machine-p-known 'reject     ; don't ping things that look like domain names
  find-file-visit-truename t       ; resolve symlinks when opening files
- idle-update-delay 2              ; update ui less often
+ idle-update-delay 1              ; update ui slightly less often
  ;; be quiet at startup; don't load or display anything unnecessary
  inhibit-startup-message t
  inhibit-startup-echo-area-message user-login-name
@@ -211,9 +211,21 @@ Doom was setup, which may cause problems.")
  tramp-auto-save-directory    (concat doom-cache-dir "tramp-auto-save/")
  tramp-backup-directory-alist backup-directory-alist
  tramp-persistency-file-name  (concat doom-cache-dir "tramp-persistency.el")
+ tutorial--saved-dir          (concat doom-cache-dir "tutorial/")
  url-cache-directory          (concat doom-cache-dir "url/")
  url-configuration-directory  (concat doom-etc-dir "url/")
  gamegrid-user-score-file-directory (concat doom-etc-dir "games/"))
+
+(defun doom*symbol-file (orig-fn symbol &optional type)
+  "If a `doom-file' symbol property exists on SYMBOL, use that instead of the
+original value of `symbol-file'."
+  (or (if (symbolp symbol) (get symbol 'doom-file))
+      (funcall orig-fn symbol type)))
+(advice-add #'symbol-file :around #'doom*symbol-file)
+
+
+;;
+;;; Minor mode version of `auto-mode-alist'
 
 (defvar doom-auto-minor-mode-alist '()
   "Alist mapping filename patterns to corresponding minor mode functions, like
@@ -238,12 +250,9 @@ enable multiple minor modes for the same regexp.")
         (setq alist (cdr alist))))))
 (add-hook 'find-file-hook #'doom|enable-minor-mode-maybe)
 
-(defun doom*symbol-file (orig-fn symbol &optional type)
-  "If a `doom-file' symbol property exists on SYMBOL, use that instead of the
-original value of `symbol-file'."
-  (or (if (symbolp symbol) (get symbol 'doom-file))
-      (funcall orig-fn symbol type)))
-(advice-add #'symbol-file :around #'doom*symbol-file)
+
+;;
+;;; MODE-local-vars-hook
 
 ;; File+dir local variables are initialized after the major mode and its hooks
 ;; have run. If you want hook functions to be aware of these customizations, add
@@ -269,23 +278,6 @@ original value of `symbol-file'."
                (y-or-n-p (format "Directory `%s' does not exist! Create it?" parent-directory)))
       (make-directory parent-directory t))))
 (add-hook 'find-file-not-found-functions #'doom|create-non-existent-directories)
-
-
-;;
-;;; Garbage collector optimizations
-
-;; To speed up minibuffer commands (like helm and ivy), defer garbage collection
-;; when the minibuffer is active. It may mean a pause when finished, but that's
-;; acceptable instead of pauses during.
-(defun doom|defer-garbage-collection ()
-  (setq gc-cons-threshold doom-gc-cons-upper-limit))
-(defun doom|restore-garbage-collection ()
-  (setq gc-cons-threshold doom-gc-cons-threshold))
-(add-hook 'minibuffer-setup-hook #'doom|defer-garbage-collection)
-(add-hook 'minibuffer-exit-hook  #'doom|restore-garbage-collection)
-
-;; GC all sneaky breeky like
-(add-hook 'focus-out-hook 'garbage-collect)
 
 
 ;;

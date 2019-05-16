@@ -75,13 +75,11 @@ Doing so is equivalent to:
                          (buffer-string)))
                 (unless (equal (vc-git-working-revision doom-emacs-dir) rev)
                   (error "Failed to checkout latest commit.\n\n%s" (buffer-string)))
-                (doom-reload-doom-autoloads 'force)
-                (when (doom-packages-update doom-auto-accept)
-                  (doom-reload-package-autoloads 'force))
+                (doom-refresh doom-auto-accept)
+                (doom-packages-update doom-auto-accept)
                 (message "Done! Please restart Emacs for changes to take effect")))
           (user-error
            (message "%s Aborting." (error-message-string e)))
           (error
            (message "There was an unexpected error.\n\n%s\n\nOutput:\n%s"
-                    (car e)
-                    (buffer-string))))))))
+                    e (buffer-string))))))))

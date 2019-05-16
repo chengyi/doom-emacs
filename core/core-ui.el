@@ -38,11 +38,15 @@ Expects either a `font-spec', font object, a XFT font string or XLFD string. See
 It is recommended you don't set specify a font-size, as to inherit `doom-font's
 size.")
 
-(defvar doom-unicode-font nil
-  "Fallback font for unicode glyphs. Is ignored if :ui unicode is active.
+(defvar doom-unicode-font
+  (if IS-MAC
+      (font-spec :family "Apple Color Emoji")
+    (font-spec :family "Symbola"))
+  "Fallback font for unicode glyphs.
 
-Expects either a `font-spec', font object, a XFT font string or XLFD string. See
-`doom-font' for examples.
+It defaults to Apple Color Emoji on MacOS and Symbola on Linux. Expects either a
+`font-spec', font object, a XFT font string or XLFD string. See `doom-font' for
+examples.
 
 It is recommended you don't set specify a font-size, as to inherit `doom-font's
 size.")
@@ -97,23 +101,29 @@ behavior). Do not set this directly, this is let-bound in `doom|init-theme'.")
       (run-hooks 'doom-switch-frame-hook)
       (setq doom--last-frame (selected-frame)))))
 
-(defun doom*run-switch-buffer-hooks (orig-fn &rest args)
+(defun doom*run-switch-buffer-hooks (orig-fn buffer-or-name &rest args)
   (if (or doom-inhibit-switch-buffer-hooks
-          (if (eq orig-fn 'switch-to-buffer)
-              (car args) ; norecord
-            (eq (car args) (current-buffer)))) ; buffer-or-name
-      (apply orig-fn args)
+          (eq (setq buffer-or-name (get-buffer buffer-or-name))
+              (current-buffer))
+          (and (eq orig-fn 'switch-to-buffer) (car args)))
+      (apply orig-fn buffer-or-name args)
     (let ((doom-inhibit-switch-buffer-hooks t))
-      (prog1 (apply orig-fn args)
-        (run-hooks 'doom-switch-buffer-hook)))))
+      (when-let* ((buffer (apply orig-fn buffer-or-name args)))
+        (with-current-buffer
+            (if (windowp buffer)
+                (window-buffer buffer)
+              buffer)
+          (run-hooks 'doom-switch-buffer-hook))
+        buffer))))
 
 (defun doom*run-switch-to-next-prev-buffer-hooks (orig-fn &rest args)
   (if doom-inhibit-switch-buffer-hooks
       (apply orig-fn args)
     (let ((doom-inhibit-switch-buffer-hooks t))
-      (when-let* ((result (apply orig-fn args)))
-        (run-hooks 'doom-switch-buffer-hook)
-        result))))
+      (when-let* ((buffer (apply orig-fn args)))
+        (with-current-buffer buffer
+          (run-hooks 'doom-switch-buffer-hook))
+        buffer))))
 
 (defun doom*run-load-theme-hooks (theme &optional _no-confirm no-enable)
   "Set up `doom-load-theme-hook' to run after `load-theme' is called."
@@ -458,16 +468,20 @@ Fonts are specified by `doom-font', `doom-variable-pitch-font',
         (when doom-serif-font
           (set-face-attribute 'fixed-pitch-serif nil :font doom-serif-font))
         (when doom-variable-pitch-font
-          (set-face-attribute 'variable-pitch nil :font doom-variable-pitch-font))
-        ;; Fallback to `doom-unicode-font' for Unicode characters
-        (when (fontp doom-unicode-font)
-          (set-fontset-font t nil doom-unicode-font nil 'append)))
+          (set-face-attribute 'variable-pitch nil :font doom-variable-pitch-font)))
     ((debug error)
      (if (string-prefix-p "Font not available: " (error-message-string e))
          (lwarn 'doom-ui :warning
                 "Could not find the '%s' font on your system, falling back to system font"
                 (font-get (caddr e) :family))
        (signal 'doom-error e)))))
+
+(defun doom|init-emoji-fonts (frame)
+  "Set up unicode fonts (if `doom-unicode-font' is set).
+
+By default, this uses Apple Color Emoji on MacOS and Symbola on Linux."
+  (when doom-unicode-font
+    (set-fontset-font t '(#x1F600 . #x1F64F) doom-unicode-font frame 'prepend)))
 
 (defun doom|init-theme (&optional frame)
   "Load the theme specified by `doom-theme' in FRAME."
@@ -504,6 +518,8 @@ Fonts are specified by `doom-font', `doom-variable-pitch-font',
   (add-hook 'doom-init-ui-hook #'doom|init-theme))
 ;; Apply `doom-font' et co
 (add-hook 'doom-after-init-modules-hook #'doom|init-fonts)
+;; Ensure unicode fonts are set on each frame
+(add-hook 'after-make-frame-functions #'doom|init-emoji-fonts)
 ;; Setup `doom-load-theme-hook' and ensure `doom-theme' is always set to the
 ;; currently loaded theme
 (advice-add #'load-theme :after #'doom*run-load-theme-hooks)

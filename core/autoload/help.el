@@ -121,40 +121,38 @@ selection of all minor-modes, active or not."
 ;;
 ;;; Documentation commands
 
-(defun doom--org-headings (files &optional depth _prompt include-files)
+(defun doom--org-headings (files &optional depth include-files)
   (require 'org)
-  (let ((org-agenda-files (doom-enlist files))
-        (default-directory doom-docs-dir))
+  (let* ((default-directory doom-docs-dir)
+         (org-agenda-files (mapcar #'expand-file-name (doom-enlist files)))
+         (depth (if (integerp depth) depth)))
     (unwind-protect
         (delq nil
               (org-map-entries
                (lambda ()
-                 (let* ((components (org-heading-components))
-                        (path (org-get-outline-path))
-                        (level (nth 0 components))
-                        (text (nth 4 components))
-                        (tags (nth 5 components)))
-                   (when (and (or (not depth)
-                                  (and (integerp depth)
-                                       (<= level depth)))
-                              (or (not tags)
-                                  (not (string-match-p ":TOC" tags))))
-                     (list
-                      (mapconcat
-                       'identity
-                       (list (mapconcat 'identity
-                                        (append (when include-files
-                                                  (list (or (+org-get-property "TITLE")
-                                                            (file-relative-name buffer-file-name))))
-                                                path
-                                                (list text))
-                                        " > ")
-                             tags)
-                       " ")
-                      buffer-file-name
-                      (point)))))
-               nil
-               'agenda))
+                 (cl-destructuring-bind (level _reduced-level _todo _priority text tags)
+                     (org-heading-components)
+                   (let ((path (org-get-outline-path)))
+                     (when (and (or (null depth)
+                                    (<= level depth))
+                                (or (null tags)
+                                    (not (string-match-p ":TOC" tags))))
+                       (list
+                        (mapconcat
+                         'identity
+                         (list (mapconcat #'identity
+                                          (append (when include-files
+                                                    (list (or (+org-get-property "TITLE")
+                                                              (file-relative-name buffer-file-name))))
+                                                  path
+                                                  (list text))
+                                          " > ")
+                               tags)
+                         " ")
+                        buffer-file-name
+                        (point)))
+                     )))
+               t 'agenda))
       (mapc #'kill-buffer org-agenda-new-buffers)
       (setq org-agenda-new-buffers nil))))
 
@@ -175,7 +173,7 @@ selection of all minor-modes, active or not."
                                                "troubleshooting.org"
                                                "tutorials.org"
                                                "faq.org")
-                                         2 nil t))))
+                                         2 t))))
 
 ;;;###autoload
 (defun doom/help-faq ()
@@ -442,11 +440,12 @@ If prefix arg is present, refresh the cache."
               (cl-destructuring-bind (file line _match)
                   ,(split-string location ":")
                 (find-file (expand-file-name file doom-emacs-dir))
-                (goto-line (string-to-number line))
+                (goto-char (point-min))
+                (forward-line (1- line))
                 (recenter)))))))))
 
 ;;;###autoload
-(defun doom/help-package-config (package &optional arg)
+(defun doom/help-package-config (package)
   "Jump to any `def-package!', `after!' or ;;;###package block for PACKAGE.
 
 This only searches `doom-emacs-dir' (typically ~/.emacs.d) and does not include
@@ -477,5 +476,6 @@ config blocks in your private config."
             (user-error "This package isn't configured by you or Doom")))
        ":")
     (find-file (expand-file-name file doom-emacs-dir))
-    (goto-line (string-to-number line))
+    (goto-char (point-min))
+    (forward-line (1- line))
     (recenter)))
