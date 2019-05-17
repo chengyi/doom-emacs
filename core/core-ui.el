@@ -86,12 +86,13 @@ behavior). Do not set this directly, this is let-bound in `doom|init-theme'.")
 (defvar doom--last-frame nil)
 
 (defun doom|run-switch-window-hooks ()
-  (unless (or doom-inhibit-switch-window-hooks
-              (eq doom--last-window (selected-window))
-              (minibufferp))
-    (let ((doom-inhibit-switch-window-hooks t))
-      (run-hooks 'doom-switch-window-hook)
-      (setq doom--last-window (selected-window)))))
+  (let ((gc-cons-threshold doom-gc-cons-upper-limit))
+    (unless (or doom-inhibit-switch-window-hooks
+                (eq doom--last-window (selected-window))
+                (minibufferp))
+      (let ((doom-inhibit-switch-window-hooks t))
+        (run-hooks 'doom-switch-window-hook)
+        (setq doom--last-window (selected-window))))))
 
 (defun doom|run-switch-frame-hooks (&rest _)
   (unless (or doom-inhibit-switch-frame-hooks
@@ -102,28 +103,28 @@ behavior). Do not set this directly, this is let-bound in `doom|init-theme'.")
       (setq doom--last-frame (selected-frame)))))
 
 (defun doom*run-switch-buffer-hooks (orig-fn buffer-or-name &rest args)
-  (if (or doom-inhibit-switch-buffer-hooks
-          (eq (setq buffer-or-name (get-buffer buffer-or-name))
-              (current-buffer))
-          (and (eq orig-fn 'switch-to-buffer) (car args)))
-      (apply orig-fn buffer-or-name args)
-    (let ((doom-inhibit-switch-buffer-hooks t))
-      (when-let* ((buffer (apply orig-fn buffer-or-name args)))
-        (with-current-buffer
-            (if (windowp buffer)
-                (window-buffer buffer)
-              buffer)
-          (run-hooks 'doom-switch-buffer-hook))
-        buffer))))
+  (let ((gc-cons-threshold doom-gc-cons-upper-limit))
+    (if (or doom-inhibit-switch-buffer-hooks
+            (eq (current-buffer) (get-buffer buffer-or-name))
+            (and (eq orig-fn #'switch-to-buffer) (car args)))
+        (apply orig-fn buffer-or-name args)
+      (let ((doom-inhibit-switch-buffer-hooks t))
+        (when-let* ((buffer (apply orig-fn buffer-or-name args)))
+          (with-current-buffer (if (windowp buffer)
+                                   (window-buffer buffer)
+                                 buffer)
+            (run-hooks 'doom-switch-buffer-hook))
+          buffer)))))
 
 (defun doom*run-switch-to-next-prev-buffer-hooks (orig-fn &rest args)
-  (if doom-inhibit-switch-buffer-hooks
-      (apply orig-fn args)
-    (let ((doom-inhibit-switch-buffer-hooks t))
-      (when-let* ((buffer (apply orig-fn args)))
-        (with-current-buffer buffer
-          (run-hooks 'doom-switch-buffer-hook))
-        buffer))))
+  (let ((gc-cons-threshold doom-gc-cons-upper-limit))
+    (if doom-inhibit-switch-buffer-hooks
+        (apply orig-fn args)
+      (let ((doom-inhibit-switch-buffer-hooks t))
+        (when-let* ((buffer (apply orig-fn args)))
+          (with-current-buffer buffer
+            (run-hooks 'doom-switch-buffer-hook))
+          buffer)))))
 
 (defun doom*run-load-theme-hooks (theme &optional _no-confirm no-enable)
   "Set up `doom-load-theme-hook' to run after `load-theme' is called."
