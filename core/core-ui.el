@@ -223,19 +223,21 @@ read-only or not file-visiting."
 ;; prompts the user for confirmation when deleting a non-empty frame
 (global-set-key [remap delete-frame] #'doom/delete-frame)
 
-;; Show trailing whitespace
-(setq show-trailing-whitespace t)
-(setq-hook! 'minibuffer-setup-hook show-trailing-whitespace nil) ; except in minibuffers
+;; Use `show-trailing-whitespace' instead of `whitespace-mode' because it's
+;; faster (implemented in C). But try to only enable it in editing buffers.
+(setq-default show-trailing-whitespace nil)
+(setq-hook! '(prog-mode-hook text-mode-hook conf-mode-hook) show-trailing-whitespace t)
+
+;; The native border "consumes" a pixel of the fringe on righter-most splits,
+;; `window-divider' does not. Available since Emacs 25.1.
+(setq-default window-divider-default-places t
+              window-divider-default-bottom-width 1
+              window-divider-default-right-width 1)
+(add-hook 'doom-init-ui-hook #'window-divider-mode)
 
 
 ;;
 ;;; Built-in packages
-
-;; Disable these because whitespace should be customized programmatically
-;; (through `whitespace-style'), and not through these commands.
-(put 'whitespace-toggle-options 'disabled t)
-(put 'global-whitespace-toggle-options 'disabled t)
-
 
 (def-package! ediff
   :defer t
@@ -304,15 +306,7 @@ read-only or not file-visiting."
   (show-paren-mode +1))
 
 
-;; The native border "consumes" a pixel of the fringe on righter-most splits,
-;; `window-divider' does not. Available since Emacs 25.1.
-(setq-default window-divider-default-places t
-              window-divider-default-bottom-width 1
-              window-divider-default-right-width 1)
-(add-hook 'doom-init-ui-hook #'window-divider-mode)
-
-
-;; `whitespace-mode'
+;;;###package whitespace
 (setq whitespace-line-column nil
       whitespace-style
       '(face indentation tabs tab-mark spaces space-mark newline newline-mark
@@ -321,6 +315,11 @@ read-only or not file-visiting."
       '((tab-mark ?\t [?› ?\t])
         (newline-mark ?\n [?¬ ?\n])
         (space-mark ?\  [?·] [?.])))
+
+;; Disable these because whitespace should be customized programmatically
+;; (through `whitespace-style'), and not through these commands.
+(put 'whitespace-toggle-options 'disabled t)
+(put 'global-whitespace-toggle-options 'disabled t)
 
 
 ;;
@@ -354,14 +353,6 @@ read-only or not file-visiting."
 ;; Helps us distinguish stacked delimiter pairs, especially in parentheses-drunk
 ;; languages like Lisp.
 (setq rainbow-delimiters-max-face-count 3)
-
-;;;###package visual-fill-column
-;; For a distractions-free-like UI, that dynamically resizes margins and can
-;; center a buffer.
-(setq visual-fill-column-center-text t
-      visual-fill-column-width
-      ;; take Emacs 26 line numbers into account
-      (+ (if EMACS26+ 6 0) fill-column))
 
 
 ;;

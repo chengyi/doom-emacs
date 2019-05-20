@@ -530,10 +530,10 @@
         :desc "Search buffer"                 "b" #'swiper
         :desc "Search current directory"      "d" #'+default/search-from-cwd
         :desc "Jump to symbol"                "i" #'imenu
-        :desc "Jump to symbol across buffers" "I" #'imenu-anywhere
         :desc "Jump to link"                  "l" #'ace-link
         :desc "Look up online"                "o" #'+lookup/online-select
-        :desc "Look up in docsets"            "k" #'+lookup/in-docsets
+        :desc "Look up in local docsets"      "k" #'+lookup/in-docsets
+        :desc "Look up in all docsets"        "K" #'+lookup/in-all-docsets
         :desc "Search project"                "p" #'+default/search-project)
 
       ;;; <leader> TAB --- workspace
@@ -674,12 +674,16 @@
 
       ;;; <leader> n --- notes
       (:prefix-map ("n" . "notes")
-        :desc "Open deft"           "d"  #'deft
-        :desc "Find file in notes"  "n"  #'+default/find-in-notes
-        :desc "Browse notes"        "N"  #'+default/browse-notes
-        :desc "Pop scratch buffer"  "s"  #'doom/open-scratch-buffer
-        :desc "Org capture"         "x"  #'org-capture
-        :desc "Org store link"      "l"  #'org-store-link)
+        :desc "Browse notes"                  "." #'+default/browse-notes
+        :desc "Search notes"                  "/" #'+default/org-notes-search
+        :desc "Search notes for symbol"       "*" #'+default/search-notes-for-symbol-at-point
+        :desc "Open deft"                     "d" #'deft
+        :desc "Search org agenda headlines"   "h" #'+default/org-notes-headlines
+        :desc "Find file in notes"            "n" #'+default/find-in-notes
+        :desc "Browse notes"                  "N" #'+default/browse-notes
+        :desc "Pop scratch buffer"            "s" #'doom/open-scratch-buffer
+        :desc "Org capture"                   "x" #'org-capture
+        :desc "Org store link"                "l" #'org-store-link)
 
       ;;; <leader> o --- open
       (:prefix-map ("o" . "open")
@@ -700,15 +704,13 @@
         (:when (featurep! :ui treemacs)
           :desc "Project sidebar" "p" #'+treemacs/toggle
           :desc "Find file in project sidebar" "P" #'+treemacs/find-file)
-        (:when (featurep! :emacs imenu)
-          :desc "Imenu sidebar" "i" #'imenu-list-smart-toggle)
-        (:when (featurep! :emacs term)
+        (:when (featurep! :term term)
           :desc "Terminal"          "t" #'+term/open
           :desc "Terminal in popup" "T" #'+term/open-popup-in-project)
-        (:when (featurep! :tools vterm)
+        (:when (featurep! :term vterm)
           :desc "Terminal"          "t" #'+vterm/open
           :desc "Terminal in popup" "T" #'+vterm/open-popup-in-project)
-        (:when (featurep! :emacs eshell)
+        (:when (featurep! :term eshell)
           :desc "Eshell"            "e" #'+eshell/open
           :desc "Eshell in popup"   "E" #'+eshell/open-popup)
         (:when (featurep! :collab floobits)

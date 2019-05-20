@@ -1,4 +1,4 @@
-;;; emacs/term/autoload.el -*- lexical-binding: t; -*-
+;;; term/term/autoload.el -*- lexical-binding: t; -*-
 
 ;;;###autoload
 (defun +term/open (arg)
