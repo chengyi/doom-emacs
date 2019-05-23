@@ -224,6 +224,8 @@ savehist file."
   (add-hook! '(change-major-mode-after-body-hook read-only-mode-hook)
     #'doom|detect-indentation)
   :config
+  (setq dtrt-indent-run-after-smie t)
+
   ;; always keep tab-width up-to-date
   (push '(t tab-width) dtrt-indent-hook-generic-mapping-list)
 
@@ -297,7 +299,9 @@ savehist file."
     (when (memq this-command '(eval-expression evil-ex))
       (smartparens-mode)))
   (add-hook 'minibuffer-setup-hook #'doom|init-smartparens-in-eval-expression)
+
   (sp-local-pair 'minibuffer-inactive-mode "'" nil :actions nil)
+  (sp-local-pair 'minibuffer-inactive-mode "`" nil :actions nil)
 
   ;; smartparens breaks evil-mode's replace state
   (add-hook 'evil-replace-state-entry-hook #'turn-off-smartparens-mode)
