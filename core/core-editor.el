@@ -37,7 +37,7 @@ detected.")
  hscroll-margin 2
  hscroll-step 1
  scroll-conservatively 1001
- scroll-margin 1
+ scroll-margin 0
  scroll-preserve-screen-position t
  mouse-wheel-scroll-amount '(5 ((shift) . 2))
  mouse-wheel-progressive-speed nil ; don't accelerate scrolling
@@ -104,14 +104,34 @@ detected.")
   (setq recentf-save-file (concat doom-cache-dir "recentf")
         recentf-auto-cleanup 'never
         recentf-max-menu-items 0
-        recentf-max-saved-items 300
-        recentf-filename-handlers '(file-truename abbreviate-file-name)
+        recentf-max-saved-items 200
         recentf-exclude
-        (list #'file-remote-p "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$"
-              "^/tmp/" "^/ssh:" "\\.?ido\\.last$" "\\.revive$" "/TAGS$"
-              "^/var/folders/.+$"
+        (list "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$" "^/tmp/" "^/ssh:"
+              "\\.?ido\\.last$" "\\.revive$" "/TAGS$" "^/var/folders/.+$"
               ;; ignore private DOOM temp files
               (recentf-apply-filename-handlers doom-local-dir)))
+
+  (defun doom--recent-file-truename (file)
+    (if (or (file-remote-p file nil t)
+            (not (file-remote-p file)))
+        (file-truename file)
+      file))
+  (setq recentf-filename-handlers '(doom--recent-file-truename abbreviate-file-name))
+
+  (defun doom|recentf-touch-buffer ()
+    "Bump file in recent file list when it is switched or written to."
+    (when buffer-file-name
+      (recentf-add-file buffer-file-name))
+    ;; Return nil to call from `write-file-functions'
+    nil)
+  (add-hook 'doom-switch-window-hook #'doom|recentf-touch-buffer)
+  (add-hook 'write-file-functions #'doom|recentf-touch-buffer)
+
+  (defun doom|recentf-add-dired-directory ()
+    "Add dired directory to recentf file list."
+    (recentf-add-file default-directory))
+  (add-hook 'dired-mode-hook #'doom|recentf-add-dired-directory)
+
   (unless noninteractive
     (add-hook 'kill-emacs-hook #'recentf-cleanup)
     (quiet! (recentf-mode +1))))

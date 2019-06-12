@@ -46,6 +46,9 @@ immediately runs it on the current candidate (ending the ivy session)."
 (def-package! ivy
   :defer 1
   :after-call pre-command-hook
+  :init
+  ;; Ignore order for non-fuzzy searches by default
+  (setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
   :config
   (setq ivy-height 15
         ivy-wrap t
@@ -84,6 +87,13 @@ immediately runs it on the current candidate (ending the ivy session)."
 
   (after! yasnippet
     (add-to-list 'yas-prompt-functions #'+ivy-yas-prompt nil #'eq))
+
+  (defun +ivy*inhibit-ivy-in-evil-ex (orig-fn &rest args)
+    "`ivy-completion-in-region' struggles with completing certain
+evil-ex-specific constructs, so we disable it solely in evil-ex."
+    (let ((completion-in-region-function #'completion--in-region))
+      (apply orig-fn args)))
+  (advice-add #'evil-ex :around #'+ivy*inhibit-ivy-in-evil-ex)
 
   (define-key! ivy-mode-map
     [remap switch-to-buffer]              #'+ivy/switch-buffer
