@@ -222,7 +222,7 @@ even if it doesn't need reloading!"
                    (member-p
                     (push sexp forms)))))
          (if forms
-             (concat (string-join (mapcar #'prin1-to-string (reverse forms)) "\n")
+             (concat (mapconcat #'prin1-to-string (reverse forms) "\n")
                      "\n")
            ""))))))
 
@@ -255,7 +255,7 @@ Run this whenever your `doom!' block, or a module autoload file, is modified."
         (when (file-exists-p auto-file)
           (push auto-file targets)
           (if module-p (push auto-file enabled-targets)))
-        (dolist (file (doom-files-in auto-dir :match "\\.el$" :full t))
+        (dolist (file (doom-files-in auto-dir :match "\\.el$" :full t :sort nil))
           (push file targets)
           (if module-p (push file enabled-targets)))))
     (if (and (not force-p)

@@ -1,5 +1,12 @@
 ;;; term/term/autoload.el -*- lexical-binding: t; -*-
 
+(defun +term--kill-dedicated (window buffer)
+  (when (window-live-p window)
+    (delete-window window))
+  (when (buffer-live-p buffer)
+    (set-process-query-on-exit-flag (get-buffer-process buffer) nil)
+    (kill-buffer buffer)))
+
 ;;;###autoload
 (defun +term/toggle (arg)
   "Toggle a persistent terminal popup window at project's root.
@@ -10,30 +17,35 @@ If prefix ARG, recreate term buffer in the current project's root."
   (interactive "P")
   (require 'multi-term)
   (let ((default-directory (or (doom-project-root) default-directory))
-        (multi-term-dedicated-buffer-name "doom:term-popup")
         (multi-term-dedicated-select-after-open-p t)
-        confirm-kill-processes
-        current-prefix-arg)
-    (cl-letf (((symbol-function #'multi-term-dedicated-get-window)
-               (lambda () (setq multi-term-dedicated-window
-                           (display-buffer-in-side-window
-                            multi-term-dedicated-buffer
-                            `((window-height . ,multi-term-dedicated-window-height)))))))
+        (multi-term-dedicated-buffer-name
+         (format "doom:term-popup:%s"
+                 (if (bound-and-true-p persp-mode)
+                     (safe-persp-name (get-current-persp))
+                   "main"))))
+    (let* ((buffer (multi-term-get-buffer nil t))
+           (window (get-buffer-window buffer)))
       (when arg
-        (when (multi-term-window-exist-p multi-term-dedicated-window)
-          (delete-window multi-term-dedicated-window))
-        (when (multi-term-buffer-exist-p multi-term-dedicated-buffer)
-          (when-let (process (get-buffer-process multi-term-dedicated-buffer))
-            (kill-process process))
-          (kill-buffer multi-term-dedicated-buffer)))
-      (if (multi-term-dedicated-exist-p)
-          (if (eq (selected-window) multi-term-dedicated-window)
-              (multi-term-dedicated-close)
-            (select-window multi-term-dedicated-window)
+        (+term--kill-dedicated window buffer)
+        (setq buffer (multi-term-get-buffer nil t))) ; recreates buffer
+      (if (and (window-live-p window)
+               (buffer-live-p buffer))
+          (if (eq (selected-window) window)
+              (delete-window window)
+            (select-window window)
             (when (bound-and-true-p evil-local-mode)
               (evil-change-to-initial-state))
             (goto-char (point-max)))
-        (multi-term-dedicated-open)))))
+        (with-current-buffer buffer
+          (with-silent-modifications
+            (erase-buffer))
+          (doom|mark-buffer-as-real)
+          (multi-term-internal))
+        (unless (window-live-p window)
+          (when-let (window
+                     (display-buffer-in-side-window
+                      buffer `((window-height . ,multi-term-dedicated-window-height))))
+            (select-window window)))))))
 
 ;;;###autoload
 (defun +term/here (arg)
