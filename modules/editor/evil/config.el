@@ -233,7 +233,7 @@ directives. By default, this only recognizes C directives.")
   :after-call (evil-normal-state-exit-hook)
   :init
   (setq evil-escape-excluded-states '(normal visual multiedit emacs motion)
-        evil-escape-excluded-major-modes '(neotree-mode treemacs-mode term-mode vterm-mode)
+        evil-escape-excluded-major-modes '(neotree-mode treemacs-mode vterm-mode)
         evil-escape-key-sequence "jk"
         evil-escape-delay 0.25)
   (evil-define-key* '(insert replace visual operator) 'global "\C-g" #'evil-escape)
@@ -264,7 +264,7 @@ directives. By default, this only recognizes C directives.")
         evil-snipe-repeat-scope 'visible
         evil-snipe-char-fold t)
   :config
-  (add-to-list 'evil-snipe-disabled-modes 'Info-mode nil #'eq)
+  (pushnew! evil-snipe-disabled-modes 'Info-mode 'calc-mode)
   (evil-snipe-mode +1)
   (evil-snipe-override-mode +1))
 

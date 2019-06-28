@@ -109,7 +109,7 @@ behavior). Do not set this directly, this is let-bound in `doom|init-theme'.")
             (and (eq orig-fn #'switch-to-buffer) (car args)))
         (apply orig-fn buffer-or-name args)
       (let ((doom-inhibit-switch-buffer-hooks t))
-        (when-let* ((buffer (apply orig-fn buffer-or-name args)))
+        (when-let (buffer (apply orig-fn buffer-or-name args))
           (with-current-buffer (if (windowp buffer)
                                    (window-buffer buffer)
                                  buffer)
@@ -121,7 +121,7 @@ behavior). Do not set this directly, this is let-bound in `doom|init-theme'.")
     (if doom-inhibit-switch-buffer-hooks
         (apply orig-fn args)
       (let ((doom-inhibit-switch-buffer-hooks t))
-        (when-let* ((buffer (apply orig-fn args)))
+        (when-let (buffer (apply orig-fn args))
           (with-current-buffer buffer
             (run-hooks 'doom-switch-buffer-hook))
           buffer)))))
@@ -298,10 +298,6 @@ read-only or not file-visiting."
 (def-package! paren
   ;; highlight matching delimiters
   :after-call (after-find-file doom-switch-buffer-hook)
-  :init
-  (defun doom|disable-show-paren-mode ()
-    "Turn off `show-paren-mode' buffer-locally."
-    (set (make-local-variable 'show-paren-mode) nil))
   :config
   (setq show-paren-delay 0.1
         show-paren-highlight-openparen t
@@ -508,9 +504,10 @@ By default, this uses Apple Color Emoji on MacOS and Symbola on Linux."
                :around #'doom*run-switch-buffer-hooks))
 
 ;; Apply `doom-theme'
-(if (daemonp)
-    (add-hook 'after-make-frame-functions #'doom|init-theme)
-  (add-hook 'doom-init-ui-hook #'doom|init-theme))
+(add-hook (if (daemonp)
+              'after-make-frame-functions
+            'doom-init-ui-hook)
+          #'doom|init-theme)
 ;; Apply `doom-font' et co
 (add-hook 'doom-after-init-modules-hook #'doom|init-fonts)
 ;; Ensure unicode fonts are set on each frame

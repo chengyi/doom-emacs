@@ -87,14 +87,15 @@ If on a:
                    (member "TOC" (org-get-tags)))
               (toc-org-insert-toc)
               (message "Updating table of contents"))
-             ((org-element-property :todo-type context)
+             ((string= "ARCHIVE" (car-safe (org-get-tags)))
+              (org-force-cycle-archived))
+             ((or (org-element-property :todo-type context)
+                  (org-element-property :scheduled context))
               (org-todo
                (if (eq (org-element-property :todo-type context) 'done)
                    (or (car (+org-get-todo-keywords-for (org-element-property :todo-keyword context)))
                        'todo)
                  'done)))
-             ((string= "ARCHIVE" (car-safe (org-get-tags)))
-              (org-force-cycle-archived))
              (t
               (+org/refresh-inline-images)
               (org-remove-latex-fragment-image-overlays)
@@ -123,7 +124,7 @@ If on a:
        (org-table-blank-field)
        (org-table-recalculate)
        (when (and (string-empty-p (string-trim (org-table-get-field)))
-                  (bound-and-true-p evil-mode))
+                  (bound-and-true-p evil-local-mode))
          (evil-change-state 'insert)))
 
       (`babel-call
@@ -225,7 +226,7 @@ wrong places)."
                 (save-excursion
                   (insert "\n")
                   (if (= level 1) (insert "\n")))))
-             (when-let* ((todo-keyword (org-element-property :todo-keyword context)))
+             (when-let (todo-keyword (org-element-property :todo-keyword context))
                (org-todo (or (car (+org-get-todo-keywords-for todo-keyword))
                              'todo)))))
 
@@ -233,7 +234,7 @@ wrong places)."
 
     (when (org-invisible-p)
       (org-show-hidden-entry))
-    (when (bound-and-true-p evil-mode)
+    (when (bound-and-true-p evil-local-mode)
       (evil-insert 1))))
 
 ;;;###autoload
@@ -364,8 +365,8 @@ another level of headings on each invocation."
   "Indent the current item (header or item), if possible.
 Made for `org-tab-first-hook' in evil-mode."
   (interactive)
-  (cond ((or (not (bound-and-true-p evil-mode))
-             (not (eq evil-state 'insert)))
+  (cond ((not (and (bound-and-true-p evil-local-mode)
+                   (evil-insert-state-p)))
          nil)
         ((org-at-item-p)
          (if (eq this-command 'org-shifttab)
@@ -504,6 +505,6 @@ an effect when `evil-org-special-o/O' has `item' in it (not the default)."
 ;;;###autoload
 (defun +org*display-link-in-eldoc (orig-fn &rest args)
   "Display the link at point in eldoc."
-  (or (when-let* ((link (org-element-property :raw-link (org-element-context))))
+  (or (when-let (link (org-element-property :raw-link (org-element-context)))
         (format "Link: %s" link))
       (apply orig-fn args)))

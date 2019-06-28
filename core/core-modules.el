@@ -96,11 +96,7 @@ non-nil."
                    (load! "config" (plist-get plist :path) t)))
                doom-modules)
       (run-hook-wrapped 'doom-init-modules-hook #'doom-try-run-hook)
-      (load! "config" doom-private-dir t)
-      (unless custom-file
-        (setq custom-file (concat doom-local-dir "custom.el")))
-      (when (stringp custom-file)
-        (load custom-file t t t)))))
+      (load! "config" doom-private-dir t))))
 
 
 ;;
@@ -116,7 +112,7 @@ non-nil."
 (defun doom-module-get (category module &optional property)
   "Returns the plist for CATEGORY MODULE. Gets PROPERTY, specifically, if set."
   (declare (pure t) (side-effect-free t))
-  (when-let* ((plist (gethash (cons category module) doom-modules)))
+  (when-let (plist (gethash (cons category module) doom-modules))
     (if property
         (plist-get plist property)
       plist)))
@@ -282,7 +278,7 @@ If ALL-P is non-nil, return paths of possible modules, activated or otherwise."
                        (require ',name)
                      ((debug error)
                       (message "Failed to load deferred package %s: %s" ',name e)))
-                   (when-let* ((deferral-list (assq ',name doom--deferred-packages-alist)))
+                   (when-let (deferral-list (assq ',name doom--deferred-packages-alist))
                      (dolist (hook (cdr deferral-list))
                        (advice-remove hook #',fn)
                        (remove-hook hook #',fn))

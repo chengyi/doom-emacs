@@ -88,6 +88,8 @@
       ;; custom vim-unmpaired-esque keys
       :m  "]a"    #'evil-forward-arg
       :m  "[a"    #'evil-backward-arg
+      :m  "]e"    #'next-error
+      :m  "[e"    #'previous-error
       :n  "]F"    #'+evil/next-frame
       :n  "[F"    #'+evil/previous-frame
       :m  "]h"    #'outline-next-visible-heading
@@ -467,8 +469,6 @@
           [mouse-1] #'flyspell-correct-word-generic))
 
       (:when (featurep! :tools flycheck)
-        :m "]e" #'next-error
-        :m "[e" #'previous-error
         (:after flycheck
           :map flycheck-error-list-mode-map
           :n "C-n"    #'flycheck-error-list-next-error
@@ -768,6 +768,7 @@
         :desc "Add new project"              "a" #'projectile-add-known-project
         :desc "Switch to project buffer"     "b" #'projectile-switch-to-buffer
         :desc "Compile in project"           "c" #'projectile-compile-project
+        :desc "Configure project"            "C" #'projectile-configure-project
         :desc "Remove known project"         "d" #'projectile-remove-known-project
         :desc "Edit project .dir-locals"     "e" #'projectile-edit-dir-locals
         :desc "Invalidate project cache"     "i" #'projectile-invalidate-cache
@@ -775,9 +776,11 @@
         :desc "Find other file"              "o" #'projectile-find-other-file
         :desc "Switch project"               "p" #'projectile-switch-project
         :desc "Find recent project files"    "r" #'projectile-recentf
+        :desc "Run project"                  "R" #'projectile-run-project
         :desc "Pop up scratch buffer"        "x" #'doom/open-project-scratch-buffer
         :desc "Switch to scratch buffer"     "X" #'doom/switch-to-project-scratch-buffer
-        :desc "List project tasks"           "t" #'+default/project-tasks)
+        :desc "List project tasks"           "t" #'+default/project-tasks
+        :desc "Test project"                 "T" #'projectile-test-project)
 
       ;;; <leader> q --- session
       (:prefix-map ("q" . "session")
@@ -908,4 +911,8 @@ To change these keys see `+default-repeat-keys'."
     "C-j"    #'next-line
     "C-k"    #'previous-line
     "C-S-j"  #'scroll-up-command
-    "C-S-k"  #'scroll-down-command))
+    "C-S-k"  #'scroll-down-command)
+
+  (define-key! read-expression-map
+    "C-j" #'next-line-or-history-element
+    "C-k" #'previous-line-or-history-element))
