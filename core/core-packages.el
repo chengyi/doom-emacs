@@ -153,7 +153,7 @@ them."
 ;;
 ;; Module package macros
 
-(cl-defmacro package! (name &rest plist &key built-in recipe pin disable _ignore _freeze)
+(cl-defmacro package! (name &rest plist &key built-in recipe pin disable ignore _freeze)
   "Declares a package and how to install it (if applicable).
 
 This macro is declarative and does not load nor install packages. It is used to
@@ -178,7 +178,8 @@ Accepts the following properties:
  :freeze FORM
    Do not update this package if FORM is non-nil.
  :built-in BOOL
-   Same as :ignore if the package is a built-in Emacs package.
+   Same as :ignore if the package is a built-in Emacs package. If set to
+   'prefer, will use built-in package if it is present.
 
 Returns t if package is successfully registered, and nil if it was disabled
 elsewhere."
@@ -202,8 +203,10 @@ elsewhere."
         (setq module-list (append module-list (list module) nil)
               plist (plist-put plist :modules module-list))))
     (when built-in
-      (doom-log "Ignoring built-in package '%s'" name)
-      (setq plist (plist-put plist :ignore built-in)))
+      (doom-log "Ignoring built-in package %S" name)
+      (when (equal built-in '(quote prefer))
+        (setq built-in `(locate-library ,(symbol-name name) nil doom-site-load-path))))
+    (setq plist (plist-put plist :ignore (or built-in ignore)))
     (while plist
       (unless (null (cadr plist))
         (setq old-plist (plist-put old-plist (car plist) (cadr plist))))
