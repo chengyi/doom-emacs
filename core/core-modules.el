@@ -52,6 +52,7 @@ your `doom!' block, a warning is emitted before replacing it with :emacs vc and
 
 (defvar doom--current-module nil)
 (defvar doom--current-flags nil)
+(defvar doom--modules-cache ())
 
 
 ;;
@@ -104,12 +105,15 @@ non-nil."
 ;;
 ;;; Module API
 
-(defun doom-module-p (category module)
+(defun doom-module-p (category module &optional flag)
   "Returns t if CATEGORY MODULE is enabled (ie. present in `doom-modules')."
   (declare (pure t) (side-effect-free t))
-  (and (hash-table-p doom-modules)
-       (gethash (cons category module) doom-modules)
-       t))
+  (when (hash-table-p doom-modules)
+    (let ((plist (gethash (cons category module) doom-modules)))
+      (and plist
+           (or (null flag)
+               (memq flag (plist-get plist :flags)))
+           t))))
 
 (defun doom-module-get (category module &optional property)
   "Returns the plist for CATEGORY MODULE. Gets PROPERTY, specifically, if set."
@@ -331,41 +335,45 @@ The overall load order of Doom is as follows:
 Module load order is determined by your `doom!' block. See `doom-modules-dirs'
 for a list of all recognized module trees. Order defines precedence (from most
 to least)."
-  (unless doom-modules
-    (setq doom-modules
-          (make-hash-table :test 'equal
-                           :size (if modules (length modules) 150)
-                           :rehash-threshold 1.0)))
-  (let ((inhibit-message doom-inhibit-module-warnings)
-        category m)
-    (while modules
-      (setq m (pop modules))
-      (cond ((keywordp m) (setq category m))
-            ((not category) (error "No module category specified for %s" m))
-            ((catch 'doom-modules
-               (let* ((module (if (listp m) (car m) m))
-                      (flags  (if (listp m) (cdr m))))
-                 (when-let* ((obsolete (assq category doom-obsolete-modules))
-                             (new (assq module obsolete)))
-                   (let ((newkeys (cdr new)))
-                     (if (null newkeys)
-                         (message "WARNING %s module was removed" key)
-                       (if (cdr newkeys)
-                           (message "WARNING %s module was removed and split into the %s modules"
-                                    (list category module) (mapconcat #'prin1-to-string newkeys ", "))
-                         (message "WARNING %s module was moved to %s"
-                                  (list category module) (car newkeys)))
-                       (push category modules)
-                       (dolist (key newkeys)
-                         (push (if flags
-                                   (nconc (cdr key) flags)
-                                 (cdr key))
-                               modules)
-                         (push (car key) modules))
-                       (throw 'doom-modules t))))
-                 (if-let* ((path (doom-module-locate-path category module)))
-                     (doom-module-set category module :flags flags :path path)
-                   (message "WARNING Couldn't find the %s %s module" category module))))))))
+  (if doom--modules-cache
+      (progn
+        (setq doom-modules doom--modules-cache)
+        (doom-log "Using `doom-modules' cache"))
+    (unless doom-modules
+      (setq doom-modules
+            (make-hash-table :test 'equal
+                             :size (if modules (length modules) 150)
+                             :rehash-threshold 1.0)))
+    (let ((inhibit-message doom-inhibit-module-warnings)
+          category m)
+      (while modules
+        (setq m (pop modules))
+        (cond ((keywordp m) (setq category m))
+              ((not category) (error "No module category specified for %s" m))
+              ((catch 'doom-modules
+                 (let* ((module (if (listp m) (car m) m))
+                        (flags  (if (listp m) (cdr m))))
+                   (when-let* ((obsolete (assq category doom-obsolete-modules))
+                               (new (assq module obsolete)))
+                     (let ((newkeys (cdr new)))
+                       (if (null newkeys)
+                           (message "WARNING %s module was removed" key)
+                         (if (cdr newkeys)
+                             (message "WARNING %s module was removed and split into the %s modules"
+                                      (list category module) (mapconcat #'prin1-to-string newkeys ", "))
+                           (message "WARNING %s module was moved to %s"
+                                    (list category module) (car newkeys)))
+                         (push category modules)
+                         (dolist (key newkeys)
+                           (push (if flags
+                                     (nconc (cdr key) flags)
+                                   (cdr key))
+                                 modules)
+                           (push (car key) modules))
+                         (throw 'doom-modules t))))
+                   (if-let (path (doom-module-locate-path category module))
+                       (doom-module-set category module :flags flags :path path)
+                     (message "WARNING Couldn't find the %s %s module" category module)))))))))
   (when noninteractive
     (setq doom-inhibit-module-warnings t))
   `(setq doom-modules ',doom-modules))
@@ -498,7 +506,7 @@ CATEGORY and MODULE can be omitted When this macro is used from inside a module
        t))
 
 (defmacro after! (targets &rest body)
-  "Evaluate BODY after TARGETS have loaded.
+  "Evaluate BODY after TARGETS (packages) have loaded.
 
 This is a wrapper around `with-eval-after-load' that:
 
@@ -506,19 +514,15 @@ This is a wrapper around `with-eval-after-load' that:
 2. No-ops for TARGETS that are disabled by the user (via `package!')
 3. Supports compound TARGETS statements (see below)
 
-TARGETS can either be:
+TARGETS is a list of packages in one of these formats:
 
 - An unquoted package symbol (the name of a package)
-
     (after! helm BODY...)
-
 - An unquoted list of package symbols (i.e. BODY is evaluated once both magit
   and git-gutter have loaded)
-
     (after! (magit git-gutter) BODY...)
-
-- An unquoted, nested list of compound package lists, using :or/:any and/or :and/:all
-
+- An unquoted, nested list of compound package lists, using :or/:any and/or
+  :and/:all
     (after! (:or package-a package-b ...)  BODY...)
     (after! (:and package-a package-b ...) BODY...)
     (after! (:and package-a (:or package-b package-c) ...) BODY...)
