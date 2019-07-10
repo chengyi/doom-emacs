@@ -18,6 +18,7 @@
 
 ;;;###package avy
 (setq avy-all-windows nil
+      avy-all-windows-alt t
       avy-background t)
 
 
@@ -98,18 +99,19 @@
       ;; characters), so just do it ourselves.
       (define-key! c++-mode-map "<" nil ">" nil)
       ;; ...and leave it to smartparens
-      (sp-with-modes '(c++-mode objc-mode)
-        (sp-local-pair "<" ">"
-                       :when '(+cc-sp-point-is-template-p +cc-sp-point-after-include-p)
-                       :post-handlers '(("| " "SPC"))))
+      (sp-local-pair '(c++-mode objc-mode)
+                     "<" ">"
+                     :when '(+cc-sp-point-is-template-p +cc-sp-point-after-include-p)
+                     :post-handlers '(("| " "SPC")))
 
-      (sp-with-modes '(c-mode c++-mode objc-mode java-mode)
-        (sp-local-pair "/*!" "*/" :post-handlers '(("||\n[i]" "RET") ("[d-1]< | " "SPC")))))
+      (sp-local-pair '(c-mode c++-mode objc-mode java-mode)
+                     "/*!" "*/"
+                     :post-handlers '(("||\n[i]" "RET") ("[d-1]< | " "SPC"))))
 
     ;; Expand C-style doc comment blocks. Must be done manually because some of
     ;; these languages use specialized (and deferred) parsers, whose state we
     ;; can't access while smartparens is doing its thing.
-    (defun +default-expand-doc-comment-block (&rest _ignored)
+    (defun +default-expand-asterix-doc-comment-block (&rest _ignored)
       (let ((indent (current-indentation)))
         (newline-and-indent)
         (save-excursion
@@ -122,7 +124,17 @@
        stylus-mode scala-mode)
      "/*" "*/"
      :actions '(insert)
-     :post-handlers '(("| " "SPC") ("|\n*/[i][d-2]" "RET") (+default-expand-doc-comment-block "*")))
+     :post-handlers '(("| " "SPC")
+                      ("|\n[i]*/[d-2]" "RET")
+                      (+default-expand-asterix-doc-comment-block "*")))
+
+    (after! smartparens-ml
+      (sp-with-modes '(tuareg-mode fsharp-mode)
+        (sp-local-pair "(*" "*)" :actions nil)
+        (sp-local-pair "(*" "*"
+                       :actions '(insert)
+                       :post-handlers '(("| " "SPC") ("|\n[i]*)[d-2]" "RET")))))
+
 
     ;; Highjacks backspace to:
     ;;  a) balance spaces inside brackets/parentheses ( | ) -> (|)
@@ -137,10 +149,10 @@
     ;;  e) properly delete smartparen pairs when they are encountered, without
     ;;     the need for strict mode.
     ;;  f) do none of this when inside a string
-    (advice-add #'delete-backward-char :override #'+default*delete-backward-char)
+    (advice-add #'delete-backward-char :override #'+default*delete-backward-char))
 
-    ;; Makes `newline-and-indent' continue comments (and more reliably)
-    (advice-add #'newline-and-indent :override #'+default*newline-indent-and-continue-comments)))
+  ;; Makes `newline-and-indent' continue comments (and more reliably)
+  (advice-add #'newline-and-indent :override #'+default*newline-indent-and-continue-comments))
 
 
 ;;

@@ -5,11 +5,11 @@
 (defun +debugger-list-for-dap ()
   (when (and (bound-and-true-p lsp-mode)
              (require 'dap-mode nil t)
-             dsp-mode)
+             dap-mode)
     (mapcar #'car dap--debug-template-configurations)))
 
 (defun +debugger-list-for-realgud ()
-  (cl-loop for (sym . plist) in +debugger-realgud-alist
+  (cl-loop for (sym . plist) in +debugger--realgud-alist
            for sym-name = (symbol-name sym)
            for modes = (plist-get plist :modes)
            if (or (null modes) (apply #'derived-mode-p modes))
@@ -48,7 +48,9 @@ for what debugger to use. If the prefix ARG is set, prompt anyway."
         (unless (fboundp debugger)
           (user-error "Couldn't find debugger backend %S" debugger))
         (setq-local +debugger--last debugger)
-        (call-interactively debugger))
+        (if (assoc debugger dap--debug-template-configurations)
+            (dap-debug debugger)
+          (call-interactively debugger)))
     (+debugger/start-last)))
 
 ;;;###autoload

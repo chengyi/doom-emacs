@@ -162,13 +162,8 @@
                            :bind ((evil-snipe-scope 'buffer)
                                   (evil-snipe-enable-highlight)
                                   (evil-snipe-enable-incremental-highlight)))
-        "SPC" #'avy-goto-char-timer
-        "/" (evilem-create #'evil-ex-search-next
-                           :pre-hook (save-excursion (call-interactively #'evil-ex-search-forward))
-                           :bind ((evil-search-wrap)))
-        "?" (evilem-create #'evil-ex-search-previous
-                           :pre-hook (save-excursion (call-interactively #'evil-ex-search-backward))
-                           :bind ((evil-search-wrap))))
+        "SPC" (λ!! #'avy-goto-char-timer t)
+        "/" #'avy-goto-char-timer)
 
       ;; text object plugins
       :textobj "x" #'evil-inner-xml-attr               #'evil-outer-xml-attr
@@ -542,7 +537,8 @@
         :desc "Search other directory"        "D" #'+default/search-other-cwd
         :desc "Jump to symbol"                "i" #'imenu
         :desc "Jump to link"                  "l" #'ace-link
-        :desc "Look up online"                "o" #'+lookup/online-select
+        :desc "Look up online"                "o" #'+lookup/online
+        :desc "Look up online (w/ prompt)"    "O" #'+lookup/online-select
         :desc "Look up in local docsets"      "k" #'+lookup/in-docsets
         :desc "Look up in all docsets"        "K" #'+lookup/in-all-docsets
         :desc "Search project"                "p" #'+default/search-project
@@ -763,6 +759,7 @@
         :desc "Edit project .dir-locals"     "e" #'projectile-edit-dir-locals
         :desc "Invalidate project cache"     "i" #'projectile-invalidate-cache
         :desc "Kill project buffers"         "k" #'projectile-kill-buffers
+        :desc "Repeat last external command" "l" #'projectile-repeat-last-command
         :desc "Find other file"              "o" #'projectile-find-other-file
         :desc "Switch project"               "p" #'projectile-switch-project
         :desc "Find recent project files"    "r" #'projectile-recentf

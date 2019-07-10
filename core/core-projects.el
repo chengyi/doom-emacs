@@ -13,6 +13,10 @@ Emacs.")
 (defvar doom-projectile-fd-binary "fd"
   "name of `fd-find' executable binary")
 
+(defvar doom-projectile-cache-timer-file (concat doom-cache-dir "projectile.timers")
+  "Where to save project file cache timers.")
+
+
 ;;
 ;;; Packages
 
@@ -39,6 +43,14 @@ Emacs.")
   (global-set-key [remap find-tag]         #'projectile-find-tag)
 
   :config
+  (defun doom*projectile-cache-timers ()
+    "Persist `projectile-projects-cache-time' across sessions, so that
+`projectile-files-cache-expire' checks won't reset when restarting Emacs."
+    (projectile-serialize projectile-projects-cache-time doom-projectile-cache-timer-file))
+  (advice-add #'projectile-serialize-cache :before #'doom*projectile-cache-timers)
+  ;; Restore it
+  (setq projectile-projects-cache-time (projectile-unserialize doom-projectile-cache-timer-file))
+
   (add-hook 'dired-before-readin-hook #'projectile-track-known-projects-find-file-hook)
   (projectile-mode +1)
 
@@ -126,8 +138,11 @@ c) are not valid projectile projects."
           (concat "rg -0 --files --color=never --hidden"
                   (cl-loop for dir in projectile-globally-ignored-directories
                            concat (format " --glob '!%s'" dir)))
-          ;; ensure Windows users get fd's benefits
-          projectile-indexing-method 'alien))))
+          ;; ensure Windows users get rg's benefits
+          projectile-indexing-method 'alien)
+    ;; fix breakage on windows in git projects
+    (unless (executable-find "tr")
+      (setq projectile-git-submodule-command nil)))))
 
 ;;
 ;; Project-based minor modes
