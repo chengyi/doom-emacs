@@ -4,7 +4,7 @@
 
 ;; Don't let evil-collection interfere with certain keys
 (setq evil-collection-key-blacklist
-      (list "C-j" "C-k" "gd" "gf" "K" "[" "]" "gz"
+      (list "C-j" "C-k" "gd" "gf" "K" "[" "]" "gz" "<escape>"
             doom-leader-key doom-localleader-key
             doom-leader-alt-key doom-localleader-alt-key))
 
@@ -793,26 +793,29 @@
       ;;; <leader> s --- snippets
       (:when (featurep! :editor snippets)
         (:prefix-map ("s" . "snippets")
-          :desc "New snippet"                "n" #'yas-new-snippet
+          :desc "View snippet for mode"      "/" #'+snippets/find-for-current-mode
+          :desc "View snippet (global)"      "?" #'+snippets/find
+          :desc "Edit snippet"               "c" #'+snippet/edit
+          :desc "View private snippet"       "f" #'+snippets/find-private
           :desc "Insert snippet"             "i" #'yas-insert-snippet
-          :desc "Jump to mode snippet"       "/" #'yas-visit-snippet-file
-          :desc "Jump to snippet"            "s" #'+snippets/find-file
-          :desc "Browse snippets"            "S" #'+snippets/browse
+          :desc "New snippet"                "n" #'+snippet/new
+          :desc "New snippet alias"          "N" #'+snippet/new-alias
           :desc "Reload snippets"            "r" #'yas-reload-all
-          :desc "Create temporary snippet"   "c" #'aya-create
-          :desc "Use temporary snippet"      "e" #'aya-expand))
+          :desc "Create temporary snippet"   "s" #'aya-create
+          :desc "Expand temporary snippet"   "e" #'aya-expand))
 
       ;;; <leader> t --- toggle
       (:prefix-map ("t" . "toggle")
-        :desc "Flyspell"                     "s" #'flyspell-mode
-        :desc "Flycheck"                     "f" #'flycheck-mode
-        :desc "Line numbers"                 "l" #'doom/toggle-line-numbers
-        :desc "Frame fullscreen"             "F" #'toggle-frame-fullscreen
-        :desc "Indent guides"                "i" #'highlight-indent-guides-mode
-        :desc "Impatient mode"               "h" #'+impatient-mode/toggle
         :desc "Big mode"                     "b" #'doom-big-font-mode
+        :desc "Flycheck"                     "f" #'flycheck-mode
+        :desc "Frame fullscreen"             "F" #'toggle-frame-fullscreen
         :desc "Evil goggles"                 "g" #'evil-goggles-mode
-        :desc "org-tree-slide mode"          "p" #'+org-present/start))
+        :desc "Impatient mode"               "h" #'+impatient-mode/toggle
+        :desc "Indent guides"                "i" #'highlight-indent-guides-mode
+        :desc "Indent style"                 "I" #'doom/toggle-indent-style
+        :desc "Line numbers"                 "l" #'doom/toggle-line-numbers
+        :desc "org-tree-slide mode"          "p" #'+org-present/start
+        :desc "Flyspell"                     "s" #'flyspell-mode))
 
 
 ;;
