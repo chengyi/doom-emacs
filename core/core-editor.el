@@ -180,7 +180,7 @@ savehist file."
 
 (def-package! server
   :when (display-graphic-p)
-  :after-call (pre-command-hook after-find-file)
+  :after-call (pre-command-hook after-find-file focus-out-hook)
   :init
   (when-let (name (getenv "EMACS_SERVER_NAME"))
     (setq server-name name))
@@ -197,6 +197,7 @@ savehist file."
   :init
   (global-set-key [remap evil-jump-forward]  #'better-jumper-jump-forward)
   (global-set-key [remap evil-jump-backward] #'better-jumper-jump-backward)
+  (global-set-key [remap xref-pop-marker-stack] #'better-jumper-jump-backward)
   :config
   (better-jumper-mode +1)
   (add-hook 'better-jumper-post-jump-hook #'recenter)

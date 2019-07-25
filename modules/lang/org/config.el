@@ -135,6 +135,13 @@ when executed.")
 take one argument (the language specified in the src block, as a string). Stops
 at the first function to return non-nil.")
 
+  (defun +org*src-lazy-load-library (lang)
+    "Lazy load a babel package to ensure syntax highlighting."
+    (or (cdr (assoc lang org-src-lang-modes))
+        (fboundp (intern-soft (format "%s-mode" lang)))
+        (require (intern-soft (format "ob-%s" lang)) nil t)))
+  (advice-add #'org-src--get-lang-mode :before #'+org*src-lazy-load-library)
+
   (defun +org*babel-lazy-load-library (info)
     "Load babel libraries lazily when babel blocks are executed."
     (let* ((lang (nth 0 info))
@@ -265,9 +272,6 @@ Some commands of interest:
 + `+org-attach/sync'"
   (setq org-attach-directory (expand-file-name org-attach-directory org-directory))
 
-  ;; A shorter link to attachments
-  (add-to-list 'org-link-abbrev-alist (cons "attach" (abbreviate-file-name org-attach-directory)))
-
   (org-link-set-parameters
    "attach"
    :follow   (lambda (link) (find-file (expand-file-name link org-attach-directory)))
@@ -374,9 +378,6 @@ file isn't in `org-directory'."
 (defun +org|init-export ()
   (when (featurep! :lang markdown)
     (add-to-list 'org-export-backends 'md))
-
-  (when (featurep! :lang latex)
-    (add-to-list 'org-export-backends 'latex))
 
   (def-package! ox-pandoc
     :when (and (featurep! +pandoc)
@@ -780,7 +781,6 @@ compelling reason, so..."
   (defvar org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/"))
   (defvar org-preview-latex-image-directory (concat doom-cache-dir "org-latex/"))
 
-  (defvar org-export-backends '(html ascii odt))
   (defvar org-modules
     '(;; org-w3m
       ;; org-bbdb
