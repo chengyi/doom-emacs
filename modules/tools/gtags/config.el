@@ -21,8 +21,8 @@
         (:prefix-map ("c". "code")
           :desc "Find Symbol" "s" #'ggtags-find-other-symbol))
   (dolist (mode +gtags-enabled-modes)
-    (add-hook! mode
-      (ggtags-mode 1)
-      (set-lookup-handlers! mode
-         :definition #'ggtags-find-definition
-         :references #'ggtags-find-reference))))
+    (let ((hook (intern (format "%s-hook" mode))))
+      (add-hook hook (lambda! (ggtags-mode 1)
+                              (set-lookup-handlers! mode
+                                :definition #'ggtags-find-definition
+                                :references #'ggtags-find-reference))))))
