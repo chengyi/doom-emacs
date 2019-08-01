@@ -8,15 +8,6 @@
   :group 'gtags
   :type '(repeat symbol))
 
-(defmacro +gtags-enable-for-mode! (mode)
-  `(add-hook! ',(intern-soft (format "%s-hook" mode))
-     (when (or (not (featurep 'lsp-mode)) (member (projectile-project-root) +gtags-enable-proj-paths))
-       (ggtags-mode 1)
-       (set-lookup-handlers! ',mode
-         :definition #'ggtags-find-definition
-         :references #'ggtags-find-reference)
-       (message "hook done!"))))
-
 (advice-add! '(lsp!) :around
              (lambda (orig-fn &rest args)
                (if (and (projectile-project-root) (file-exists-p (concat (projectile-project-root) "GTAGS")))
