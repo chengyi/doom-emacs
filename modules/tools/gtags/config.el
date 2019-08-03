@@ -4,13 +4,17 @@
   "Gtags related settings"
   :group 'programming)
 
-(defcustom +gtags-enabled-modes '(c-mode c++-mode) "specify the path that gtags enable"
+(defcustom +gtags-enabled-modes '(c-mode c++-mode) "specify modes that gtags enable"
   :group 'gtags
   :type '(repeat symbol))
 
+(defun gtags-ready-p ()
+  (and (projectile-project-root) (file-exists-p
+                                  (concat (projectile-project-root) "GTAGS"))))
+
 (advice-add! '(lsp!) :around
              (lambda (orig-fn &rest args)
-               (if (and (projectile-project-root) (file-exists-p (concat (projectile-project-root) "GTAGS")))
+               (if (gtags-ready-p)
                    t
                  (apply orig-fn args))))
 
@@ -22,7 +26,9 @@
           :desc "Find Symbol" "s" #'ggtags-find-other-symbol))
   (dolist (mode +gtags-enabled-modes)
     (let ((hook (intern (format "%s-hook" mode))))
-      (add-hook hook (lambda! (ggtags-mode 1)
-                              (set-lookup-handlers! mode
-                                :definition #'ggtags-find-definition
-                                :references #'ggtags-find-reference))))))
+      (add-hook hook (lambda!
+                      (if (gtags-ready-p)
+                          (ggtags-mode 1)
+                        (set-lookup-handlers! mode
+                          :definition #'ggtags-find-definition
+                          :references #'ggtags-find-reference)))))))
