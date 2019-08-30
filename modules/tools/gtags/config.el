@@ -4,28 +4,31 @@
   "Gtags related settings"
   :group 'programming)
 
-(defcustom +gtags-enable-proj-paths '() "specify the path that gtags enable"
+(defcustom +gtags-enabled-modes '(c-mode c++-mode) "specify modes that gtags enable"
   :group 'gtags
-  :type '(repeat string))
+  :type '(repeat symbol))
 
-(defmacro +gtags-enable-for-mode! (mode)
-  `(add-hook! ',(intern-soft (format "%s-hook" mode))
-     (when (or (not (featurep 'lsp-mode)) (member (projectile-project-root) +gtags-enable-proj-paths))
-       (ggtags-mode 1)
-       (set-lookup-handlers! ',mode
-         :definition #'ggtags-find-definition
-         :references #'ggtags-find-reference)
-       (message "hook done!"))))
+(defun gtags-ready-p ()
+  (and (projectile-project-root) (file-exists-p
+                                  (concat (projectile-project-root) "GTAGS"))))
 
-(advice-add! '(lsp) :around
+(advice-add! '(lsp!) :around
              (lambda (orig-fn &rest args)
-               (if (not (member (projectile-project-root) +gtags-enable-proj-paths))
-                   (apply orig-fn args)
-                 t)))
+               (if (gtags-ready-p)
+                   t
+                 (apply orig-fn args))))
 
 
 (def-package! ggtags
   :config
   (map! :leader
-        (:prefix ("c". "code")
-          :desc "Find Symbol" "s" #'ggtags-find-other-symbol)))
+        (:prefix-map ("c". "code")
+          :desc "Find Symbol" "s" #'ggtags-find-other-symbol))
+  (dolist (mode +gtags-enabled-modes)
+    (let ((hook (intern (format "%s-hook" mode))))
+      (add-hook hook (lambda!
+                      (if (gtags-ready-p)
+                          (ggtags-mode 1)
+                        (set-lookup-handlers! mode
+                          :definition #'ggtags-find-definition
+                          :references #'ggtags-find-reference)))))))
