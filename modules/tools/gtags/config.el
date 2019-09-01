@@ -12,7 +12,7 @@
   (and (projectile-project-root) (file-exists-p
                                   (concat (projectile-project-root) "GTAGS"))))
 
-(advice-add! '(lsp!) :around
+(advice-add #'lsp! :around
              (lambda (orig-fn &rest args)
                (if (gtags-ready-p)
                    t
