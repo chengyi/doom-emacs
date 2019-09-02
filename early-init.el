@@ -4,19 +4,17 @@
 ;; before package and UI initialization happens.
 
 ;; Defer garbage collection further back in the startup process
-(setq gc-cons-threshold most-positive-fixnum)
+(setq gc-cons-threshold 268435456)
 
-;; In Emacs 27+, package initialization occurs before `user-init-file' is
-;; loaded, but after `early-init-file'. Doom handles package initialization, so
-;; we must prevent Emacs from doing it early!
+;; Package initialize occurs automatically, before `user-init-file' is
+;; loaded, but after `early-init-file'. Doom handles package
+;; initialization, so we must prevent Emacs from doing it early!
 (setq package-enable-at-startup nil)
 
-;; Prevent the glimpse of un-styled Emacs by disabling these UI elements early.
-(push '(menu-bar-lines . 0) default-frame-alist)
-(push '(tool-bar-lines . 0) default-frame-alist)
-(push '(vertical-scroll-bars) default-frame-alist)
+;; Prevent the glimpse of un-styled Emacs by setting these early.
+(add-to-list 'default-frame-alist '(tool-bar-lines . 0))
+(add-to-list 'default-frame-alist '(menu-bar-lines . 0))
+(add-to-list 'default-frame-alist '(vertical-scroll-bars))
 
-;; Resizing the Emacs frame can be a terribly expensive part of changing the
-;; font. By inhibiting this, we easily halve startup times with fonts that are
-;; larger than the system default.
-(setq frame-inhibit-implied-resize t)
+;; One less file to load at startup
+(setq site-run-file nil)

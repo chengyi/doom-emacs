@@ -4,7 +4,7 @@
 (defalias '+literate/reload #'doom/reload)
 
 ;;;###autoload
-(defun +literate-recompile-maybe-h ()
+(defun +literate|recompile-maybe ()
   "Recompile config.org if we're editing an org file in our DOOMDIR.
 
 We assume any org file in `doom-private-dir' is connected to your literate

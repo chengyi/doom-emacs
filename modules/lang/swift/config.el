@@ -4,14 +4,14 @@
   (set-repl-handler! 'swift-mode #'run-swift))
 
 
-(use-package! flycheck-swift
+(def-package! flycheck-swift
   :when (and (featurep! :tools flycheck)
              (not (featurep! +lsp)))
   :after swift-mode
   :config (flycheck-swift-setup))
 
 
-(use-package! company-sourcekit
+(def-package! company-sourcekit
   :when (and (featurep! :completion company)
              (not (featurep! +lsp)))
   :after swift-mode
@@ -19,7 +19,7 @@
   (set-company-backend! 'swift-mode '(company-sourcekit company-yasnippet)))
 
 
-(use-package! lsp-sourcekit
+(def-package! lsp-sourcekit
   :when (featurep! +lsp)
   :after swift-mode
   :init (add-hook 'swift-mode-hook #'lsp!))

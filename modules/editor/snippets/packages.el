@@ -5,6 +5,6 @@
 (package! auto-yasnippet)
 
 (package! doom-snippets
-  :recipe (:host github
+  :recipe (:fetcher github
            :repo "hlissner/doom-snippets"
            :files ("*.el" "snippets")))

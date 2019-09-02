@@ -14,7 +14,7 @@
     (add-hook 'scala-mode-local-vars-hook #'lsp!)))
 
 
-(use-package! ensime
+(def-package! ensime
   :unless (featurep! +lsp)
   :defer t
   :config
@@ -31,6 +31,6 @@
   (require 'imenu))
 
 
-(use-package! sbt-mode
+(def-package! sbt-mode
   :after scala-mode
   :config (set-repl-handler! 'scala-mode #'+scala/open-repl))

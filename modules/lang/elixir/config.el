@@ -1,6 +1,6 @@
 ;;; lang/elixir/config.el -*- lexical-binding: t; -*-
 
-(use-package! elixir-mode
+(def-package! elixir-mode
   :defer t
   :init
   ;; Disable default smartparens config. There are too many pairs; we only want
@@ -21,18 +21,16 @@
     :return "return" :yield "use")
 
   ;; ...and only complete the basics
-  (sp-with-modes 'elixir-mode
-    (sp-local-pair "do" "end"
-                   :when '(("RET" "<evil-ret>"))
-                   :unless '(sp-in-comment-p sp-in-string-p)
-                   :post-handlers '("||\n[i]"))
-    (sp-local-pair "do " " end" :unless '(sp-in-comment-p sp-in-string-p))
-    (sp-local-pair "fn " " end" :unless '(sp-in-comment-p sp-in-string-p)))
+  (after! smartparens
+    (sp-with-modes 'elixir-mode
+      (sp-local-pair "do" "end"
+                     :when '(("RET" "<evil-ret>"))
+                     :unless '(sp-in-comment-p sp-in-string-p)
+                     :post-handlers '("||\n[i]"))
+      (sp-local-pair "do " " end" :unless '(sp-in-comment-p sp-in-string-p))
+      (sp-local-pair "fn " " end" :unless '(sp-in-comment-p sp-in-string-p))))
 
-  (when (featurep! +lsp)
-    (add-hook 'elixir-mode-local-vars-hook #'lsp!))
-
-  (use-package! alchemist-company
+  (def-package! alchemist-company
     :when (featurep! :completion company)
     :commands alchemist-company
     :init
@@ -44,12 +42,12 @@
       (remove-hook 'alchemist-mode-hook fn)
       (remove-hook 'alchemist-iex-mode-hook fn)))
 
-  (use-package! flycheck-credo
+  (def-package! flycheck-credo
     :when (featurep! :tools flycheck)
     :config (flycheck-credo-setup)))
 
 
-(use-package! alchemist
+(def-package! alchemist
   :hook (elixir-mode . alchemist-mode)
   :config
   (set-lookup-handlers! 'elixir-mode

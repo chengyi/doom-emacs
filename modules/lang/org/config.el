@@ -3,12 +3,11 @@
 ;;
 ;;; `org-load' hooks
 
-(defun +org-init-agenda-h ()
+(defun +org|init-agenda ()
   (unless org-agenda-files
     (setq org-agenda-files (list org-directory)))
   (setq-default
-   ;; Hide blocked tasks in the agenda view.
-   org-agenda-dim-blocked-tasks 'invisible
+   org-agenda-dim-blocked-tasks nil
    org-agenda-inhibit-startup t
    org-agenda-skip-unavailable-files t
    ;; Move the agenda to show the previous 3 days and the next 7 days for a bit
@@ -19,13 +18,12 @@
    org-agenda-start-day "-3d"))
 
 
-(defun +org-init-appearance-h ()
+(defun +org|init-appearance ()
   "Configures the UI for `org-mode'."
   (setq-default
    org-adapt-indentation nil
    org-cycle-include-plain-lists t
    org-eldoc-breadcrumb-separator " → "
-   org-enforce-todo-dependencies t
    org-entities-user
    '(("flat"  "\\flat" nil "" "" "266D" "♭")
      ("sharp" "\\sharp" nil "" "" "266F" "♯"))
@@ -69,14 +67,14 @@
    ;; Scale up LaTeX previews a bit (default is too small)
    org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
 
-  (advice-add #'org-eldoc-documentation-function :around #'+org-display-link-in-eldoc-a)
+  (advice-add #'org-eldoc-documentation-function :around #'+org*display-link-in-eldoc)
 
   ;; Don't do automatic indent detection in org files
   (add-to-list 'doom-detect-indentation-excluded-modes 'org-mode nil #'eq)
 
   ;; Previews are usually rendered with light backgrounds, so ensure their
   ;; background (and foreground) match the current theme.
-  (defun +org-update-latex-preview-background-color-h ()
+  (defun +org|update-latex-preview-background-color ()
     (setq-default
      org-format-latex-options
      (plist-put org-format-latex-options
@@ -84,7 +82,7 @@
                 (face-attribute (or (cadr (assq 'default face-remapping-alist))
                                     'default)
                                 :background nil t))))
-  (add-hook 'doom-load-theme-hook #'+org-update-latex-preview-background-color-h)
+  (add-hook 'doom-load-theme-hook #'+org|update-latex-preview-background-color)
 
   (set-pretty-symbols! 'org-mode
     :name "#+NAME:"
@@ -92,7 +90,7 @@
     :src_block_end "#+END_SRC"))
 
 
-(defun +org-init-babel-h ()
+(defun +org|init-babel ()
   (setq org-src-fontify-natively t      ; make code pretty
         org-src-preserve-indentation t  ; use native major-mode indentation
         org-src-tab-acts-natively t
@@ -103,7 +101,7 @@
   (define-key org-src-mode-map (kbd "C-c C-c") #'org-edit-src-exit)
 
   ;; Use major-mode native TAB indentation in SRC blocks
-  (advice-add #'org-return-indent :after #'+org-fix-newline-and-indent-in-src-blocks-a)
+  (advice-add #'org-return-indent :after #'+org*fix-newline-and-indent-in-src-blocks)
 
   ;; `org-babel-get-header' was removed from org in 9.0. Quite a few babel
   ;; plugins use it, so until those plugins update, this polyfill will do:
@@ -117,7 +115,7 @@
   (setq org-babel-js-function-wrapper "console.log(require('util').inspect(function(){\n%s\n}()));"))
 
 
-(defun +org-init-babel-lazy-loader-h ()
+(defun +org|init-babel-lazy-loader ()
   "Load babel libraries lazily when babel blocks are executed."
   (defvar +org-babel-mode-alist
     '((cpp . C)
@@ -137,16 +135,15 @@ when executed.")
 take one argument (the language specified in the src block, as a string). Stops
 at the first function to return non-nil.")
 
-  (defadvice! +org--src-lazy-load-library-a (lang)
+  (defun +org*src-lazy-load-library (lang)
     "Lazy load a babel package to ensure syntax highlighting."
-    :before #'org-src--get-lang-mode
     (or (cdr (assoc lang org-src-lang-modes))
         (fboundp (intern-soft (format "%s-mode" lang)))
         (require (intern-soft (format "ob-%s" lang)) nil t)))
+  (advice-add #'org-src--get-lang-mode :before #'+org*src-lazy-load-library)
 
-  (defadvice! +org--babel-lazy-load-library-a (info)
+  (defun +org*babel-lazy-load-library (info)
     "Load babel libraries lazily when babel blocks are executed."
-    :after-while #'org-babel-confirm-evaluate
     (let* ((lang (nth 0 info))
            (lang (if (symbolp lang) lang (intern lang)))
            (lang (or (cdr (assq lang +org-babel-mode-alist))
@@ -159,10 +156,11 @@ at the first function to return non-nil.")
           ;; child process), so we only need to make sure it's loaded.
           (require 'ob-async nil t))
         (add-to-list 'org-babel-load-languages (cons lang t)))
-      t)))
+      t))
+  (advice-add #'org-babel-confirm-evaluate :after-while #'+org*babel-lazy-load-library))
 
 
-(defun +org-init-capture-defaults-h ()
+(defun +org|init-capture-defaults ()
   "Sets up some reasonable defaults, as well as two `org-capture' workflows that
 I like:
 
@@ -218,43 +216,43 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
            (file+headline +org-capture-project-notes-file "Unreleased")
            "* TODO %?\n%i\n%a" :prepend t :kill-buffer t)))
 
-  (defadvice! +org--capture-expand-variable-file-a (file)
+  (defun +org*capture-expand-variable-file (file)
     "If a variable is used for a file path in `org-capture-template', it is used
 as is, and expanded relative to `default-directory'. This changes it to be
 relative to `org-directory', unless it is an absolute path."
-    :filter-args #'org-capture-expand-file
     (if (and (symbolp file) (boundp file))
         (expand-file-name (symbol-value file) org-directory)
       file))
+  (advice-add #'org-capture-expand-file :filter-args #'+org*capture-expand-variable-file)
 
-  (defadvice! +org--prevent-save-prompts-when-refiling-a (&rest _)
+  (defun +org*prevent-save-prompts-when-refiling (&rest _)
     "Fix #462: when refiling from org-capture, Emacs prompts to kill the
 underlying, modified buffer. This fixes that."
-    :after 'org-refile
     (when (bound-and-true-p org-capture-is-refiling)
       (org-save-all-org-buffers)))
+  (advice-add 'org-refile :after #'+org*prevent-save-prompts-when-refiling)
 
-  (add-hook! 'org-capture-mode-hook
-    (defun +org-show-target-in-capture-header-h ()
-      (setq header-line-format
-            (format "%s%s%s"
-                    (propertize (abbreviate-file-name (buffer-file-name (buffer-base-buffer)))
-                                'face 'font-lock-string-face)
-                    org-eldoc-breadcrumb-separator
-                    header-line-format))))
+  (defun +org|show-target-in-capture-header ()
+    (setq header-line-format
+          (format "%s%s%s"
+                  (propertize (abbreviate-file-name (buffer-file-name (buffer-base-buffer)))
+                              'face 'font-lock-string-face)
+                  org-eldoc-breadcrumb-separator
+                  header-line-format)))
+  (add-hook 'org-capture-mode-hook #'+org|show-target-in-capture-header)
 
   (when (featurep! :editor evil)
     (add-hook 'org-capture-mode-hook #'evil-insert-state)))
 
 
-(defun +org-init-capture-frame-h ()
-  (add-hook 'org-capture-after-finalize-hook #'+org-capture-cleanup-frame-h)
+(defun +org|init-capture-frame ()
+  (add-hook 'org-capture-after-finalize-hook #'+org-capture|cleanup-frame)
 
   (when (featurep! :ui doom-dashboard)
     (add-hook '+doom-dashboard-inhibit-functions #'+org-capture-frame-p)))
 
 
-(defun +org-init-centralized-attachments-h ()
+(defun +org|init-centralized-attachments ()
   "I believe Org's native attachment system is over-complicated and litters
 files with metadata I don't want. So I wrote my own, which:
 
@@ -272,16 +270,11 @@ Some commands of interest:
 + `+org-attach/file'
 + `+org-attach/url'
 + `+org-attach/sync'"
-  (setq org-attach-directory (doom-path org-directory org-attach-directory))
-
-  ;; A shorter link to attachments
-  (add-to-list 'org-link-abbrev-alist
-               (cons "attach"
-                     (abbreviate-file-name org-attach-directory)))
+  (setq org-attach-directory (expand-file-name org-attach-directory org-directory))
 
   (org-link-set-parameters
    "attach"
-   :follow   (lambda (link) (find-file (doom-path org-attach-directory link)))
+   :follow   (lambda (link) (find-file (expand-file-name link org-attach-directory)))
    :complete (lambda (&optional _arg)
                (+org--relpath (+org-link-read-file "attach" org-attach-directory)
                               org-attach-directory))
@@ -298,7 +291,7 @@ Some commands of interest:
                  (lambda (file) (file-in-directory-p file org-attach-directory)))))
 
 
-(defun +org-init-centralized-exports-h ()
+(defun +org|init-centralized-exports ()
   "TODO"
   (defvar +org-enable-centralized-exports t
     "If non-nil, files exported from files in `org-directory' will be stored in
@@ -314,10 +307,9 @@ path too.")
   ;; place, and I want to be able to refer back to old exports if needed.
   (setq +org-export-directory (expand-file-name +org-export-directory org-directory))
 
-  (defadvice! +org--export-output-file-name-a (args)
+  (defun +org*export-output-file-name (args)
     "Return a centralized export location unless one is provided or the current
 file isn't in `org-directory'."
-    :filter-args #'org-export-output-file-name
     (when (and +org-enable-centralized-exports
                (not (nth 2 args))
                buffer-file-name
@@ -327,10 +319,11 @@ file isn't in `org-directory'."
           (unless (file-directory-p dir)
             (make-directory dir t))
           (setq args (list extension subtreep dir)))))
-    args))
+    args)
+  (advice-add #'org-export-output-file-name :filter-args #'+org*export-output-file-name))
 
 
-(defun +org-init-custom-links-h ()
+(defun +org|init-custom-links ()
   (defun +org--relpath (path root)
     (if (and buffer-file-name (file-in-directory-p buffer-file-name root))
         (file-relative-name path)
@@ -346,6 +339,7 @@ file isn't in `org-directory'."
                      'org-link
                    'error))))
 
+
   ;; Highlight broken file links
   (org-link-set-parameters
    "file"
@@ -355,16 +349,17 @@ file isn't in `org-directory'."
                'org-link
              'error)))
 
+
   ;; Add custom link types
-  (pushnew! org-link-abbrev-alist
-            '("github"      . "https://github.com/%s")
-            '("youtube"     . "https://youtube.com/watch?v=%s")
-            '("google"      . "https://google.com/search?q=")
-            '("gimages"     . "https://google.com/images?q=%s")
-            '("gmap"        . "https://maps.google.com/maps?q=%s")
-            '("duckduckgo"  . "https://duckduckgo.com/?q=%s")
-            '("wolfram"     . "https://wolframalpha.com/input/?i=%s")
-            '("doom-repo"   . "https://github.com/hlissner/doom-emacs/%s"))
+  (setq org-link-abbrev-alist
+        '(("github"      . "https://github.com/%s")
+          ("youtube"     . "https://youtube.com/watch?v=%s")
+          ("google"      . "https://google.com/search?q=")
+          ("gimages"     . "https://google.com/images?q=%s")
+          ("gmap"        . "https://maps.google.com/maps?q=%s")
+          ("duckduckgo"  . "https://duckduckgo.com/?q=%s")
+          ("wolfram"     . "https://wolframalpha.com/input/?i=%s")
+          ("doom-repo"   . "https://github.com/hlissner/doom-emacs/%s")))
 
   (+org-def-link "org" org-directory)
   (+org-def-link "doom" doom-emacs-dir)
@@ -377,16 +372,14 @@ file isn't in `org-directory'."
   (org-link-set-parameters "img"   :image-data-fun #'+org-inline-data-image)
 
   ;; Add support for youtube links + previews
-  (use-package! org-yt))
+  (def-package! org-yt))
 
 
-(defun +org-init-export-h ()
-  (setq org-export-with-smart-quotes t)
-
+(defun +org|init-export ()
   (when (featurep! :lang markdown)
     (add-to-list 'org-export-backends 'md))
 
-  (use-package! ox-pandoc
+  (def-package! ox-pandoc
     :when (and (featurep! +pandoc)
                (executable-find "pandoc"))
     :after ox
@@ -399,7 +392,7 @@ file isn't in `org-directory'."
             (variable . "revealjs-url=https://cdn.jsdelivr.net/npm/reveal.js@3/")))))
 
 
-(defun +org-init-habit-h ()
+(defun +org|init-habit ()
   "TODO"
   (defvar +org-habit-graph-padding 2
     "The padding added to the end of the consistency graph")
@@ -410,47 +403,41 @@ file isn't in `org-directory'."
   (defvar +org-habit-graph-window-ratio 0.3
     "The ratio of the consistency graphs relative to the window width")
 
-  (add-hook! 'org-agenda-mode-hook
-    (defun +org-habit-resize-graph-h ()
-      "Right align and resize the consistency graphs based on
+  (defun +org-habit|resize-graph()
+    "Right align and resize the consistency graphs based on
 `+org-habit-graph-window-ratio'"
-      (require 'org-habit)
-      (let* ((total-days (float (+ org-habit-preceding-days org-habit-following-days)))
-             (preceding-days-ratio (/ org-habit-preceding-days total-days))
-             (graph-width (floor (* (window-width) +org-habit-graph-window-ratio)))
-             (preceding-days (floor (* graph-width preceding-days-ratio)))
-             (following-days (- graph-width preceding-days))
-             (graph-column (- (window-width) (+ preceding-days following-days)))
-             (graph-column-adjusted (if (> graph-column +org-habit-min-width)
-                                        (- graph-column +org-habit-graph-padding)
-                                      nil)))
-        (setq-local org-habit-preceding-days preceding-days)
-        (setq-local org-habit-following-days following-days)
-        (setq-local org-habit-graph-column graph-column-adjusted)))))
+    (require 'org-habit)
+    (let* ((total-days (float (+ org-habit-preceding-days org-habit-following-days)))
+           (preceding-days-ratio (/ org-habit-preceding-days total-days))
+           (graph-width (floor (* (window-width) +org-habit-graph-window-ratio)))
+           (preceding-days (floor (* graph-width preceding-days-ratio)))
+           (following-days (- graph-width preceding-days))
+           (graph-column (- (window-width) (+ preceding-days following-days)))
+           (graph-column-adjusted (if (> graph-column +org-habit-min-width)
+                                      (- graph-column +org-habit-graph-padding)
+                                    nil)))
+      (setq-local org-habit-preceding-days preceding-days)
+      (setq-local org-habit-following-days following-days)
+      (setq-local org-habit-graph-column graph-column-adjusted)))
+  (add-hook 'org-agenda-mode-hook #'+org-habit|resize-graph))
 
 
-(defun +org-init-hacks-h ()
+(defun +org|init-hacks ()
   "Getting org to behave."
   ;; Don't open separate windows
   (setf (alist-get 'file org-link-frame-setup) #'find-file)
   ;; Open directory links in Emacs
   (add-to-list 'org-file-apps '(directory . emacs))
 
-  ;; When you create a sparse tree and `org-indent-mode' is enabled, the
-  ;; highlighting destroys the invisibility added by `org-indent-mode'.
-  ;; Therefore, don't highlight when creating a sparse tree.
-  (setq org-highlight-sparse-tree-matches nil)
-
-  (add-hook! 'org-follow-link-hook
-    (defun +org-delayed-recenter-h ()
-      "`recenter', but after a tiny delay. Necessary to prevent certain race
+  (defun +org|delayed-recenter ()
+    "`recenter', but after a tiny delay. Necessary to prevent certain race
 conditions where a window's buffer hasn't changed at the time this hook is run."
-      (run-at-time 0.1 nil #'recenter)))
+    (run-at-time 0.1 nil #'recenter))
+  (add-hook 'org-follow-link-hook #'+org|delayed-recenter)
 
-  (defadvice! +org--strip-properties-from-outline-a (orig-fn path &optional width prefix separator)
+  (defun +org*strip-properties-from-outline (orig-fn path &optional width prefix separator)
     "Remove link syntax and fix variable height text (e.g. org headings) in the
 eldoc string."
-    :around #'org-format-outline-path
     (let ((result (funcall orig-fn path width prefix separator))
           (separator (or separator "/")))
       (string-join
@@ -462,28 +449,30 @@ eldoc string."
                 (org-add-props (replace-regexp-in-string org-any-link-re "\\4" part)
                     nil 'face `(:foreground ,(face-foreground face nil t) :weight bold)))
        separator)))
+  (advice-add #'org-format-outline-path :around #'+org*strip-properties-from-outline)
 
-  (add-hook! 'org-agenda-finalize-hook
-    (defun +org-exclude-agenda-buffers-from-workspace-h ()
-      "Prevent temporarily-opened agenda buffers from being associated with the
-current workspace."
-      (when (and org-agenda-new-buffers (bound-and-true-p persp-mode))
-        (let (persp-autokill-buffer-on-remove)
-          (persp-remove-buffer org-agenda-new-buffers
-                               (get-current-persp)
-                               nil)))))
+  (defun +org|exclude-agenda-buffers-from-workspace ()
+    "Prevent from temporarily-opened agenda buffers from being associated with
+the current workspace."
+    (when (and org-agenda-new-buffers (bound-and-true-p persp-mode))
+      (let (persp-autokill-buffer-on-remove)
+        (persp-remove-buffer org-agenda-new-buffers
+                             (get-current-persp)
+                             nil))))
+  (add-hook 'org-agenda-finalize-hook #'+org|exclude-agenda-buffers-from-workspace)
 
-  (defadvice! +org--exclude-agenda-buffers-from-recentf-a (orig-fn file)
+  (defun +org*exclude-agenda-buffers-from-recentf (orig-fn file)
     "Prevent temporarily opened agenda buffers from polluting recentf."
-    :around #'org-get-agenda-file-buffer
     (let ((recentf-exclude (list (lambda (_file) t))))
-      (funcall orig-fn file))))
+      (funcall orig-fn file)))
+  (advice-add #'org-get-agenda-file-buffer
+              :around #'+org*exclude-agenda-buffers-from-recentf))
 
 
-(defun +org-init-keybinds-h ()
+(defun +org|init-keybinds ()
   "Sets up org-mode and evil keybindings. Tries to fix the idiosyncrasies
 between the two."
-  (add-hook 'doom-escape-hook #'+org-remove-occur-highlights-h)
+  (add-hook 'doom-escape-hook #'+org|remove-occur-highlights)
 
   ;; C-a & C-e act like `doom/backward-to-bol-or-indent' and
   ;; `doom/forward-to-last-non-comment-or-eol', but with more org awareness.
@@ -493,12 +482,8 @@ between the two."
         ;; insert new headings after current subtree rather than inside it
         org-insert-heading-respect-content t)
 
-  (add-hook! 'org-tab-first-hook
-             #'+org-indent-maybe-h
-             #'+org-yas-expand-maybe-h)
-
-  (add-hook 'doom-delete-backward-functions
-            #'+org-delete-backward-char-and-realign-table-maybe-h)
+  (add-hook! 'org-tab-first-hook #'(+org|indent-maybe +org|yas-expand-maybe))
+  (add-hook 'doom-delete-backward-functions #'+org|delete-backward-char-and-realign-table-maybe)
 
   (map! :map org-mode-map
         ;; textmate-esque newline insertion
@@ -519,7 +504,6 @@ between the two."
         (:when (featurep! :completion helm)
           "." #'helm-org-in-buffer-headings
           "/" #'helm-org-agenda-files-headings)
-        "a" #'org-attach
         "d" #'org-deadline
         "f" #'org-footnote-new
         "h" #'org-toggle-heading
@@ -527,7 +511,6 @@ between the two."
         "I" #'org-toggle-inline-images
         "l" #'org-insert-link
         "L" #'org-store-link
-        "p" #'org-set-property
         "q" #'org-set-tags-command
         "r" #'org-refile
         "s" #'org-schedule
@@ -588,8 +571,8 @@ between the two."
             "e" #'org-table-edit-formulas
             "=" #'org-table-eval-formulas)))
 
-  ;; HACK Fixes #1483: this messy hack fixes `org-agenda' or `evil-org-agenda'
-  ;; overriding SPC, breaking the localleader
+  ;; Fixes #1483: this messy hack fixes `org-agenda' or `evil-org-agenda'
+  ;; overriding SPC, breaking the localleader. TODO Improve me!
   (define-minor-mode org-agenda-localleader-mode "TODO"
     :keymap (make-sparse-keymap))
   (add-hook 'org-agenda-mode-hook #'org-agenda-localleader-mode)
@@ -603,10 +586,10 @@ between the two."
         "t" #'org-agenda-todo))
 
 
-(defun +org-init-keybinds-for-evil-h (&rest args)
+(defun +org|init-keybinds-for-evil (&rest args)
   "TODO"
   (when (featurep! :editor evil +everywhere)
-    (use-package! evil-org
+    (def-package! evil-org
       :hook (org-mode . evil-org-mode)
       :init
       (defvar evil-org-key-theme '(navigation insert textobjects))
@@ -617,17 +600,17 @@ between the two."
       ;; change `evil-org-key-theme' instead
       (advice-add #'evil-org-set-key-theme :override #'ignore))
 
-    (use-package! evil-org-agenda
+    (def-package! evil-org-agenda
       :after org-agenda
       :config (evil-org-agenda-set-keys))
 
     ;; Only fold the current tree, rather than recursively
-    (add-hook 'org-tab-first-hook #'+org-cycle-only-current-subtree-h t)
+    (add-hook 'org-tab-first-hook #'+org|cycle-only-current-subtree t)
 
     ;; Fix o/O creating new list items in the middle of nested plain lists. Only
     ;; has an effect when `evil-org-special-o/O' has `item' in it (not the
     ;; default).
-    (advice-add #'evil-org-open-below :around #'+org-evil-org-open-below-a)
+    (advice-add #'evil-org-open-below :around #'+org*evil-org-open-below)
 
     (map! :map outline-mode-map
           ;; Undo keybinds from `evil-collection-outline'
@@ -652,7 +635,7 @@ between the two."
                      (org-at-table-p) '+org/table-previous-row)
           :i "C-j" (general-predicate-dispatch 'org-down-element
                      (org-at-table-p) 'org-table-next-row)
-          ;; moving/(de|pro)moting subtress & expanding tables (prepend/append columns/rows)
+          ;; expanding tables (prepend/append columns/rows)
           :ni "C-S-l" (general-predicate-dispatch 'org-shiftmetaright
                         (org-at-table-p) 'org-table-insert-column)
           :ni "C-S-h" (general-predicate-dispatch 'org-shiftmetaleft
@@ -661,7 +644,7 @@ between the two."
                         (org-at-table-p) 'org-table-insert-row)
           :ni "C-S-j" (general-predicate-dispatch 'org-shiftmetadown
                         (org-at-table-p) '+org/table-insert-row-below)
-          ;; moving/(de|pro)moting single headings & shifting table rows/columns
+          ;; shifting table rows/columns
           :ni "C-M-S-l" (general-predicate-dispatch 'org-metaright
                           (org-at-table-p) 'org-table-move-column-right)
           :ni "C-M-S-h" (general-predicate-dispatch 'org-metaleft
@@ -712,7 +695,7 @@ between the two."
           "C-S-j" (λ! (org-eval-in-calendar '(calendar-forward-year 1))))))
 
 
-(defun +org-init-popup-rules-h ()
+(defun +org|init-popup-rules ()
   (set-popup-rules!
     '(("^\\*Org Links" :slot -1 :vslot -1 :size 2 :ttl 0)
       ("^\\*\\(?:Agenda Com\\|Calendar\\|Org \\(?:Export Dispatcher\\|Select\\)\\)"
@@ -722,14 +705,13 @@ between the two."
       ("^CAPTURE.*\\.org$" :size 0.2 :quit nil :select t :autosave t))))
 
 
-(defun +org-init-protocol-lazy-loader-h ()
+(defun +org|init-protocol-lazy-loader ()
   "Brings lazy-loaded support for org-protocol, so external programs (like
 browsers) can invoke specialized behavior from Emacs. Normally you'd simply
 require `org-protocol' and use it, but the package loads all of org for no
 compelling reason, so..."
-  (defadvice! +org--server-visit-files-a (args)
+  (defun +org*server-visit-files (args)
     "Advise `server-visit-flist' to invoke `org-protocol' lazily."
-    :filter-args #'server-visit-files
     (cl-destructuring-bind (files proc &optional nowait) args
       (catch 'greedy
         (let ((flist (reverse files)))
@@ -749,19 +731,20 @@ compelling reason, so..."
                        (setcar var fname))
                       ((setq files (delq var files)))))))))
       (list files proc nowait)))
+  (advice-add #'server-visit-files :filter-args #'+org*server-visit-files)
 
   ;; Disable built-in, clumsy advice
   (after! org-protocol
     (ad-disable-advice 'server-visit-files 'before 'org-protocol-detect-protocol-server)))
 
 
-(defun +org-init-protocol-h ()
+(defun +org|init-protocol ()
   ;; TODO org-board or better link grabbing support
   ;; TODO org-capture + org-protocol instead of bin/org-capture
   )
 
 
-(defun +org-init-smartparens-h ()
+(defun +org|init-smartparens ()
   "TODO"
   (after! smartparens
     (defun +org-sp-point-in-checkbox-p (_id action _context)
@@ -770,9 +753,8 @@ compelling reason, so..."
 
     (defun +org-sp-point-at-bol-p (_id action _context)
       (and (eq action 'insert)
-           (save-excursion
-             (skip-chars-backward "*")
-             (bolp))))
+           (eq (char-before) ?*)
+           (sp--looking-back-p "^\\**" (line-beginning-position))))
 
     ;; make delimiter auto-closing a little more conservative
     (sp-with-modes 'org-mode
@@ -786,7 +768,7 @@ compelling reason, so..."
 ;;
 ;;; Bootstrap
 
-(use-package! org
+(def-package! org
   :defer-incrementally
   calendar find-func format-spec org-macs org-compat org-faces org-entities
   org-list org-pcomplete org-src org-footnote org-macro ob org org-agenda
@@ -795,62 +777,59 @@ compelling reason, so..."
   ;; Change org defaults (should be set before org loads)
   (defvar org-directory "~/org/")
   (defvar org-attach-directory ".attach/")
-
-  (setq org-clock-persist-file (concat doom-etc-dir "org-clock-save.el")
-        org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/")
-        org-preview-latex-image-directory (concat doom-cache-dir "org-latex/"))
+  (defvar org-clock-persist-file (concat doom-etc-dir "org-clock-save.el"))
+  (defvar org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/"))
+  (defvar org-preview-latex-image-directory (concat doom-cache-dir "org-latex/"))
 
   (defvar org-modules
-    '(;; ol-w3m
-      ;; ol-bbdb
-      ol-bibtex
-      ;; ol-docview
-      ;; ol-gnus
-      ;; ol-info
-      ;; ol-irc
-      ;; ol-mhe
-      ;; ol-rmail
-      ;; ol-eww
+    '(;; org-w3m
+      ;; org-bbdb
+      org-bibtex
+      ;; org-docview
+      ;; org-gnus
+      ;; org-info
+      ;; org-irc
+      ;; org-mhe
+      ;; org-rmail
       ))
 
   (add-hook! 'org-mode-hook
-             #'org-bullets-mode  ; "prettier" bullets
-             #'org-indent-mode   ; margin-based indentation
-             #'toc-org-enable    ; auto-table of contents
-             #'auto-fill-mode    ; hard line wrapping
-             ;; `show-paren-mode' causes flickering with indentation margins made by
-             ;; `org-indent-mode', so we turn off show-paren-mode altogether
-             #'doom-disable-show-paren-mode-h
-             ;; Shows a lot of false positives, so...
-             #'doom-disable-show-trailing-whitespace-h
+    #'(org-bullets-mode           ; "prettier" bullets
+       org-indent-mode            ; margin-based indentation
+       toc-org-enable             ; auto-table of contents
+       auto-fill-mode             ; hard line wrapping
+       ;; `show-paren-mode' causes flickering with indentation margins made by
+       ;; `org-indent-mode', so we turn off show-paren-mode altogether
+       doom|disable-show-paren-mode
+       ;; Shows a lot of false positives, so...
+       doom|disable-show-trailing-whitespace
 
-             #'+org-enable-auto-reformat-tables-h
-             #'+org-enable-auto-update-cookies-h
-             #'+org-unfold-to-2nd-level-or-point-h)
+       +org|enable-auto-reformat-tables
+       +org|enable-auto-update-cookies
+       +org|unfold-to-2nd-level-or-point))
 
   (add-hook! 'org-load-hook
-             #'+org-init-appearance-h
-             #'+org-init-agenda-h
-             #'+org-init-babel-h
-             #'+org-init-babel-lazy-loader-h
-             #'+org-init-capture-defaults-h
-             #'+org-init-capture-frame-h
-             #'+org-init-centralized-attachments-h
-             #'+org-init-centralized-exports-h
-             #'+org-init-custom-links-h
-             #'+org-init-export-h
-             #'+org-init-habit-h
-             #'+org-init-hacks-h
-             #'+org-init-keybinds-h
-             #'+org-init-keybinds-for-evil-h ; will noop without :editor evil
-             #'+org-init-popup-rules-h
-             #'+org-init-protocol-h
-             #'+org-init-protocol-lazy-loader-h
-             #'+org-init-smartparens-h)
+    #'(+org|init-appearance
+       +org|init-agenda
+       +org|init-babel
+       +org|init-babel-lazy-loader
+       +org|init-capture-defaults
+       +org|init-capture-frame
+       +org|init-centralized-attachments
+       +org|init-centralized-exports
+       +org|init-custom-links
+       +org|init-export
+       +org|init-habit
+       +org|init-hacks
+       +org|init-keybinds
+       +org|init-keybinds-for-evil ; will noop without :editor evil
+       +org|init-popup-rules
+       +org|init-protocol
+       +org|init-protocol-lazy-loader
+       +org|init-smartparens))
 
   ;; In case the user has eagerly loaded org from their configs
-  (when (and (featurep 'org)
-             (not doom-reloading-p))
+  (when (featurep 'org)
     (message "`org' was already loaded by the time lang/org loaded, this may cause issues")
     (run-hooks 'org-load-hook))
 
@@ -860,18 +839,18 @@ compelling reason, so..."
   (if (featurep! +present)   (load! "contrib/present"))
 
   :config
-  (add-hook 'org-open-at-point-functions #'doom-set-jump-h)
+  (add-hook 'org-open-at-point-functions #'doom|set-jump)
 
   ;;; Packages
   (after! toc-org
     (setq toc-org-hrefify-default "gh")
-    (defadvice! +org--unfold-toc-a (&rest _)
-      :before #'toc-org-insert-toc
+    (defun +org*unfold-toc (&rest _)
       (save-excursion
         (when (re-search-forward toc-org-toc-org-regexp (point-max) t)
-          (+org/open-fold)))))
+          (+org/open-fold))))
+    (advice-add #'toc-org-insert-toc :before #'+org*unfold-toc))
 
-  (use-package! org-pdfview
+  (def-package! org-pdfview
     :when (featurep! :tools pdf)
     :commands (org-pdfview-open)
     :init
@@ -881,7 +860,7 @@ compelling reason, so..."
     ;; support for links to specific pages
     (add-to-list 'org-file-apps '("\\.pdf::\\([[:digit:]]+\\)\\'" . (lambda (_file link) (org-pdfview-open link)))))
 
-  (use-package! org-crypt ; built-in
+  (def-package! org-crypt ; built-in
     :commands org-encrypt-entries
     :hook (org-reveal-start . org-decrypt-entry)
     :init
@@ -890,17 +869,8 @@ compelling reason, so..."
     (add-to-list 'org-tags-exclude-from-inheritance "crypt")
     (setq org-crypt-key user-mail-address))
 
-  (use-package! org-clock ; built-in
+  (def-package! org-clock ; built-in
     :commands org-clock-save
-    :init
-    (setq org-clock-persist t)
-    (defadvice! +org--clock-load-a (&rest _)
-      "Lazy load org-clock until its commands are used."
-      :before '(org-clock-in
-                org-clock-out
-                org-clock-in-last
-                org-clock-goto
-                org-clock-cancel)
-      (org-clock-load))
-    :config
-    (add-hook 'kill-emacs-hook #'org-clock-save)))
+    :hook (org-mode . org-clock-load)
+    :init (setq org-clock-persist 'history)
+    :config (add-hook 'kill-emacs-hook #'org-clock-save)))

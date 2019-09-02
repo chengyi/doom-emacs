@@ -1,6 +1,6 @@
 ;;; lang/rust/config.el -*- lexical-binding: t; -*-
 
-(use-package! rust-mode
+(def-package! rust-mode
   :defer t
   :config
   (setq rust-indent-method-chain t)
@@ -10,11 +10,11 @@
   ;; happen once.
   ;;
   ;; rust-mode is still required for `racer'.
-  (add-hook! 'rust-mode-hook
-    (defun +rust-init-h ()
-      "Switch to `rustic-mode', if it's available."
-      (when (require 'rustic nil t)
-        (rustic-mode))))
+  (defun +rust|init ()
+    "Switch to `rustic-mode', if it's available."
+    (when (require 'rustic nil t)
+      (rustic-mode)))
+  (add-hook 'rust-mode-hook #'+rust|init)
 
   (set-docsets! '(rust-mode rustic-mode) "Rust")
   (when (featurep! +lsp)
@@ -28,10 +28,11 @@
   (when (featurep! :tools editorconfig)
     (after! editorconfig
       (pushnew! editorconfig-indentation-alist
+                '(rust-mode rust-indent-offset)
                 '(rustic-mode rustic-indent-offset)))))
 
 
-(use-package! racer
+(def-package! racer
   :unless (featurep! +lsp)
   :hook ((rust-mode rustic-mode) . racer-mode)
   :config
@@ -40,7 +41,7 @@
     :documentation '+rust-racer-lookup-documentation))
 
 
-(use-package! rustic
+(def-package! rustic
   :when EMACS26+
   :after rust-mode
   :preface
@@ -53,17 +54,17 @@
 
   ;; `rustic-setup-rls' uses `package-installed-p' unnecessarily, which breaks
   ;; because Doom lazy loads package.el.
-  (defadvice! +rust--disable-package-call-a (orig-fn &rest args)
-    :around #'rustic-setup-rls
+  (defun +rust*disable-package-installed-p-call (orig-fn &rest args)
     (cl-letf (((symbol-function 'package-installed-p)
                (symbol-function 'ignore)))
-      (apply orig-fn args))))
+      (apply orig-fn args)))
+  (advice-add #'rustic-setup-rls :around #'+rust*disable-package-installed-p-call))
 
 
 ;;
 ;;; Tools
 
-(use-package! cargo
+(def-package! cargo
   :after rust-mode
   :config
   (defvar +rust-keymap

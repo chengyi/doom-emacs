@@ -1,6 +1,6 @@
 ;;; ui/ophints/config.el -*- lexical-binding: t; -*-
 
-(use-package! evil-goggles
+(def-package! evil-goggles
   :when (featurep! :editor evil)
   :after-call pre-command-hook
   :init
@@ -14,7 +14,7 @@
   (evil-goggles-mode +1))
 
 
-(use-package! volatile-highlights
+(def-package! volatile-highlights
   :unless (featurep! :editor evil)
   :after-call pre-command-hook
   :config

@@ -14,12 +14,6 @@ Since spellchecking can be slow in some buffers, this can be disabled with:
 (after! ispell
   (add-to-list 'ispell-extra-args "--dont-tex-check-comments")
 
-  ;; Don't spellcheck org blocks
-  (pushnew! ispell-skip-region-alist
-            '(":\\(PROPERTIES\\|LOGBOOK\\):" . ":END:")
-            '("#\\+BEGIN_SRC" . "#\\+END_SRC")
-            '("#\\+BEGIN_EXAMPLE" . "#\\+END_EXAMPLE"))
-
   ;; Enable either aspell or hunspell.
   ;;   If no module flags are given, enable either aspell or hunspell if their
   ;;     binary is found.
@@ -33,16 +27,17 @@ Since spellchecking can be slow in some buffers, this can be disabled with:
      (setq ispell-program-name "aspell"
            ispell-extra-args '("--sug-mode=ultra" "--run-together"))
 
-     (add-hook! 'text-mode-hook
-       (defun +flyspell-remove-run-together-switch-for-aspell-h ()
-         (setq-local ispell-extra-args (remove "--run-together" ispell-extra-args))))
+     (defun +flyspell|remove-run-together-switch-for-aspell ()
+       (setq-local ispell-extra-args (remove "--run-together" ispell-extra-args)))
+     (add-hook 'text-mode-hook #'+flyspell|remove-run-together-switch-for-aspell)
 
-     (defun +flyspell-setup-ispell-extra-args-a (orig-fun &rest args)
-       :around '(ispell-word flyspell-auto-correct-word)
+     (defun +flyspell*setup-ispell-extra-args (orig-fun &rest args)
        (let ((ispell-extra-args (remove "--run-together" ispell-extra-args)))
          (ispell-kill-ispell t)
          (apply orig-fun args)
-         (ispell-kill-ispell t))))
+         (ispell-kill-ispell t)))
+     (advice-add #'ispell-word :around #'+flyspell*setup-ispell-extra-args)
+     (advice-add #'flyspell-auto-correct-word :around #'+flyspell*setup-ispell-extra-args))
 
     (`hunspell
      (setq ispell-program-name "hunspell"))
@@ -57,28 +52,29 @@ Since spellchecking can be slow in some buffers, this can be disabled with:
   (when (featurep! +prog)
     (add-hook 'prog-mode-hook #'flyspell-prog-mode))
 
-  (add-hook! 'flyspell-mode-hook
-    (defun +flyspell-inhibit-duplicate-detection-maybe-h ()
-      "Don't mark duplicates when style/grammar linters are present.
+  (defun +flyspell|inhibit-duplicate-detection-maybe ()
+    "Don't mark duplicates when style/grammar linters are present.
 e.g. proselint and langtool."
-      (when (or (and (bound-and-true-p flycheck-mode)
-                     (executable-find "proselint"))
-                (featurep 'langtool))
-        (setq-local flyspell-mark-duplications-flag nil))))
+    (when (or (and (bound-and-true-p flycheck-mode)
+                   (executable-find "proselint"))
+              (featurep 'langtool))
+      (setq-local flyspell-mark-duplications-flag nil)))
+  (add-hook 'flyspell-mode-hook #'+flyspell|inhibit-duplicate-detection-maybe)
 
-  (add-hook! 'flyspell-mode-hook
-    (defun +flyspell-immediately-h ()
-      "Spellcheck the buffer when `flyspell-mode' is enabled."
-      (when (and flyspell-mode +flyspell-immediately)
-        (flyspell-buffer))))
+  (defun +flyspell|immediately ()
+    "Spellcheck the buffer when `flyspell-mode' is enabled."
+    (when (and flyspell-mode +flyspell-immediately)
+      (flyspell-buffer)))
+  (add-hook 'flyspell-mode-hook #'+flyspell|immediately)
 
   ;; Ensure mode-local predicates declared with `set-flyspell-predicate!' are
   ;; used in their respective major modes.
-  (add-hook 'flyspell-mode-hook #'+flyspell-init-predicate-h))
+  (add-hook 'flyspell-mode-hook #'+flyspell|init-predicate))
 
 
-(use-package! flyspell-correct
-  :commands flyspell-correct-word-generic flyspell-correct-previous-word-generic
+(def-package! flyspell-correct
+  :commands (flyspell-correct-word-generic
+             flyspell-correct-previous-word-generic)
   :config
   (cond ((and (featurep! :completion helm)
               (require 'flyspell-correct-helm nil t)))

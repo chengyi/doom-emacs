@@ -32,7 +32,7 @@ This is ignored by ccls.")
 ;;
 ;; Packages
 
-(use-package! cc-mode
+(def-package! cc-mode
   :commands (c-mode c++-mode objc-mode java-mode)
   :mode ("\\.mm\\'" . objc-mode)
   :init
@@ -50,10 +50,8 @@ This is ignored by ccls.")
 
   ;; Ensure find-file-at-point works in C modes, must be added before irony
   ;; and/or lsp hooks are run.
-  (add-hook! '(c-mode-local-vars-hook
-               c++-mode-local-vars-hook
-               objc-mode-local-vars-hook)
-             #'+cc-init-ffap-integration-h)
+  (add-hook! (c-mode-local-vars c++-mode-local-vars objc-mode-local-vars)
+    #'+cc|init-ffap-integration)
 
   :config
   (set-electric! '(c-mode c++-mode objc-mode java-mode) :chars '(?\n ?\} ?\{))
@@ -82,7 +80,7 @@ This is ignored by ccls.")
 
   ;;; Better fontification (also see `modern-cpp-font-lock')
   (add-hook 'c-mode-common-hook #'rainbow-delimiters-mode)
-  (add-hook! '(c-mode-hook c++-mode-hook) #'+cc-fontify-constants-h)
+  (add-hook! (c-mode c++-mode) #'+cc|fontify-constants)
 
   ;; Custom style, based off of linux
   (c-add-style
@@ -117,38 +115,37 @@ This is ignored by ccls.")
              (label . 0)))))
 
 
-(use-package! modern-cpp-font-lock
+(def-package! modern-cpp-font-lock
   :hook (c++-mode . modern-c++-font-lock-mode))
 
 
-(use-package! irony
+(def-package! irony
   :unless (featurep! +lsp)
   :commands (irony-install-server irony-mode)
   :preface
   (setq irony-server-install-prefix (concat doom-etc-dir "irony-server/"))
   :init
-  (add-hook! '(c-mode-local-vars-hook
-               c++-mode-local-vars-hook
-               objc-mode-local-vars-hook)
-    (defun +cc-init-irony-mode-h ()
-      (if (file-directory-p irony-server-install-prefix)
-          (irony-mode +1)
-        (message "Irony server isn't installed"))))
+  (defun +cc|init-irony-mode ()
+    (if (file-directory-p irony-server-install-prefix)
+        (irony-mode +1)
+      (message "Irony server isn't installed")))
+  (add-hook! (c-mode-local-vars c++-mode-local-vars objc-mode-local-vars)
+    #'+cc|init-irony-mode)
   :config
   (setq irony-cdb-search-directory-list '("." "build" "build-conda"))
 
   ;; Initialize compilation database, if present. Otherwise, fall back on
   ;; `+cc-default-compiler-options'.
-  (add-hook 'irony-mode-hook #'+cc-init-irony-compile-options-h)
+  (add-hook 'irony-mode-hook #'+cc|init-irony-compile-options)
 
-  (use-package! irony-eldoc
+  (def-package! irony-eldoc
     :hook (irony-mode . irony-eldoc))
 
-  (use-package! flycheck-irony
+  (def-package! flycheck-irony
     :when (featurep! :tools flycheck)
     :config (flycheck-irony-setup))
 
-  (use-package! company-irony
+  (def-package! company-irony
     :when (featurep! :completion company)
     :init
     (set-company-backend! 'irony-mode
@@ -160,17 +157,17 @@ This is ignored by ccls.")
 ;;
 ;; Major modes
 
-(use-package! company-cmake  ; for `cmake-mode'
+(def-package! company-cmake  ; for `cmake-mode'
   :when (featurep! :completion company)
   :after cmake-mode
   :config (set-company-backend! 'cmake-mode 'company-cmake))
 
 
-(use-package! demangle-mode
+(def-package! demangle-mode
   :hook llvm-mode)
 
 
-(use-package! company-glsl  ; for `glsl-mode'
+(def-package! company-glsl  ; for `glsl-mode'
   :when (featurep! :completion company)
   :after glsl-mode
   :config (set-company-backend! 'glsl-mode 'company-glsl))
@@ -179,20 +176,19 @@ This is ignored by ccls.")
 ;;
 ;; Rtags Support
 
-(use-package! rtags
+(def-package! rtags
   :unless (featurep! +lsp)
   :commands rtags-executable-find
   :preface
   (setq rtags-install-path (concat doom-etc-dir "rtags/"))
   :init
-  (add-hook! '(c-mode-local-vars-hook
-               c++-mode-local-vars-hook
-               objc-mode-local-vars-hook)
-    (defun +cc-init-rtags-h ()
-      "Start an rtags server in c-mode and c++-mode buffers."
-      (when (and (require 'rtags nil t)
-                 (rtags-executable-find rtags-rdm-binary-name))
-        (rtags-start-process-unless-running))))
+  (defun +cc|init-rtags ()
+    "Start an rtags server in c-mode and c++-mode buffers."
+    (when (and (require 'rtags nil t)
+               (rtags-executable-find rtags-rdm-binary-name))
+      (rtags-start-process-unless-running)))
+  (add-hook! (c-mode-local-vars c++-mode-local-vars objc-mode-local-vars)
+    #'+cc|init-rtags)
   :config
   (setq rtags-autostart-diagnostics t
         rtags-use-bookmarks nil
@@ -203,11 +199,9 @@ This is ignored by ccls.")
               ('default))
         ;; These executables are named rtags-* on debian
         rtags-rc-binary-name
-        (or (cl-find-if #'executable-find (list rtags-rc-binary-name "rtags-rc"))
-            rtags-rc-binary-name)
+        (cl-find-if #'executable-find (list rtags-rc-binary-name "rtags-rc"))
         rtags-rdm-binary-name
-        (or (cl-find-if #'executable-find (list rtags-rdm-binary-name "rtags-rdm"))
-            rtags-rdm-binary-name)
+        (cl-find-if #'executable-find (list rtags-rdm-binary-name "rtags-rdm"))
         ;; If not using ivy or helm to view results, use a pop-up window rather
         ;; than displaying it in the current window...
         rtags-results-buffer-other-window t
@@ -230,22 +224,17 @@ This is ignored by ccls.")
 ;;
 ;; LSP
 
-(when (featurep! +lsp)
-  (add-hook! '(c-mode-local-vars-hook
-               c++-mode-local-vars-hook
-               objc-mode-local-vars-hook)
-    (defun +cc-init-lsp-h ()
-      (setq-local company-transformers nil)
-      (setq-local company-lsp-async t)
-      (setq-local company-lsp-cache-candidates nil)
-      (lsp!))))
-
-
-(use-package! ccls
+(def-package! ccls
   :when (featurep! +lsp)
-  :after lsp
+  :hook ((c-mode-local-vars c++-mode-local-vars objc-mode-local-vars) . +cc|init-ccls)
   :init
   (after! projectile
     (add-to-list 'projectile-globally-ignored-directories ".ccls-cache")
     (add-to-list 'projectile-project-root-files-bottom-up ".ccls-root")
-    (add-to-list 'projectile-project-root-files-top-down-recurring "compile_commands.json")))
+    (add-to-list 'projectile-project-root-files-top-down-recurring "compile_commands.json"))
+  :config
+  (defun +cc|init-ccls ()
+    (setq-local company-transformers nil)
+    (setq-local company-lsp-async t)
+    (setq-local company-lsp-cache-candidates nil)
+    (lsp!)))

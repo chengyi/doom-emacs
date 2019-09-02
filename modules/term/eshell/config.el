@@ -67,36 +67,36 @@ You should use `set-eshell-alias!' to change this.")
         eshell-input-filter (lambda (input) (not (string-match-p "\\`\\s-+" input)))
         ;; em-prompt
         eshell-prompt-regexp "^.* λ "
-        eshell-prompt-function #'+eshell-default-prompt-fn
+        eshell-prompt-function #'+eshell-default-prompt
         ;; em-glob
         eshell-glob-case-insensitive t
         eshell-error-if-no-glob t)
 
   ;; Consider eshell buffers real
-  (add-hook 'eshell-mode-hook #'doom-mark-buffer-as-real-h)
+  (add-hook 'eshell-mode-hook #'doom|mark-buffer-as-real)
 
   ;; Keep track of open eshell buffers
-  (add-hook 'eshell-mode-hook #'+eshell-init-h)
-  (add-hook 'eshell-exit-hook #'+eshell-cleanup-h)
+  (add-hook 'eshell-mode-hook #'+eshell|init)
+  (add-hook 'eshell-exit-hook #'+eshell|cleanup)
 
   ;; Enable autopairing in eshell
   (add-hook 'eshell-mode-hook #'smartparens-mode)
 
   ;; Persp-mode/workspaces integration
   (when (featurep! :ui workspaces)
-    (add-hook 'persp-activated-functions #'+eshell-switch-workspace-fn)
-    (add-hook 'persp-before-switch-functions #'+eshell-save-workspace-fn))
+    (add-hook 'persp-activated-functions #'+eshell|switch-workspace)
+    (add-hook 'persp-before-switch-functions #'+eshell|save-workspace))
 
   ;; UI enhancements
-  (add-hook! 'eshell-mode-hook
-    (defun +eshell-remove-fringes-h ()
-      (set-window-fringes nil 0 0)
-      (set-window-margins nil 1 nil)))
+  (defun +eshell|remove-fringes ()
+    (set-window-fringes nil 0 0)
+    (set-window-margins nil 1 nil))
+  (add-hook 'eshell-mode-hook #'+eshell|remove-fringes)
 
-  (add-hook! 'eshell-mode-hook
-    (defun +eshell-enable-text-wrapping-h ()
-      (visual-line-mode +1)
-      (set-display-table-slot standard-display-table 0 ?\ )))
+  (defun +eshell|enable-text-wrapping ()
+    (visual-line-mode +1)
+    (set-display-table-slot standard-display-table 0 ?\ ))
+  (add-hook 'eshell-mode-hook #'+eshell|enable-text-wrapping)
 
   (add-hook 'eshell-mode-hook #'hide-mode-line-mode)
 
@@ -109,58 +109,60 @@ You should use `set-eshell-alias!' to change this.")
   (after! em-term
     (pushnew! eshell-visual-commands "tmux" "htop" "vim" "nvim" "ncmpcpp"))
 
-  (add-hook! 'eshell-alias-load-hook
-    (defun +eshell-init-aliases-h ()
-      (setq +eshell--default-aliases eshell-command-aliases-list
-            eshell-command-aliases-list
-            (append eshell-command-aliases-list
-                    +eshell-aliases))))
+  (defun +eshell|init-aliases ()
+    (setq +eshell--default-aliases eshell-command-aliases-list
+          eshell-command-aliases-list
+          (append eshell-command-aliases-list
+                  +eshell-aliases)))
+  (add-hook 'eshell-alias-load-hook #'+eshell|init-aliases)
 
   (when (featurep! :editor evil +everywhere)
-    (advice-add #'evil-collection-eshell-next-prompt-on-insert
-                :override #'+eshell-goto-prompt-on-insert-a))
+    (advice-add #'evil-collection-eshell-next-prompt-on-insert :override #'+eshell*goto-prompt-on-insert))
 
-  (add-hook! 'eshell-first-time-mode-hook
-    (defun +eshell-init-keymap-h ()
-      ;; Keys must be bound in a hook because eshell resets its keymap every
-      ;; time `eshell-mode' is enabled. Why? It is not for us mere mortals to
-      ;; grasp such wisdom.
-      (map! :map eshell-mode-map
-            :n "RET"     #'+eshell/goto-end-of-prompt
-            :n [return]  #'+eshell/goto-end-of-prompt
-            :n "c"       #'+eshell/evil-change
-            :n "C"       #'+eshell/evil-change-line
-            :n "d"       #'+eshell/evil-delete
-            :n "D"       #'+eshell/evil-delete-line
-            :i "TAB"     #'+eshell/pcomplete
-            :i [tab]     #'+eshell/pcomplete
-            :i "C-d"     #'+eshell/quit-or-delete-char
-            "C-s"   #'+eshell/search-history
-            ;; Tmux-esque prefix keybinds
-            "C-c s" #'+eshell/split-below
-            "C-c v" #'+eshell/split-right
-            "C-c x" #'+eshell/kill-and-close
-            "C-c h" #'windmove-left
-            "C-c j" #'windmove-down
-            "C-c k" #'windmove-up
-            "C-c l" #'windmove-right
-            [remap split-window-below]  #'+eshell/split-below
-            [remap split-window-right]  #'+eshell/split-right
-            [remap doom/backward-to-bol-or-indent] #'eshell-bol
-            [remap doom/backward-kill-to-bol-and-indent] #'eshell-kill-input
-            [remap evil-window-split]   #'+eshell/split-below
-            [remap evil-window-vsplit]  #'+eshell/split-right))))
+  (defun +eshell|init-keymap ()
+    "Setup eshell keybindings. This must be done in a hook because eshell-mode
+redefines its keys every time `eshell-mode' is enabled."
+    (map! :map eshell-mode-map
+          :n "RET"     #'+eshell/goto-end-of-prompt
+          :n [return]  #'+eshell/goto-end-of-prompt
+          :n "c"       #'+eshell/evil-change
+          :n "C"       #'+eshell/evil-change-line
+          :n "d"       #'+eshell/evil-delete
+          :n "D"       #'+eshell/evil-delete-line
+          :i "TAB"     #'+eshell/pcomplete
+          :i [tab]     #'+eshell/pcomplete
+          :i "C-d"     #'+eshell/quit-or-delete-char
+          :i "C-p"     #'eshell-previous-matching-input-from-input
+          :i "C-k"     #'eshell-previous-matching-input-from-input
+          :i "C-j"     #'eshell-next-matching-input-from-input
+          :i "C-n"     #'eshell-next-matching-input-from-input
+          "C-s"   #'+eshell/search-history
+          ;; Tmux-esque prefix keybinds
+          "C-c s" #'+eshell/split-below
+          "C-c v" #'+eshell/split-right
+          "C-c x" #'+eshell/kill-and-close
+          "C-c h" #'evil-window-left
+          "C-c j" #'evil-window-down
+          "C-c k" #'evil-window-up
+          "C-c l" #'evil-window-right
+          [remap split-window-below]  #'+eshell/split-below
+          [remap split-window-right]  #'+eshell/split-right
+          [remap doom/backward-to-bol-or-indent] #'eshell-bol
+          [remap doom/backward-kill-to-bol-and-indent] #'eshell-kill-input
+          [remap evil-window-split]   #'+eshell/split-below
+          [remap evil-window-vsplit]  #'+eshell/split-right))
+  (add-hook 'eshell-first-time-mode-hook #'+eshell|init-keymap))
 
 
-(use-package! eshell-up
+(def-package! eshell-up
   :commands eshell-up eshell-up-peek)
 
 
-(use-package! shrink-path
+(def-package! shrink-path
   :commands shrink-path-file)
 
 
-(use-package! eshell-z
+(def-package! eshell-z
   :after eshell
   :config
   ;; Use zsh's db if it exists, otherwise, store it in `doom-cache-dir'

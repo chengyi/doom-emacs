@@ -53,10 +53,3 @@
             ((when-let (bin (projectile-locate-dominating-file default-directory "bin/python"))
                (setq-local doom-modeline-python-executable (expand-file-name "bin/python" bin))))
             ((executable-find exe))))))
-
-;;;###autoload
-(defun +python/optimize-imports ()
-  "organize imports"
-  (interactive)
-  (pyimport-remove-unused)
-  (pyimpsort-buffer))

@@ -1,7 +1,7 @@
 ;;; lang/java/+lsp.el -*- lexical-binding: t; -*-
 ;;;###if (featurep! +lsp)
 
-(use-package! lsp-java
+(def-package! lsp-java
   :after-call java-mode
   :init (add-hook 'java-mode-local-vars-hook #'lsp!)
   :config

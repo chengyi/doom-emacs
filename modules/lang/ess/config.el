@@ -1,6 +1,6 @@
 ;;; lang/ess/config.el -*- lexical-binding: t; -*-
 
-(use-package! ess
+(def-package! ess
   :commands (stata SAS)
   :init
   (setq ess-smart-S-assign-key nil)

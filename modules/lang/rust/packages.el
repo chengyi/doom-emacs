@@ -4,6 +4,8 @@
 (when EMACS26+
   (package! rustic))
 (package! rust-mode)
+(when (featurep! :tools flycheck)
+  (package! flycheck-rust))
 (unless (featurep! +lsp)
   (package! racer))
 

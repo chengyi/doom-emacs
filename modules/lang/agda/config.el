@@ -4,11 +4,11 @@
   (when (executable-find "agda-mode")
     (file-name-directory (shell-command-to-string "agda-mode locate"))))
 
-(use-package! agda2
+(def-package! agda2
   :when +agda-dir
   :load-path +agda-dir)
 
-(use-package! agda2-mode
+(def-package! agda2-mode
   :defer t
   :config
   (map! :map agda2-mode-map
@@ -18,7 +18,7 @@
         ","   #'agda2-goal-and-context
         "="   #'agda2-show-constraints
         "SPC" #'agda2-give
-        "a"   #'agda2-auto-maybe-all
+        "a"   #'agda2-auto
         "b"   #'agda2-previous-goal
         "c"   #'agda2-make-case
         "d"   #'agda2-infer-type-maybe-toplevel

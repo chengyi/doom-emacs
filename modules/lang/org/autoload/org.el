@@ -1,21 +1,4 @@
-;;; lang/org/autoload/org.el -*- lexical-binding: t; -*-
-
-;; HACK A necessary hack because org requires a compilation step after being
-;; cloned, and during that compilation a org-version.el is generated with these
-;; two functions, which return the output of a 'git describe ...' call in the
-;; repo's root. Of course, this command won't work in a sparse clone, and more
-;; than that, initiating these compilation step is a hassle, so...
-;;;###autoload (defun +org--release-a () "9.3")
-;;;###autoload (fset 'org-release #'+org--release-a)
-;;;###autoload (fset 'org-git-version #'ignore)
-
-;; Org itself may override the above if it's loaded too early by packages that
-;; depend on it, so we have to advise it once again:
-;;;###autoload (advice-add #'org-release :override #'+org--release-a)
-;;;###autoload (advice-add #'org-git-version :override #'ignore)
-
-;;
-;;; Helpers
+;;; org/org/autoload/org.el -*- lexical-binding: t; -*-
 
 (defun +org--get-property (name &optional bound)
   (save-excursion
@@ -315,7 +298,7 @@ wrong places)."
   (org-toggle-checkbox '(4)))
 
 ;;;###autoload
-(defalias #'+org/toggle-fold #'+org-cycle-only-current-subtree-h)
+(defalias #'+org/toggle-fold #'+org|cycle-only-current-subtree)
 
 ;;;###autoload
 (defun +org/open-fold ()
@@ -365,7 +348,7 @@ another level of headings on each invocation."
 ;;; Hooks
 
 ;;;###autoload
-(defun +org-delete-backward-char-and-realign-table-maybe-h ()
+(defun +org|delete-backward-char-and-realign-table-maybe ()
   "TODO"
   (when (eq major-mode 'org-mode)
     (org-check-before-invisible-edit 'delete-backward)
@@ -388,7 +371,7 @@ another level of headings on each invocation."
         t))))
 
 ;;;###autoload
-(defun +org-indent-maybe-h ()
+(defun +org|indent-maybe ()
   "Indent the current item (header or item), if possible.
 Made for `org-tab-first-hook' in evil-mode."
   (interactive)
@@ -412,7 +395,7 @@ Made for `org-tab-first-hook' in evil-mode."
          t)))
 
 ;;;###autoload
-(defun +org-realign-table-maybe-h ()
+(defun +org|realign-table-maybe ()
   "Auto-align table under cursor and re-calculate formulas."
   (when (and (org-at-table-p) org-table-may-need-update)
     (let ((pt (point))
@@ -422,14 +405,14 @@ Made for `org-tab-first-hook' in evil-mode."
       (goto-char pt))))
 
 ;;;###autoload
-(defun +org-update-cookies-h ()
+(defun +org|update-cookies ()
   "Update counts in headlines (aka \"cookies\")."
   (when (and buffer-file-name (file-exists-p buffer-file-name))
     (let (org-hierarchical-todo-statistics)
       (org-update-parent-todo-statistics))))
 
 ;;;###autoload
-(defun +org-yas-expand-maybe-h ()
+(defun +org|yas-expand-maybe ()
   "Tries to expand a yasnippet snippet, if one is available. Made for
 `org-tab-first-hook'."
   (when (bound-and-true-p yas-minor-mode)
@@ -447,7 +430,7 @@ Made for `org-tab-first-hook' in evil-mode."
            t))))
 
 ;;;###autoload
-(defun +org-cycle-only-current-subtree-h (&optional arg)
+(defun +org|cycle-only-current-subtree (&optional arg)
   "Toggle the local fold at the point (as opposed to cycling through all levels
 with `org-cycle')."
   (interactive "P")
@@ -466,14 +449,14 @@ with `org-cycle')."
           t)))))
 
 ;;;###autoload
-(defun +org-remove-occur-highlights-h ()
+(defun +org|remove-occur-highlights ()
   "Remove org occur highlights on ESC in normal mode."
   (when org-occur-highlights
     (org-remove-occur-highlights)
     t))
 
 ;;;###autoload
-(defun +org-unfold-to-2nd-level-or-point-h ()
+(defun +org|unfold-to-2nd-level-or-point ()
   "My version of the 'overview' #+STARTUP option: expand first-level headings.
 Expands the first level, but no further. If point was left somewhere deeper,
 unfold to point on startup."
@@ -487,39 +470,39 @@ unfold to point on startup."
           (org-show-subtree))))))
 
 ;;;###autoload
-(defun +org-enable-auto-reformat-tables-h ()
+(defun +org|enable-auto-reformat-tables ()
   "Realign tables & update formulas when exiting insert mode (`evil-mode')."
   (when (featurep 'evil)
-    (add-hook 'evil-insert-state-exit-hook #'+org-realign-table-maybe-h nil t)
-    (add-hook 'evil-replace-state-exit-hook #'+org-realign-table-maybe-h nil t)
-    (advice-add #'evil-replace :after #'+org-realign-table-maybe-a)))
+    (add-hook 'evil-insert-state-exit-hook #'+org|realign-table-maybe nil t)
+    (add-hook 'evil-replace-state-exit-hook #'+org|realign-table-maybe nil t)
+    (advice-add #'evil-replace :after #'+org*realign-table-maybe)))
 
 ;;;###autoload
-(defun +org-enable-auto-update-cookies-h ()
+(defun +org|enable-auto-update-cookies ()
   "Update statistics cookies when saving or exiting insert mode (`evil-mode')."
   (when (featurep 'evil)
-    (add-hook 'evil-insert-state-exit-hook #'+org-update-cookies-h nil t))
-  (add-hook 'before-save-hook #'+org-update-cookies-h nil t))
+    (add-hook 'evil-insert-state-exit-hook #'+org|update-cookies nil t))
+  (add-hook 'before-save-hook #'+org|update-cookies nil t))
 
 
 ;;
 ;;; Advice
 
 ;;;###autoload
-(defun +org-fix-newline-and-indent-in-src-blocks-a ()
+(defun +org*fix-newline-and-indent-in-src-blocks ()
   "Try to mimic `newline-and-indent' with correct indentation in src blocks."
   (when (org-in-src-block-p t)
     (org-babel-do-in-edit-buffer
      (call-interactively #'indent-for-tab-command))))
 
 ;;;###autoload
-(defun +org-realign-table-maybe-a (&rest _)
+(defun +org*realign-table-maybe (&rest _)
   "Auto-align table under cursor and re-calculate formulas."
   (when (eq major-mode 'org-mode)
-    (+org-realign-table-maybe-h)))
+    (+org|realign-table-maybe)))
 
 ;;;###autoload
-(defun +org-evil-org-open-below-a (orig-fn count)
+(defun +org*evil-org-open-below (orig-fn count)
   "Fix o/O creating new list items in the middle of nested plain lists. Only has
 an effect when `evil-org-special-o/O' has `item' in it (not the default)."
   (cl-letf (((symbol-function 'end-of-visible-line)
@@ -530,7 +513,7 @@ an effect when `evil-org-special-o/O' has `item' in it (not the default)."
     (funcall orig-fn count)))
 
 ;;;###autoload
-(defun +org-display-link-in-eldoc-a (orig-fn &rest args)
+(defun +org*display-link-in-eldoc (orig-fn &rest args)
   "Display the link at point in eldoc."
   (or (when-let (link (org-element-property :raw-link (org-element-context)))
         (format "Link: %s" link))

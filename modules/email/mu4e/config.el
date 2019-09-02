@@ -10,8 +10,8 @@
 (add-to-list 'auto-mode-alist '("\\.\\(?:offlineimap\\|mbsync\\)rc\\'" . conf-mode))
 
 
-(use-package! mu4e
-  :commands mu4e mu4e-compose-new
+(def-package! mu4e
+  :commands (mu4e mu4e-compose-new)
   :init
   (provide 'html2text) ; disable obsolete package
   (setq mu4e-maildir "~/.mail"
@@ -88,8 +88,9 @@
                    (let ((maildir (mu4e-message-field msg :maildir)))
                      (format "%s" (substring maildir 1 (string-match-p "/" maildir 1)))))))
 
-  (defadvice! +mu4e--refresh-current-view-a (&rest _)
-    :after #'mu4e-mark-execute-all (mu4e-headers-rerun-search))
+  ;; Refresh the current view after marks are executed
+  (defun +mu4e*refresh (&rest _) (mu4e-headers-rerun-search))
+  (advice-add #'mu4e-mark-execute-all :after #'+mu4e*refresh)
 
   (when (featurep! :tools flyspell)
     (add-hook 'mu4e-compose-mode-hook #'flyspell-mode))
@@ -109,14 +110,14 @@
     'normal))
 
 
-(use-package! mu4e-maildirs-extension
+(def-package! mu4e-maildirs-extension
   :after mu4e
   :config
   (mu4e-maildirs-extension)
   (setq mu4e-maildirs-extension-title nil))
 
 
-(use-package! org-mu4e
+(def-package! org-mu4e
   :hook (mu4e-compose-mode . org-mu4e-compose-org-mode)
   :config
   (setq org-mu4e-link-query-in-headers-mode nil
@@ -151,7 +152,7 @@
     (defun +mu4e--mark-seen (docid _msg target)
       (mu4e~proc-move docid (mu4e~mark-check-target target) "+S-u-N"))
 
-    (delq! 'delete mu4e-marks #'assq)
+    (delq (assq 'delete mu4e-marks) mu4e-marks)
     (setf (alist-get 'trash mu4e-marks)
           (list :char '("d" . "▼")
                 :prompt "dtrash"
@@ -168,10 +169,10 @@
     ;; Without it, refiling (archiving), trashing, and flagging (starring) email
     ;; won't properly result in the corresponding gmail action, since the marks
     ;; are ineffectual otherwise.
-    (add-hook! 'mu4e-mark-execute-pre-hook
-      (defun +mu4e-gmail-fix-flags-h (mark msg)
-        (pcase mark
-          (`trash  (mu4e-action-retag-message msg "-\\Inbox,+\\Trash,-\\Draft"))
-          (`refile (mu4e-action-retag-message msg "-\\Inbox"))
-          (`flag   (mu4e-action-retag-message msg "+\\Starred"))
-          (`unflag (mu4e-action-retag-message msg "-\\Starred")))))))
+    (defun +mu4e|gmail-fix-flags (mark msg)
+      (pcase mark
+        (`trash  (mu4e-action-retag-message msg "-\\Inbox,+\\Trash,-\\Draft"))
+        (`refile (mu4e-action-retag-message msg "-\\Inbox"))
+        (`flag   (mu4e-action-retag-message msg "+\\Starred"))
+        (`unflag (mu4e-action-retag-message msg "-\\Starred"))))
+    (add-hook 'mu4e-mark-execute-pre-hook #'+mu4e|gmail-fix-flags)))

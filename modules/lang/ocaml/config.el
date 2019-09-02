@@ -1,8 +1,8 @@
 ;;; lang/ocaml/config.el -*- lexical-binding: t; -*-
 
 (when (featurep! +lsp)
-  (add-hook! '(tuareg-mode-local-vars-hook reason-mode-local-vars-hook)
-             #'lsp!))
+  (add-hook! (tuareg-mode-local-vars reason-mode-local-vars)
+    #'lsp!))
 
 
 (after! tuareg
@@ -26,7 +26,7 @@
     comment-line-break-function #'+ocaml/comment-indent-new-line)
 
 
-  (use-package! utop
+  (def-package! utop
     :when (featurep! :tools eval)
     :hook (tuareg-mode . +ocaml|init-utop)
     :init
@@ -37,7 +37,7 @@
         (utop-minor-mode)))))
 
 
-(use-package! merlin
+(def-package! merlin
   :unless (featurep! +lsp)
   :hook (tuareg-mode . +ocaml|init-merlin)
   :init
@@ -60,7 +60,7 @@
         "t" #'merlin-type-enclosing
         "a" #'tuareg-find-alternate-file)
 
-  (use-package! flycheck-ocaml
+  (def-package! flycheck-ocaml
     :when (featurep! :tools flycheck)
     :hook (merlin-mode . +ocaml|init-flycheck)
     :config
@@ -72,22 +72,22 @@
         ;; Enable Flycheck checker
         (flycheck-ocaml-setup))))
 
-  (use-package! merlin-eldoc
+  (def-package! merlin-eldoc
     :hook (merlin-mode . merlin-eldoc-setup))
 
-  (use-package! merlin-iedit
+  (def-package! merlin-iedit
     :when (featurep! :editor multiple-cursors)
     :defer t
     :init
     (map! :map tuareg-mode-map
           :v "R" #'merlin-iedit-occurrences))
 
-  (use-package! merlin-imenu
+  (def-package! merlin-imenu
     :when (featurep! :emacs imenu)
     :hook (merlin-mode . merlin-use-merlin-imenu)))
 
 
-(use-package! ocp-indent
+(def-package! ocp-indent
   ;; must be careful to always defer this, it has autoloads that adds hooks
   ;; which we do not want if the executable can't be found
   :hook (tuareg-mode . +ocaml|init-ocp-indent)
@@ -98,7 +98,7 @@
       (ocp-setup-indent))))
 
 
-(use-package! ocamlformat
+(def-package! ocamlformat
   :when (featurep! :editor format)
   :commands ocamlformat
   :hook (tuareg-mode . +ocaml|init-ocamlformat)

@@ -20,12 +20,12 @@
       [tab] #'ledger-reconcile-toggle)
 
 
-(use-package! flycheck-ledger
+(def-package! flycheck-ledger
   :when (featurep! :tools flycheck)
   :after ledger-mode)
 
 
-(use-package! evil-ledger
+(def-package! evil-ledger
   :when (featurep! :editor evil +everywhere)
   :hook (ledger-mode . evil-ledger-mode)
   :config

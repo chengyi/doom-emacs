@@ -1,6 +1,6 @@
 ;;; ui/modeline/config.el -*- lexical-binding: t; -*-
 
-(use-package! doom-modeline
+(def-package! doom-modeline
   :hook (after-init . doom-modeline-mode)
   :init
   (unless after-init-time
@@ -32,17 +32,17 @@
   (add-hook 'doom-modeline-mode-hook #'size-indication-mode) ; filesize in modeline
   (add-hook 'doom-modeline-mode-hook #'column-number-mode)   ; cursor column in modeline
 
-  (add-hook 'doom-change-font-size-hook #'+modeline-resize-for-font-h)
+  (add-hook 'doom-change-font-size-hook #'+modeline|resize-for-font)
   (add-hook 'doom-load-theme-hook #'doom-modeline-refresh-bars)
 
   (add-hook '+doom-dashboard-mode-hook #'doom-modeline-set-project-modeline)
 
-  (add-hook! 'magit-mode-hook
-    (defun +modeline-hide-in-non-status-buffer-h ()
-      "Show minimal modeline in magit-status buffer, no modeline elsewhere."
-      (if (eq major-mode 'magit-status-mode)
-          (doom-modeline-set-project-modeline)
-        (hide-mode-line-mode))))
+  (defun +modeline|hide-in-non-status-buffer ()
+    "Show minimal modeline in magit-status buffer, no modeline elsewhere."
+    (if (eq major-mode 'magit-status-mode)
+        (doom-modeline-set-project-modeline)
+      (hide-mode-line-mode)))
+  (add-hook 'magit-mode-hook #'+modeline|hide-in-non-status-buffer)
 
   ;; Remove unused segments & extra padding
   (doom-modeline-def-modeline 'main
@@ -58,18 +58,18 @@
     '(misc-info mu4e github debug fancy-battery " " major-mode process))
 
   ;; Some functions modify the buffer, causing the modeline to show a false
-  ;; modified state, so force them to behave.
-  (defadvice! +modeline--inhibit-modification-hooks-a (orig-fn &rest args)
-    :around #'ws-butler-after-save
-    (with-silent-modifications (apply orig-fn args))))
+  ;; modified state, so we try to force them to behave.
+  (defun +modeline*inhibit-modification-hooks (orig-fn &rest args)
+    (with-silent-modifications (apply orig-fn args)))
+  (advice-add #'ws-butler-after-save :around #'+modeline*inhibit-modification-hooks))
 
 
 ;;
 ;; Extensions
 
-(use-package! anzu
+(def-package! anzu
   :after-call isearch-mode)
 
-(use-package! evil-anzu
+(def-package! evil-anzu
   :when (featurep! :editor evil)
   :after-call (evil-ex-start-search evil-ex-start-word-search evil-ex-search-activate-highlight))

@@ -14,7 +14,7 @@
     (add-to-list '+flyspell--predicate-alist (cons mode predicate))))
 
 ;;;###autoload
-(defun +flyspell-init-predicate-h ()
+(defun +flyspell|init-predicate ()
   "TODO"
   (when-let (pred (assq major-mode +flyspell--predicate-alist))
     (setq-local flyspell-generic-check-word-predicate (cdr pred))))

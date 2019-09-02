@@ -53,11 +53,11 @@
           "n" #'+go/test-nested)))
 
 
-(use-package! gorepl-mode
+(def-package! gorepl-mode
   :commands gorepl-run-load-current-file)
 
 
-(use-package! company-go
+(def-package! company-go
   :when (and (featurep! :completion company)
              (not (featurep! +lsp)))
   :after go-mode

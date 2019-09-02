@@ -8,34 +8,35 @@ errors.")
 ;;
 ;;; Packages
 
-(use-package! flycheck
-  :commands flycheck-list-errors flycheck-buffer
-  :after-call doom-switch-buffer-hook after-find-file
+(def-package! flycheck
+  :commands (flycheck-list-errors flycheck-buffer)
+  :after-call (doom-switch-buffer-hook after-find-file)
   :config
   ;; new-line checks are a mote excessive; idle checks are more than enough
-  (delq! 'new-line flycheck-check-syntax-automatically)
+  (setq flycheck-check-syntax-automatically
+        (delq 'new-line flycheck-check-syntax-automatically))
 
-  (add-hook! 'doom-escape-hook :append
-    (defun +flycheck-buffer-h ()
-      "Flycheck buffer on ESC in normal mode."
-      (when flycheck-mode
-        (ignore-errors (flycheck-buffer))
-        nil)))
+  (defun +flycheck|buffer ()
+    "Flycheck buffer on ESC in normal mode."
+    (when flycheck-mode
+      (ignore-errors (flycheck-buffer))
+      nil))
+  (add-hook 'doom-escape-hook #'+flycheck|buffer 'append)
 
-  (add-hook! 'flycheck-after-syntax-check-hook
-    (defun +flycheck-adjust-syntax-check-eagerness-h ()
-      "Check for errors less often when there aren't any.
+  (defun +flycheck|adjust-syntax-check-eagerness ()
+    "Check for errors less often when there aren't any.
 Done to reduce the load flycheck imposes on the current buffer."
-      (if flycheck-current-errors
-          (kill-local-variable 'flycheck-idle-change-delay)
-        (setq-local flycheck-idle-change-delay +flycheck-lazy-idle-delay))))
+    (if flycheck-current-errors
+        (kill-local-variable 'flycheck-idle-change-delay)
+      (setq-local flycheck-idle-change-delay +flycheck-lazy-idle-delay)))
+  (add-hook 'flycheck-after-syntax-check-hook #'+flycheck|adjust-syntax-check-eagerness)
 
   (global-flycheck-mode +1))
 
 
-(use-package! flycheck-popup-tip
-  :commands flycheck-popup-tip-show-popup flycheck-popup-tip-delete-popup
-  :init (add-hook 'flycheck-mode-hook #'+flycheck-init-popups-h)
+(def-package! flycheck-popup-tip
+  :commands (flycheck-popup-tip-show-popup flycheck-popup-tip-delete-popup)
+  :init (add-hook 'flycheck-mode-hook #'+flycheck|init-popups)
   :config
   (setq flycheck-popup-tip-error-prefix "✕ ")
   (after! evil
@@ -44,11 +45,10 @@ Done to reduce the load flycheck imposes on the current buffer."
     (add-hook 'flycheck-posframe-inhibit-functions #'evil-insert-state-p)))
 
 
-(use-package! flycheck-posframe
-  :when EMACS26+
-  :when (featurep! +childframe)
+(def-package! flycheck-posframe
+  :when (and EMACS26+ (featurep! +childframe))
   :defer t
-  :init (add-hook 'flycheck-mode-hook #'+flycheck-init-popups-h)
+  :init (add-hook 'flycheck-mode-hook #'+flycheck|init-popups)
   :config
   (setq flycheck-posframe-warning-prefix "⚠ "
         flycheck-posframe-info-prefix "··· "

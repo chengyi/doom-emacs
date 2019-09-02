@@ -10,10 +10,10 @@
   (after-all
     (unload-feature 'evil t))
   (before-each
-    (fset 'resv #'+evil-resolve-vim-path-a)
+    (fset 'resv #'+evil*resolve-vim-path)
     (spy-on 'doom-project-root :and-call-fake (lambda () project-root)))
 
-  ;; `evil-ex-replace-special-filenames' / `+evil-resolve-vim-path-a'
+  ;; `evil-ex-replace-special-filenames' / `+evil*resolve-vim-path'
   (describe "file modifiers"
     (it "supports basic vim file modifiers"
       (let ((buffer-file-name  "~/.emacs.d/test/modules/feature/test-evil.el")

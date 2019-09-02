@@ -1,17 +1,17 @@
 ;;; lang/haskell/+intero.el -*- lexical-binding: t; -*-
 ;;;###if (featurep! +intero)
 
-(use-package! intero
+(def-package! intero
   :commands intero-mode
   :init
-  (add-hook! 'haskell-mode-local-vars-hook
-    (defun +haskell-init-intero-h ()
-      "Initializes `intero-mode' in haskell-mode, unless stack isn't installed.
+  (defun +haskell|init-intero ()
+    "Initializes `intero-mode' in haskell-mode, unless stack isn't installed.
 This is necessary because `intero-mode' doesn't do its own error checks."
-      (when (derived-mode-p 'haskell-mode)
-        (if (executable-find "stack")
-            (intero-mode +1)
-          (message "Couldn't find stack. Refusing to enable intero-mode.")))))
+    (when (derived-mode-p 'haskell-mode)
+      (if (executable-find "stack")
+          (intero-mode +1)
+        (message "Couldn't find stack. Refusing to enable intero-mode."))))
+  (add-hook 'haskell-mode-local-vars-hook #'+haskell|init-intero)
   :config
   (setq haskell-compile-cabal-build-command "stack build --fast")
   (set-lookup-handlers! 'intero-mode :definition #'intero-goto-definition)

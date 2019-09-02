@@ -9,7 +9,7 @@
 ;;
 ;; Packages
 
-(use-package! langtool
+(def-package! langtool
   :when (featurep! +langtool)
   :commands (langtool-check
              langtool-check-done
@@ -23,7 +23,7 @@
                  (locate-file "libexec/languagetool-commandline.jar"
                               (doom-files-in "/usr/local/Cellar/languagetool"
                                              :type 'dirs
-                                             :depth 2)))
+                                             :depth 1)))
                 (IS-LINUX
                  "/usr/share/java/languagetool/languagetool-commandline.jar")))))
 

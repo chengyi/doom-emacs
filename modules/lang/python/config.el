@@ -12,12 +12,13 @@ called.")
 ;;
 ;; Packages
 
-(use-package! python
+(def-package! python
   :defer t
   :init
   (setq python-environment-directory doom-cache-dir
         python-indent-guess-indent-offset-verbose nil)
   :config
+  (set-electric! 'python-mode :chars '(?:))
   (set-repl-handler! 'python-mode #'+python/open-repl)
   (set-docsets! 'python-mode "Python 3" "NumPy" "SciPy")
 
@@ -39,36 +40,8 @@ called.")
     :for "for"
     :return "return" :yield "yield")
 
-  ;; Stop the spam!
-  (setq python-indent-guess-indent-offset-verbose nil)
-
   (when (featurep! +lsp)
     (add-hook 'python-mode-local-vars-hook #'lsp!))
-
-  ;; Default to Python 3. Prefer the versioned Python binaries since some
-  ;; systems stupidly make the unversioned one point at Python 2.
-  (when (and (executable-find "python3")
-             (string= python-shell-interpreter "python"))
-    (setq python-shell-interpreter "python3"))
-
-  (add-hook! 'python-mode-hook
-    (defun +python-use-correct-flycheck-executables-h ()
-      "Use the correct Python executables for Flycheck."
-      (let ((executable python-shell-interpreter))
-        (save-excursion
-          (goto-char (point-min))
-          (save-match-data
-            (when (or (looking-at "#!/usr/bin/env \\(python[^ \n]+\\)")
-                      (looking-at "#!\\([^ \n]+/python[^ \n]+\\)"))
-              (setq executable (substring-no-properties (match-string 1))))))
-        ;; Try to compile using the appropriate version of Python for
-        ;; the file.
-        (setq-local flycheck-python-pycompile-executable executable)
-        ;; We might be running inside a virtualenv, in which case the
-        ;; modules won't be available. But calling the executables
-        ;; directly will work.
-        (setq-local flycheck-python-pylint-executable "pylint")
-        (setq-local flycheck-python-flake8-executable "flake8"))))
 
   (define-key python-mode-map (kbd "DEL") nil) ; interferes with smartparens
   (sp-local-pair 'python-mode "'" nil
@@ -77,14 +50,14 @@ called.")
                            sp-point-before-same-p))
 
   ;; Affects pyenv and conda
-  (advice-add #'pythonic-activate :after-while #'+modeline-update-env-in-all-windows-h)
-  (advice-add #'pythonic-deactivate :after #'+modeline-clear-env-in-all-windows-h)
+  (advice-add #'pythonic-activate :after-while #'+modeline|update-env-in-all-windows)
+  (advice-add #'pythonic-deactivate :after #'+modeline|clear-env-in-all-windows)
 
   (setq-hook! 'python-mode-hook tab-width python-indent-offset))
 
 
-(use-package! anaconda-mode
-  :after python
+(def-package! anaconda-mode
+  :hook (python-mode-local-vars . +python|init-anaconda-mode-maybe)
   :init
   (setq anaconda-mode-installation-directory (concat doom-etc-dir "anaconda/")
         anaconda-mode-eldoc-as-single-line t)
@@ -97,20 +70,18 @@ called.")
     :documentation #'anaconda-mode-show-doc)
   (set-popup-rule! "^\\*anaconda-mode" :select nil)
 
-  (add-hook! 'python-mode-local-vars-hook
-    (defun +python-init-anaconda-mode-maybe-h ()
-      "Enable `anaconda-mode' if `lsp-mode' isn't."
-      (unless (bound-and-true-p lsp-mode)
-        (anaconda-mode +1))))
+  (defun +python|init-anaconda-mode-maybe ()
+    (unless (bound-and-true-p lsp-mode)
+      (anaconda-mode +1)))
 
-  (defun +python-auto-kill-anaconda-processes-h ()
+  (defun +python|auto-kill-anaconda-processes ()
     "Kill anaconda processes if this buffer is the last python buffer."
     (when (and (eq major-mode 'python-mode)
                (not (delq (current-buffer)
                           (doom-buffers-in-mode 'python-mode (buffer-list)))))
       (anaconda-mode-stop)))
   (add-hook! 'python-mode-hook
-    (add-hook 'kill-buffer-hook #'+python-auto-kill-anaconda-processes-h nil t))
+    (add-hook 'kill-buffer-hook #'+python|auto-kill-anaconda-processes nil t))
 
   (when (featurep 'evil)
     (add-hook 'anaconda-mode-hook #'evil-normalize-keymaps))
@@ -124,23 +95,21 @@ called.")
         "u" #'anaconda-mode-find-references))
 
 
-(use-package! pyimport
+(def-package! pyimport
   :after python
   :config
   (map! :map python-mode-map
         :localleader
-        (:prefix ("i" . "imports")
-          :desc "Insert missing imports" "i" #'pyimport-insert-missing
-          :desc "Remove unused imports" "r" #'pyimport-remove-unused
-          :desc "Sort imports" "s" #'pyimpsort-buffer
-          :desc "Optimize imports" "o" #'+python/optimize-imports
-          )))
+        (:prefix ("i" . "insert")
+          :desc "Missing imports" "m" #'pyimport-insert-missing)
+        (:prefix ("r" . "remove")
+          :desc "Unused imports" "r" #'pyimport-remove-unused)))
 
 
-(use-package! nose
+(def-package! nose
   :commands nose-mode
   :preface (defvar nose-mode-map (make-sparse-keymap))
-  :minor ("/test_.+\\.py$" . nose-mode)
+  :init (associate! nose-mode :match "/test_.+\\.py$" :modes (python-mode))
   :config
   (set-popup-rule! "^\\*nosetests" :size 0.4 :select nil)
   (set-yas-minor-mode! 'nose-mode)
@@ -159,7 +128,7 @@ called.")
         "V" #'nosetests-pdb-module))
 
 
-(use-package! python-pytest
+(def-package! python-pytest
   :defer t
   :init
   (map! :after python
@@ -177,7 +146,7 @@ called.")
 ;;
 ;; Environment management
 
-(use-package! pipenv
+(def-package! pipenv
   :commands pipenv-project-p
   :hook (python-mode . pipenv-mode)
   :init (setq pipenv-with-projectile nil)
@@ -192,12 +161,12 @@ called.")
       (:description . "Run Python script"))))
 
 
-(use-package! pyvenv
+(def-package! pyvenv
   :after python
   :init
   (when (featurep! :ui modeline)
-    (add-hook 'pyvenv-post-activate-hooks #'+modeline-update-env-in-all-windows-h)
-    (add-hook 'pyvenv-pre-deactivate-hooks #'+modeline-clear-env-in-all-windows-h))
+    (add-hook 'pyvenv-post-activate-hooks #'+modeline|update-env-in-all-windows)
+    (add-hook 'pyvenv-pre-deactivate-hooks #'+modeline|clear-env-in-all-windows))
   :config
   (add-hook 'hack-local-variables-hook #'pyvenv-track-virtualenv)
   (add-to-list 'global-mode-string
@@ -205,7 +174,7 @@ called.")
                'append))
 
 
-(use-package! pyenv-mode
+(def-package! pyenv-mode
   :when (featurep! +pyenv)
   :after python
   :config
@@ -214,7 +183,7 @@ called.")
     (add-to-list 'exec-path (expand-file-name "shims" (or (getenv "PYENV_ROOT") "~/.pyenv")))))
 
 
-(use-package! conda
+(def-package! conda
   :when (featurep! +conda)
   :after python
   :config
@@ -236,11 +205,9 @@ called.")
                                     "~/.anaconda"
                                     "~/.miniconda"
                                     "~/.miniconda3"
-                                    "~/miniconda3"
                                     "/usr/bin/anaconda3"
                                     "/usr/local/anaconda3"
-                                    "/usr/local/miniconda3"
-                                    "/usr/local/Caskroom/miniconda/base")
+                                    "/usr/local/miniconda3")
                    if (file-directory-p dir)
                    return (setq conda-anaconda-home dir
                                 conda-env-home-directory dir))
@@ -249,21 +216,7 @@ called.")
   ;; integration with term/eshell
   (conda-env-initialize-interactive-shells)
   (after! eshell (conda-env-initialize-eshell))
-
+ 
   (add-to-list 'global-mode-string
                '(conda-env-current-name (" conda:" conda-env-current-name " "))
                'append))
-
-
-(use-package! lsp-python-ms
-  :when (featurep! +lsp)
-  :after lsp-clients
-  :init
-  ;; HACK lsp-python-ms shouldn't install itself if it isn't present. This
-  ;; circumvents LSP falling back to pyls when lsp-python-ms is absent.
-  ;; Installing the server should be a deliberate act; either 'M-x
-  ;; lsp-python-ms-setup' or setting `lsp-python-ms-executable' to an existing
-  ;; install will do.
-  (defadvice! +python--dont-auto-install-server-a ()
-    :override #'lsp-python-ms--command-string
-    lsp-python-ms-executable))

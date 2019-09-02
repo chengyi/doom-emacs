@@ -19,7 +19,7 @@ easier to scroll through.")
 ;;
 ;; Packages
 
-(use-package! elfeed
+(def-package! elfeed
   :commands elfeed
   :config
   (setq elfeed-search-filter "@2-week-ago "
@@ -36,21 +36,21 @@ easier to scroll through.")
   (make-directory elfeed-db-directory t)
 
   ;; Ensure elfeed buffers are treated as real
-  (add-hook! 'doom-real-buffer-functions
-    (defun +rss-buffer-p (buf)
-      (string-match-p "^\\*elfeed" (buffer-name buf))))
+  (defun +rss-buffer-p (buf)
+    (string-match-p "^\\*elfeed" (buffer-name buf)))
+  (add-to-list 'doom-real-buffer-functions #'+rss-buffer-p nil #'eq)
 
   ;; Enhance readability of a post
-  (add-hook 'elfeed-show-mode-hook #'+rss-elfeed-wrap-h)
+  (add-hook 'elfeed-show-mode-hook #'+rss|elfeed-wrap)
   (add-hook! 'elfeed-search-mode-hook
-    (add-hook 'kill-buffer-hook #'+rss-cleanup-h nil 'local))
+    (add-hook 'kill-buffer-hook #'+rss|cleanup nil t))
 
   ;; Large images are annoying to scroll through, because scrolling follows the
   ;; cursor, so we force shr to insert images in slices.
   (when +rss-enable-sliced-images
     (setq-hook! 'elfeed-show-mode-hook
-      shr-put-image-function #'+rss-put-sliced-image-fn
-      shr-external-rendering-functions '((img . +rss-render-image-tag-without-underline-fn))))
+      shr-put-image-function #'+rss-put-sliced-image
+      shr-external-rendering-functions '((img . +rss-render-image-tag-without-underline))))
 
   ;; Keybindings
   (after! elfeed-show
@@ -64,11 +64,11 @@ easier to scroll through.")
       (kbd "M-RET") #'elfeed-search-browse-url)))
 
 
-(use-package! elfeed-org
+(def-package! elfeed-org
   :when (featurep! +org)
   :after elfeed
   :config
-  (let ((default-directory org-directory))
-    (setq rmh-elfeed-org-files
+  (setq rmh-elfeed-org-files
+        (let ((default-directory org-directory))
           (mapcar #'expand-file-name +rss-elfeed-files)))
   (elfeed-org))

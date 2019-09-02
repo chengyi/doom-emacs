@@ -1,4 +1,4 @@
 ;; -*- no-byte-compile: t; -*-
-;;; ui/tabs/packages.el
+;;; ui/tabbar/packages.el
 
 (package! centaur-tabs)

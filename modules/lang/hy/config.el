@@ -1,6 +1,6 @@
 ;;; lang/hy/config.el -*- lexical-binding: t; -*-
 
-(use-package! hy-mode
+(def-package! hy-mode
   :mode "\\.hy\\'"
   :interpreter "hy"
   :config

@@ -24,8 +24,7 @@
 ;;
 ;;; Major modes
 
-(add-hook! '(css-mode-hook sass-mode-hook stylus-mode-hook)
-           #'rainbow-mode)
+(add-hook! (css-mode sass-mode stylus-mode) #'rainbow-mode)
 
 ;; built-in, and contains both css-mode & scss-mode
 (after! css-mode
@@ -48,11 +47,10 @@
 ;;; Tools
 
 (when (featurep! +lsp)
-  (add-hook! '(css-mode-hook sass-mode-hook less-css-mode-hook)
-             #'lsp!))
+  (add-hook! (css-mode sass-mode less-css-mode) #'lsp!))
 
 
-(use-package! counsel-css
+(def-package! counsel-css
   :when (featurep! :completion ivy)
   :commands counsel-css
   :hook (css-mode . counsel-css-imenu-setup)
@@ -61,7 +59,7 @@
         :localleader ";" #'counsel-css))
 
 
-(use-package! helm-css-scss
+(def-package! helm-css-scss
   :when (featurep! :completion helm)
   :defer t
   :init

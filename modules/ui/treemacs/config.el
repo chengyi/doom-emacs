@@ -6,7 +6,6 @@
       treemacs-persist-file (concat doom-cache-dir "treemacs-persist")
       treemacs-last-error-persist-file (concat doom-cache-dir "treemacs-last-error-persist"))
 
-
 (after! treemacs-persistence
   ;; This variable is defined with defconst, so we must wait to change it until
   ;; it has loaded.
@@ -26,10 +25,10 @@
   (treemacs-follow-mode -1)
 
   (after! ace-window
-    (delq! 'treemacs-mode aw-ignored-buffers)))
+    (setq aw-ignored-buffers (delq 'treemacs-mode aw-ignored-buffers))))
 
 
-(use-package! treemacs-evil
+(def-package! treemacs-evil
   :when (featurep! :editor evil +everywhere)
   :after treemacs
   :config
@@ -39,9 +38,9 @@
     "TAB"    #'treemacs-TAB-action))
 
 
-(use-package! treemacs-projectile
+(def-package! treemacs-projectile
   :after treemacs)
 
-(use-package! treemacs-magit
+(def-package! treemacs-magit
   :when (featurep! :tools magit)
   :after treemacs magit)

@@ -10,9 +10,10 @@ current line.")
 (after! electric
   (setq-default electric-indent-chars '(?\n ?\^?))
 
-  (add-hook! 'electric-indent-functions
-    (defun +electric-indent-char-fn (_c)
-      (when (and (eolp) +electric-indent-words)
-        (save-excursion
-          (backward-word)
-          (looking-at-p (concat "\\<" (regexp-opt +electric-indent-words))))))))
+  (defun +electric-indent|char (_c)
+    (when (and (eolp) +electric-indent-words)
+      (save-excursion
+        (backward-word)
+        (looking-at-p (concat "\\<" (regexp-opt +electric-indent-words))))))
+  (add-to-list 'electric-indent-functions #'+electric-indent|char nil #'eq))
+

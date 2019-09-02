@@ -4,8 +4,6 @@
        (load! "+fira"))
       ((featurep! +iosevka)
        (load! "+iosevka"))
-      ((featurep! +hasklig)
-       (load! "+hasklig"))
       ((featurep! +pragmata-pro)
        (load! "+pragmata-pro")))
 

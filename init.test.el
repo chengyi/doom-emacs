@@ -1,6 +1,4 @@
-;;; core/test/init.el -*- lexical-binding: t; no-byte-compile: t; -*-
-
-;; An init.el for our unit test suites. Do not use this!
+;;; init.test.el -- for automated unit tests -*- lexical-binding: t; -*-
 
 (doom! :completion
        company

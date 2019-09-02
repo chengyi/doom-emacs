@@ -1,6 +1,6 @@
 ;;; lang/rest/config.el -*- lexical-binding: t; -*-
 
-(use-package! restclient
+(def-package! restclient
   :mode ("\\.http\\'" . restclient-mode)
   :config
   (set-popup-rule! "^\\*HTTP Response" :size 0.4 :quit 'other)
@@ -30,7 +30,7 @@
         "c" #'restclient-copy-curl-command))
 
 
-(use-package! company-restclient
+(def-package! company-restclient
   :when (featurep! :completion company)
   :after restclient
   :config (set-company-backend! 'restclient-mode 'company-restclient))

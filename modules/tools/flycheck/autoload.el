@@ -1,7 +1,7 @@
 ;;; tools/flycheck/autoload.el -*- lexical-binding: t; -*-
 
 ;;;###autoload
-(defun +flycheck-init-popups-h ()
+(defun +flycheck|init-popups ()
   "Activate `flycheck-posframe-mode' if available and in GUI Emacs.
 Activate `flycheck-popup-tip-mode' otherwise.
 Do nothing if `lsp-ui-mode' is active and `lsp-ui-sideline-enable' is non-nil."

@@ -20,7 +20,7 @@
       "")))
 
 ;;;###autoload
-(defun +eshell-default-prompt-fn ()
+(defun +eshell-default-prompt ()
   "Generate the prompt string for eshell. Use for `eshell-prompt-function'."
   (concat (if (bobp) "" "\n")
           (let ((pwd (eshell/pwd)))

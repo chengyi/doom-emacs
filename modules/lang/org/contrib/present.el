@@ -11,7 +11,7 @@
 ;;
 ;;; Packages
 
-(use-package! ox-reveal
+(def-package! ox-reveal
   :after ox
   :init
   ;; Fix #1127, where ox-reveal adds an errant entry to
@@ -22,7 +22,7 @@
         org-reveal-mathjax t))
 
 
-(use-package! org-tree-slide
+(def-package! org-tree-slide
   :commands org-tree-slide-mode
   :config
   (org-tree-slide-simple-profile)
@@ -36,10 +36,10 @@
         :n [left]  #'org-tree-slide-move-previous-tree)
 
   (add-hook! 'org-tree-slide-mode-after-narrow-hook
-             #'+org-present-detect-slide-h
-             #'+org-present-add-overlays-h
-             #'org-display-inline-images)
+    #'(+org-present|detect-slide
+       +org-present|add-overlays
+       org-display-inline-images))
 
-  (add-hook 'org-tree-slide-mode-hook #'+org-present-init-org-tree-window-h)
+  (add-hook 'org-tree-slide-mode-hook #'+org-present|init-org-tree-window)
   (advice-add #'org-tree-slide--display-tree-with-narrow
               :around #'+org-present*narrow-to-subtree))

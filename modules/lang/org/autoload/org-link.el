@@ -1,4 +1,4 @@
-;;; lang/org/autoload/org-link.el -*- lexical-binding: t; -*-
+;;; org/org/autoload/org-link.el -*- lexical-binding: t; -*-
 
 ;;;###autoload
 (defun +org-link-read-file (key dir)

@@ -42,28 +42,26 @@
 
   ;; (setq-hook! 'notmuch-show-mode-hook line-spacing 0)
 
-  (add-hook 'doom-real-buffer-functions #'notmuch-interesting-buffer)
+  (add-to-list 'doom-real-buffer-functions #'notmuch-interesting-buffer nil #'eq)
 
-  (advice-add #'notmuch-start-notmuch-sentinel :around #'+notmuch-dont-confirm-on-kill-process-a)
+  (advice-add #'notmuch-start-notmuch-sentinel :around #'+notmuch*dont-confirm-on-kill-process)
 
   ;; modeline doesn't have much use in these modes
-  (add-hook! '(notmuch-show-mode-hook
-               notmuch-tree-mode-hook
-               notmuch-search-mode-hook)
-             #'hide-mode-line-mode))
+  (add-hook! (notmuch-show-mode notmuch-tree-mode notmuch-search-mode)
+    #'hide-mode-line-mode))
 
 
-(use-package! org-mime
+(def-package! org-mime
   :after (org notmuch)
   :config (setq org-mime-library 'mml))
 
 
-(use-package! counsel-notmuch
+(def-package! counsel-notmuch
   :when (featurep! :completion ivy)
   :commands counsel-notmuch
   :after notmuch)
 
-(use-package! helm-notmuch
+(def-package! helm-notmuch
   :when (featurep! :completion helm)
   :commands helm-notmuch
   :after notmuch)

@@ -98,7 +98,7 @@ Stolen shamelessly from go-mode"
     (if fmt (cons (intern fmt) t))))
 
 ;;;###autoload
-(defun +format-probe-a (orig-fn)
+(defun +format*probe (orig-fn)
   "Use `+format-with' instead, if it is set."
   (if +format-with
       (list +format-with t)
@@ -119,7 +119,7 @@ formatted text, ERRORS are any errors in string format, and FIRST-DIFF is the
 position of the first change in the buffer.
 
 See `+format/buffer' for the interactive version of this function, and
-`+format-buffer-h' to use as a `before-save-hook' hook."
+`+format|buffer' to use as a `before-save-hook' hook."
   (if (not formatter)
       'no-formatter
     (let ((f-function (gethash formatter format-all--format-table))
@@ -228,12 +228,12 @@ is selected)."
 ;; Hooks
 
 ;;;###autoload
-(defun +format-enable-on-save-h ()
+(defun +format|enable-on-save ()
   "Enables formatting on save."
-  (add-hook 'before-save-hook #'+format-buffer-h nil t))
+  (add-hook 'before-save-hook #'+format|buffer nil t))
 
 ;;;###autoload
-(defalias '+format-buffer-h #'+format/buffer
+(defalias '+format|buffer #'+format/buffer
   "Format the source code in the current buffer with minimal feedback.
 
 Meant for `before-save-hook'.")

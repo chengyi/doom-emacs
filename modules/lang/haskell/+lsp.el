@@ -1,6 +1,6 @@
 ;;; lang/haskell/+lsp.el -*- lexical-binding: t; -*-
 
-(use-package! lsp-haskell
+(def-package! lsp-haskell
   :after haskell-mode
   :init (add-hook 'haskell-mode-hook #'lsp!)
   :config

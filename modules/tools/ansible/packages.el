@@ -2,7 +2,7 @@
 ;;; tools/ansible/packages.el
 
 (package! yaml-mode)
-(package! ansible :recipe (:nonrecursive t))
+(package! ansible)
 (package! ansible-doc)
 (package! jinja2-mode)
 

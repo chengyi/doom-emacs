@@ -1,10 +1,9 @@
 ;;; app/twitter/config.el -*- lexical-binding: t; -*-
 
-(use-package! twittering-mode
+(def-package! twittering-mode
   :commands twit
   :config
-  (setq twittering-private-info-file
-        (expand-file-name "twittering-mode.gpg" doom-etc-dir)
+  (setq twittering-private-info-file (expand-file-name "twittering-mode.gpg" doom-etc-dir)
         twittering-use-master-password t
         twittering-request-confirmation-on-posting t
         ;; twittering-icon-mode t
@@ -36,16 +35,24 @@
 
   (add-hook 'doom-real-buffer-functions #'+twitter-buffer-p)
   (when (featurep! :ui popup)
-    (setq twittering-pop-to-buffer-function #'+twitter-display-buffer-fn))
+    (setq twittering-pop-to-buffer-function #'+twitter-display-buffer))
 
   (after! solaire-mode
     (add-hook 'twittering-mode-hook #'solaire-mode))
 
   ;; Custom header-line for twitter buffers
-  (add-hook! 'twittering-mode-hook
-    (defun +twitter-switch-mode-and-header-line-h ()
-      (setq header-line-format mode-line-format
-            mode-line-format nil)))
+  (defun +twitter|switch-mode-and-header-line ()
+    (setq header-line-format mode-line-format
+          mode-line-format nil))
+  (add-hook 'twittering-mode-hook #'+twitter|switch-mode-and-header-line)
+
+  (cond ((featurep! :ui doom-modeline +new)
+         (setq-hook! 'twittering-mode-hook mode-line-format-right nil))
+        ((featurep! :ui doom-modeline)
+         (def-modeline! 'twitter
+           '(bar matches " %b " selection-info)
+           '())
+         (add-hook! 'twittering-mode-hook (doom-set-modeline 'twitter))))
 
   ;; `epa--decode-coding-string' isn't defined in later versions of Emacs 27
   (unless (fboundp 'epa--decode-coding-string)

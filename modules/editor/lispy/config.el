@@ -1,6 +1,6 @@
 ;;; editor/lispy/config.el -*- lexical-binding: t; -*-
 
-(use-package! lispy
+(def-package! lispy
   :hook ((common-lisp-mode . lispy-mode)
          (emacs-lisp-mode . lispy-mode)
          (scheme-mode . lispy-mode)
@@ -12,7 +12,7 @@
   (setq lispy-close-quotes-at-end-p t)
   (add-hook 'lispy-mode-hook #'turn-off-smartparens-mode))
 
-(use-package! lispyville
+(def-package! lispyville
   :when (featurep! :editor evil)
   :hook (lispy-mode . lispyville-mode)
   :config

@@ -1,6 +1,6 @@
 ;;; ui/window-select/config.el -*- lexical-binding: t; -*-
 
-(use-package! switch-window
+(def-package! switch-window
   :when (featurep! +switch-window)
   :defer t
   :init
@@ -10,7 +10,7 @@
         switch-window-qwerty-shortcuts '("a" "s" "d" "f" "g" "h" "j" "k" "l")))
 
 
-(use-package! ace-window
+(def-package! ace-window
   :unless (featurep! +switch-window)
   :defer t
   :init
@@ -21,7 +21,7 @@
         aw-background t))
 
 
-(use-package! winum
+(def-package! winum
   :when (featurep! +numbers)
   :after-call (doom-switch-window-hook)
   :config

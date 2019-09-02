@@ -7,7 +7,7 @@
 (setq solidity-comment-style 'slash)
 
 
-(use-package! solidity-flycheck  ; included with solidity-mode
+(def-package! solidity-flycheck  ; included with solidity-mode
   :when (featurep! :tools flycheck)
   :after solidity-mode
   :config
@@ -18,7 +18,7 @@
     (add-to-list 'flycheck-checkers 'solium-checker nil #'eq)))
 
 
-(use-package! company-solidity
+(def-package! company-solidity
   :when (featurep! :completion company)
   :after solidity-mode
   :config

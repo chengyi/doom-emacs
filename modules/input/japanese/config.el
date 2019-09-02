@@ -1,7 +1,7 @@
 ;;; input/japanese/config.el -*- lexical-binding: t; -*-
 
-(use-package! migemo
-  :after-call after-find-file pre-command-hook
+(def-package! migemo
+  :after-call (after-find-file pre-command-hook)
   :init
   (setq search-default-regexp-mode nil
         migemo-options '("-q" "--emacs" "-i" "\a")
@@ -14,7 +14,7 @@
   (when (executable-find migemo-command)
     (migemo-init)
 
-    (use-package! avy-migemo
+    (def-package! avy-migemo
       :after avy
       :config (avy-migemo-mode 1))
 
@@ -34,27 +34,22 @@
         pangu-spacing-real-insert-separtor t))
 
 
-(use-package! ddskk
+(def-package! ddskk
   :general ("C-x j" #'skk-mode))
 
 
 ;;
 ;;; Hacks
 
-(defadvice! +japanese--org-html-paragraph-a (args)
+(defun +japanese*org-html-paragraph (paragraph contents info)
   "Join consecutive Japanese lines into a single long line without unwanted space
 when exporting org-mode to html."
-  :filter-args #'org-html-paragraph
-  (cl-destructuring-bind (paragraph contents info) args
-    (let* ((fix-regexp "[[:multibyte:]a-zA-Z0-9]")
-           (origin-contents contents)
-           (fixed-contents
-            (replace-regexp-in-string
-             (concat "\\("
-                     fix-regexp
-                     "\\) *\\(<[Bb][Rr] */>\\)?\n *\\("
-                     fix-regexp
-                     "\\)")
-             "\\1\\3"
-             origin-contents)))
-      (list paragraph fixed-contents info))))
+  (let* ((fix-regexp "[[:multibyte:]]")
+         (origin-contents contents)
+         (fixed-contents
+          (replace-regexp-in-string
+           (concat "\\(" fix-regexp "\\) *\n *\\(" fix-regexp "\\)")
+           "\\1\\2"
+           origin-contents)))
+    (list paragraph fixed-contents info)))
+(advice-add #'org-html-paragraph :filter-args #'+japanese*org-html-paragraph)

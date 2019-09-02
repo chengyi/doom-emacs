@@ -1,15 +1,11 @@
 ;;; tools/dired/config.el -*- lexical-binding: t; -*-
 
-(use-package! dired
+(def-package! dired
   :commands dired-jump
   :init
   (setq ;; Always copy/delete recursively
         dired-recursive-copies  'always
         dired-recursive-deletes 'top
-        ;; Instantly revert Dired buffers on re-visiting them, with no message.
-        ;; (A message is shown if insta-revert is either disabled or determined
-        ;; dynamically by setting this variable to a function.)
-        dired-auto-revert-buffer t
         ;; Auto refresh dired, but be quiet about it
         dired-hide-details-hide-symlink-targets nil
         ;; files
@@ -37,15 +33,15 @@
     "C-c C-e" #'wdired-change-to-wdired-mode))
 
 
-(use-package! dired-rsync
+(def-package! dired-rsync
   :general (dired-mode-map "C-c C-r" #'dired-rsync))
 
 
-(use-package! diredfl
+(def-package! diredfl
   :hook (dired-mode . diredfl-mode))
 
 
-(use-package! dired-k
+(def-package! dired-k
   :hook (dired-initial-position . dired-k)
   :hook (dired-after-readin . dired-k-no-revert)
   :config
@@ -56,22 +52,22 @@
   ;; confusing than helpful.
   (advice-add #'dired-k--highlight-by-file-attribyte :override #'ignore)
 
-  (defadvice! +dired--interrupt-process-a (orig-fn &rest args)
+  (defun +dired*interrupt-process (orig-fn &rest args)
     "Fixes dired-k killing git processes too abruptly, leaving behind disruptive
 .git/index.lock files."
-    :around #'dired-k--start-git-status
     (cl-letf (((symbol-function #'kill-process)
                (symbol-function #'interrupt-process)))
       (apply orig-fn args)))
+  (advice-add #'dired-k--start-git-status :around #'+dired*interrupt-process)
 
-  (defadvice! +dired--dired-k-highlight-a (orig-fn &rest args)
+  (defun +dired*dired-k-highlight (orig-fn &rest args)
     "Butt out if the requested directory is remote (i.e. through tramp)."
-    :around #'dired-k--highlight
     (unless (file-remote-p default-directory)
-      (apply orig-fn args))))
+      (apply orig-fn args)))
+  (advice-add #'dired-k--highlight :around #'+dired*dired-k-highlight))
 
 
-(use-package! ranger
+(def-package! ranger
   :when (featurep! +ranger)
   :after dired
   :init
@@ -84,24 +80,24 @@
 
   (set-popup-rule! "^\\*ranger" :ignore t)
 
-  (defadvice! +dired--cleanup-header-line-a ()
+  (defun +dired*cleanup-header-line ()
     "Ranger fails to clean up `header-line-format' when it is closed, so..."
-    :before #'ranger-revert
     (dolist (buffer (buffer-list))
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
           (when (equal header-line-format '(:eval (ranger-header-line)))
             (setq header-line-format nil))))))
+  (advice-add #'ranger-revert :before #'+dired*cleanup-header-line)
 
-  (defadvice! +dired--cleanup-mouse1-bind-a ()
+  (defun +dired*cleanup-mouse1-bind ()
     "Ranger binds an anonymous function to mouse-1 after previewing a buffer
 that prevents the user from escaping the window with the mouse. This command is
 never cleaned up if the buffer already existed before ranger was initialized, so
 we have to clean it up ourselves."
-    :after #'ranger-setup-preview
     (when (window-live-p ranger-preview-window)
       (with-current-buffer (window-buffer ranger-preview-window)
         (local-unset-key [mouse-1]))))
+  (advice-add #'ranger-setup-preview :after #'+dired*cleanup-mouse1-bind)
 
   (setq ranger-cleanup-on-disable t
         ranger-excluded-extensions '("mkv" "iso" "mp4")
@@ -111,15 +107,12 @@ we have to clean it up ourselves."
         ranger-hide-cursor nil))
 
 
-(use-package! all-the-icons-dired
+(def-package! all-the-icons-dired
   :when (featurep! +icons)
   :hook (dired-mode . all-the-icons-dired-mode))
 
 
-(use-package! dired-x
+(def-package! dired-x
   :hook (dired-mode . dired-omit-mode)
   :config
-  (setq dired-omit-verbose nil)
-  ;; Disable the prompt about whether I want to kill the Dired buffer for a
-  ;; deleted directory. Of course I do!
-  (setq dired-clean-confirm-killing-deleted-buffers nil))
+  (setq dired-omit-verbose nil))

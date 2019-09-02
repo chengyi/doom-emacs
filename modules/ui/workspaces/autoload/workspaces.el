@@ -441,7 +441,7 @@ the next."
 ;;; Hooks
 
 ;;;###autoload
-(defun +workspaces-delete-associated-workspace-h (&optional frame)
+(defun +workspaces|delete-associated-workspace (&optional frame)
   "Delete workspace associated with current frame.
 A workspace gets associated with a frame when a new frame is interactively
 created."
@@ -453,7 +453,17 @@ created."
         (+workspace/delete frame-persp)))))
 
 ;;;###autoload
-(defun +workspaces-associate-frame-fn (frame &optional _new-frame-p)
+(defun +workspaces|cleanup-unassociated-buffers ()
+  "Kill leftover buffers that are unassociated with any perspective."
+  (when persp-mode
+    (cl-loop for buf in (buffer-list)
+             unless (or (persp--buffer-in-persps buf)
+                        (get-buffer-window buf))
+             if (kill-buffer buf)
+             sum 1)))
+
+;;;###autoload
+(defun +workspaces|associate-frame (frame &optional _new-frame-p)
   "Create a blank, new perspective and associate it with FRAME."
   (when persp-mode
     (if (not (persp-frame-list-without-daemon))
@@ -469,13 +479,13 @@ created."
 
 (defvar +workspaces--project-dir nil)
 ;;;###autoload
-(defun +workspaces-set-project-action-fn ()
+(defun +workspaces|set-project-action ()
   "A `projectile-switch-project-action' that sets the project directory for
-`+workspaces-switch-to-project-h'."
+`+workspaces|switch-to-project'."
   (setq +workspaces--project-dir default-directory))
 
 ;;;###autoload
-(defun +workspaces-switch-to-project-h (&optional dir)
+(defun +workspaces|switch-to-project (&optional dir)
   "Creates a workspace dedicated to a new project. If one already exists, switch
 to it. If in the main workspace and it's empty, recycle that workspace, without
 renaming it.
@@ -517,7 +527,7 @@ This be hooked to `projectile-after-switch-project-hook'."
 ;;; Advice
 
 ;;;###autoload
-(defun +workspaces-autosave-real-buffers-a (orig-fn &rest args)
+(defun +workspaces*autosave-real-buffers (orig-fn &rest args)
   "Don't autosave if no real buffers are open."
   (when (doom-real-buffer-list)
     (apply orig-fn args))

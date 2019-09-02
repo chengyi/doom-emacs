@@ -6,12 +6,12 @@
   :group 'doom-themes)
 
 ;;;###autoload
-(defun +fold-hideshow-haml-forward-sexp-fn (arg)
+(defun +fold-hideshow-haml-forward-sexp (arg)
   (haml-forward-sexp arg)
   (move-beginning-of-line 1))
 
 ;;;###autoload
-(defun +fold-hideshow-forward-block-by-indent-fn (_arg)
+(defun +fold-hideshow-forward-block-by-indent (_arg)
   (let ((start (current-indentation)))
     (forward-line)
     (unless (= start (current-indentation))
@@ -20,7 +20,7 @@
         (end-of-line)))))
 
 ;;;###autoload
-(defun +fold-hideshow-set-up-overlay-fn (ov)
+(defun +fold-hideshow-set-up-overlay (ov)
   (when (eq 'code (overlay-get ov 'hs))
     (when (featurep 'vimish-fold)
       (overlay-put

@@ -5,7 +5,7 @@
         reftex-default-bibliography bibtex-completion-bibliography))
 
 
-(use-package! reftex
+(def-package! reftex
   :hook (LaTeX-mode . reftex-mode)
   :config
   ;; set up completion for citations and references

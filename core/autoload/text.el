@@ -25,41 +25,6 @@ lines, above and below, with only whitespace in between."
                         (or (not balanced)
                             (= (- pt nbeg) (- nend pt))))))))))))
 
-;;;###autoload
-(defun doom-point-in-comment-p (&optional pos)
-  "Return non-nil if POS is in a comment.
-
-POS defaults to the current position."
-  ;; REVIEW Should we cache `syntax-ppss'?
-  (let* ((pos (or pos (point)))
-         (ppss (syntax-ppss pos)))
-    (or (nth 4 ppss)
-        (nth 8 ppss)
-        (and (< pos (point-max))
-             (memq (char-syntax (char-after pos)) '(?< ?>))
-             (not (eq (char-after pos) ?\n)))
-        (when-let (s (car (syntax-after pos)))
-          (or (and (/= 0 (logand (lsh 1 16) s))
-                   (nth 4 (doom-syntax-ppss (+ pos 2))))
-              (and (/= 0 (logand (lsh 1 17) s))
-                   (nth 4 (doom-syntax-ppss (+ pos 1))))
-              (and (/= 0 (logand (lsh 1 18) s))
-                   (nth 4 (doom-syntax-ppss (- pos 1))))
-              (and (/= 0 (logand (lsh 1 19) s))
-                   (nth 4 (doom-syntax-ppss (- pos 2)))))))))
-
-;;;###autoload
-(defun doom-point-in-string-p (&optional pos)
-  "Return non-nil if POS is in a string."
-  ;; REVIEW Should we cache `syntax-ppss'?
-  (nth 3 (syntax-ppss pos)))
-
-;;;###autoload
-(defun doom-point-in-string-or-comment-p (&optional pos)
-  "Return non-nil if POS is in a string or comment."
-  (or (doom-point-in-string-p pos)
-      (doom-point-in-comment-p pos)))
-
 
 ;;
 ;; Commands
@@ -221,13 +186,9 @@ Respects `require-final-newline'."
   (setq indent-tabs-mode (not indent-tabs-mode))
   (message "Indent style changed to %s" (if indent-tabs-mode "tabs" "spaces")))
 
-(defvar editorconfig-lisp-use-default-indent)
 ;;;###autoload
 (defun doom/set-indent-width (width)
-  "Change the indentation size to WIDTH of the current buffer.
-
-The effectiveness of this command is significantly improved if you have
-editorconfig or dtrt-indent installed."
+  "Change the indentation width of the current buffer."
   (interactive
    (list (if (integerp current-prefix-arg)
              current-prefix-arg
@@ -250,25 +211,25 @@ editorconfig or dtrt-indent installed."
 ;; Hooks
 
 ;;;###autoload
-(defun doom-enable-delete-trailing-whitespace-h ()
+(defun doom|enable-delete-trailing-whitespace ()
   "Enables the automatic deletion of trailing whitespaces upon file save.
 
 i.e. enables `ws-butler-mode' in the current buffer."
   (ws-butler-mode +1))
 
 ;;;###autoload
-(defun doom-disable-delete-trailing-whitespace-h ()
+(defun doom|disable-delete-trailing-whitespace ()
   "Disables the automatic deletion of trailing whitespaces upon file save.
 
 i.e. disables `ws-butler-mode' in the current buffer."
   (ws-butler-mode -1))
 
 ;;;###autoload
-(defun doom-enable-show-trailing-whitespace-h ()
+(defun doom|enable-show-trailing-whitespace ()
   "Enable `show-trailing-whitespace' in the current buffer."
   (setq-local show-trailing-whitespace t))
 
 ;;;###autoload
-(defun doom-disable-show-trailing-whitespace-h ()
+(defun doom|disable-show-trailing-whitespace ()
   "Disable `show-trailing-whitespace' in the current buffer."
   (setq-local show-trailing-whitespace nil))
