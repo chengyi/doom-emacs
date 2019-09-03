@@ -126,7 +126,7 @@ a list of packages that will be installed."
                            (lambda (&rest _) (cl-incf n)))
                  (let ((straight--packages-to-rebuild :all)
                        (straight--packages-not-to-rebuild (make-hash-table :test #'equal)))
-                   (straight-use-package (intern package) nil nil " "))
+                   (straight-use-package (intern package) nil nil "  "))
                  (straight--byte-compile-package recipe)
                  (dolist (dep (straight--get-dependencies package))
                    (when-let (recipe (gethash dep straight--recipe-cache))
@@ -147,12 +147,11 @@ a list of packages that will be installed."
       (condition-case e
           (let (packages errors)
             (load ,(concat doom-core-dir "core.el"))
-            (doom-initialize 'force-p)
+            (doom-initialize 'force)
             (dolist (recipe ',group)
               (when (straight--repository-is-available-p recipe)
                 (straight-vc-git--destructure recipe
-                    (package local-repo nonrecursive upstream-remote upstream-repo upstream-host
-                             branch remote)
+                    (package local-repo nonrecursive upstream-remote upstream-repo upstream-host branch)
                   (condition-case e
                       (let ((default-directory (straight--repos-dir local-repo)))
                         ;; HACK We normalize packages to avoid certain scenarios
@@ -162,7 +161,7 @@ a list of packages that will be installed."
                         ;; can't use `straight-normalize-package' because could
                         ;; create popup prompts too, so we do it manually:
                         (shell-command-to-string "git merge --abort")
-                        (straight--get-call "git" "reset" "--hard" (format "%s/%s" remote branch))
+                        (straight--get-call "git" "reset" "--hard" branch)
                         (straight--get-call "git" "clean" "-ffd")
                         (unless nonrecursive
                           (shell-command-to-string "git submodule update --init --recursive"))
@@ -422,18 +421,21 @@ a list of packages that will be updated."
 (defun doom--packages-purge-elpa (&optional auto-accept-p)
   (unless (bound-and-true-p package--initialized)
     (package-initialize))
-  (if (not package-alist)
-      (progn (print! (info "No ELPA packages to purge"))
-             0)
-    (doom--prompt-columns-p
-     (lambda (p) (format "  + %-20.20s" p))
-     (mapcar #'car package-alist) nil
-     (format! "Found %d orphaned ELPA packages. Purge them?"
-              (length package-alist)))
-    (mapc (doom-rpartial #'delete-directory 'recursive)
-          (mapcar #'package-desc-dir
-                  (mapcar #'cadr package-alist)))
-    (length package-alist)))
+  (let ((packages (cl-loop for (package . desc) in package-alist
+                           for dir = (package-desc-dir desc)
+                           if (file-in-directory-p dir doom-elpa-dir)
+                           collect (cons package dir))))
+    (if (not package-alist)
+        (progn (print! (info "No ELPA packages to purge"))
+               0)
+      (doom--prompt-columns-p
+       (lambda (p) (format "  + %-20.20s" p))
+       (mapcar #'car packages) nil
+       (format! "Found %d orphaned ELPA packages. Purge them?"
+                (length package-alist)))
+      (mapc (doom-rpartial #'delete-directory 'recursive)
+            (mapcar #'cdr packages))
+      (length packages))))
 
 (defun doom-packages-purge (&optional elpa-p builds-p repos-p auto-accept-p)
   "Auto-removes orphaned packages and repos.

@@ -112,12 +112,6 @@ missing) and shouldn't be deleted.")
       ;; we just don't have to deal with them at all.
       autoload-compute-prefixes nil)
 
-;; Straight is hardcoded to operate out of ~/.emacs.d/straight. Not on my watch!
-(defadvice! doom--straight-use-local-dir-a (orig-fn &rest args)
-  :around #'straight--emacs-dir
-  (let ((user-emacs-directory doom-local-dir))
-    (apply orig-fn args)))
-
 (defun doom--finalize-straight ()
   (mapc #'funcall (delq nil (mapcar #'cdr straight--transaction-alist)))
   (setq straight--transaction-alist nil))
@@ -155,8 +149,6 @@ necessary package metadata is initialized and available for them."
                 :branch ,straight-repository-branch
                 :no-byte-compile t))
     (mapc #'straight-use-package doom-core-packages)
-    (when noninteractive
-      (add-hook 'kill-emacs-hook #'doom--finalize-straight)))
     (doom-log "Initializing doom-packages")
     (setq doom-disabled-packages nil
           doom-packages (doom-package-list))
@@ -171,7 +163,9 @@ necessary package metadata is initialized and available for them."
                    (if-let (recipe (plist-get plist :recipe))
                        (let ((plist (straight-recipes-retrieve pkg)))
                          `(,pkg ,@(doom-plist-merge recipe (cdr plist))))
-                     pkg)))))
+                     pkg))))
+    (unless doom-interactive-mode
+      (add-hook 'kill-emacs-hook #'doom--finalize-straight))))
 
 (defun doom-ensure-straight ()
   "Ensure `straight' is installed and was compiled with this version of Emacs."
