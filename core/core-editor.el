@@ -111,8 +111,8 @@ successfully sets indent_style/indent_size.")
   ;;
   ;; This is because autorevert abuses the heck out of inotify handles which can
   ;; grind Emacs to a halt if you do expensive IO (outside of Emacs) on the
-  ;; files you have open (like compression). We only really need revert changes
-  ;; when we switch to a buffer or when we focus the Emacs frame.
+  ;; files you have open (like compression). We only really need to revert
+  ;; changes when we switch to a buffer or when we focus the Emacs frame.
   (defun doom-auto-revert-buffer-h ()
     "Auto revert current buffer, if necessary."
     (unless auto-revert-mode
@@ -257,15 +257,6 @@ successfully sets indent_style/indent_size.")
     "Run `better-jumper-set-jump' but return nil, for short-circuiting hooks."
     (better-jumper-set-jump)
     nil))
-
-
-(use-package! command-log-mode
-  :commands global-command-log-mode
-  :config
-  (setq command-log-mode-auto-show t
-        command-log-mode-open-log-turns-on-mode nil
-        command-log-mode-is-global t
-        command-log-mode-window-size 50))
 
 
 (use-package! dtrt-indent

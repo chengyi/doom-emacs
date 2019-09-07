@@ -201,24 +201,23 @@ markdown and copies it to your clipboard, ready to be pasted into bug reports!"
                      (setq-default buffer-undo-tree (make-undo-tree))))
                  (pcase mode
                    (`vanilla-doom+ ; Doom core + modules - private config
-                    `((setq doom-private-dir "/tmp/does/not/exist")
+                    `((setq doom-init-modules-p t)
                       (load-file ,user-init-file)
                       (setq doom-modules ',doom-modules)
                       (maphash (lambda (key plist)
                                  (let ((doom--current-module key)
                                        (doom--current-flags (plist-get plist :flags)))
-                                   (load! "init" (plist-get plist :path) t)))
+                                   (load! "init" (doom-module-locate-path (car key) (cdr key)) t)))
                                doom-modules)
                       (maphash (lambda (key plist)
                                  (let ((doom--current-module key)
                                        (doom--current-flags (plist-get plist :flags)))
-                                   (load! "config" (plist-get plist :path) t)))
+                                   (load! "config" (doom-module-locate-path (car key) (cdr key)) t)))
                                doom-modules)
                       (run-hook-wrapped 'doom-init-modules-hook #'doom-try-run-hook)
                       (doom-run-all-startup-hooks-h)))
                    (`vanilla-doom  ; only Doom core
-                    `((setq doom-private-dir "/tmp/does/not/exist"
-                            doom-init-modules-p t)
+                    `((setq doom-init-modules-p t)
                       (load-file ,user-init-file)
                       (doom-run-all-startup-hooks-h)))
                    (`vanilla       ; nothing loaded
@@ -375,42 +374,6 @@ will be automatically appended to the result."
     (profiler-report)
     (profiler-stop))
   (setq doom--profiler (not doom--profiler)))
-
-;;;###autoload
-(defun doom/profile-emacs ()
-  "Profile the startup time of Emacs in the background with ESUP.
-If INIT-FILE is non-nil, profile that instead of USER-INIT-FILE."
-  (interactive)
-  (require 'esup)
-  (let ((init-file esup-user-init-file))
-    (message "Starting esup...")
-    (esup-reset)
-    (setq esup-server-process (esup-server-create (esup-select-port)))
-    (setq esup-server-port (process-contact esup-server-process :service))
-    (message "esup process started on port %s" esup-server-port)
-    (let ((process-args
-           (append `("*esup-child*"
-                     "*esup-child*"
-                     ,esup-emacs-path
-                     "-Q"
-                     "--eval=(setq after-init-time nil)"
-                     "-L" ,esup-load-path)
-                   (when (bound-and-true-p early-init-file)
-                     `("-l" ,early-init-file))
-                   `("-l" "esup-child"
-                     ,(format "--eval=(let ((load-file-name \"%s\")) (esup-child-run \"%s\" \"%s\" %d))"
-                              init-file
-                              init-file
-                              esup-server-port
-                              esup-depth)
-                     "--eval=(doom-run-all-startup-hooks-h)"))))
-      (when esup-run-as-batch-p
-        (setq process-args (append process-args '("--batch"))))
-      (setq esup-child-process (apply #'start-process process-args)))
-    (set-process-sentinel esup-child-process 'esup-child-process-sentinel)))
-
-;;;###autoload
-(advice-add #'esup :override #'doom/profile-emacs)
 
 ;;;###autoload
 (defun doom/toggle-debug-mode (&optional arg)

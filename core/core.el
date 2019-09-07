@@ -146,9 +146,6 @@ users).")
 ;; to, it's our (the user's) failure. One case for all!
 (setq auto-mode-case-fold nil)
 
-;; Enable all disabled commands.
-(setq disabled-command-function nil)
-
 ;; Display the bare minimum at startup. We don't need all that noise. The
 ;; dashboard/empty scratch buffer is good enough.
 (setq inhibit-startup-message t
@@ -424,9 +421,9 @@ in interactive sessions, nil otherwise (but logs a warning)."
     (let (vars)
       (with-temp-buffer
         (insert-file-contents file)
-        (while (re-search-forward "\n *[^#] *\\([^= \n]+\\)=" nil t)
+        (while (re-search-forward "\n *\\([^#][^= \n]+\\)=" nil t)
           (save-excursion
-            (let ((var (match-string 1))
+            (let ((var (string-trim-left (match-string 1)))
                   (value (buffer-substring-no-properties
                           (point)
                           (1- (or (when (re-search-forward "^\\([^= ]+\\)=" nil t)
