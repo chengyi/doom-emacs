@@ -62,7 +62,33 @@ It is integrated into Helpful, in Doom.
 #+END_SRC
 
 *** TODO add-transient-hook!
-*** TODO after!
+*** after!
+#+BEGIN_SRC elisp :eval no
+;;; `after!' will take:
+
+;; An unquoted package symbol (the name of a package)
+(after! helm ...)
+
+;; An unquoted list of package symbols (i.e. BODY is evaluated once both magit
+;; and git-gutter have loaded)
+(after! (magit git-gutter) ...)
+
+;; An unquoted, nested list of compound package lists, using any combination of
+;; :or/:any and :and/:all
+(after! (:or package-a package-b ...)  ...)
+(after! (:and package-a package-b ...) ...)
+(after! (:and package-a (:or package-b package-c) ...) ...)
+;; (Without :or/:any/:and/:all, :and/:all are implied.)
+
+;; A common mistake is to pass it the names of major or minor modes, e.g.
+(after! rustic-mode ...)
+(after! python-mode ...)
+;; But the code in them will never run! rustic-mode is in the `rustic' package
+;; and python-mode is in the `python' package. This is what you want:
+(after! rustic ...)
+(after! python ...)
+#+END_SRC
+
 *** custom-set-faces!
 #+BEGIN_SRC elisp :eval no
 (custom-set-faces!
@@ -87,6 +113,14 @@ It is integrated into Helpful, in Doom.
      :weight normal)
    `(,red-bg-faces
      :background "red" :weight bold)))
+
+;; If you want to make use of the `doom-themes' package API (e.g. `doom-color',
+;; `doom-lighten', `doom-darken', etc.), you must use `custom-set-faces!'
+;; *after* the theme has been loaded. e.g.
+(load-theme 'doom-one t)
+(custom-set-faces!
+ `(outline-1 :foreground ,(doom-color 'red))
+ `(outline-2 :background ,(doom-color 'blue)))
 #+END_SRC
 
 *** custom-theme-set-faces!
@@ -113,6 +147,14 @@ It is integrated into Helpful, in Doom.
      :weight normal)
    `(,red-bg-faces
      :background "red" :weight bold)))
+
+;; If you want to make use of the `doom-themes' package API (e.g. `doom-color',
+;; `doom-lighten', `doom-darken', etc.), you must use `custom-set-faces!'
+;; *after* the theme has been loaded. e.g.
+(load-theme 'doom-one t)
+(custom-theme-set-faces! 'doom-one
+ `(outline-1 :foreground ,(doom-color 'red))
+ `(outline-2 :background ,(doom-color 'blue)))
 #+END_SRC
 
 *** TODO defer-feature!
@@ -167,9 +209,53 @@ It is integrated into Helpful, in Doom.
 
 *** TODO lambda!
 *** TODO lambda!!
-*** TODO load!
+*** load!
+#+BEGIN_SRC elisp :eval no
+;;; Lets say we're in ~/.doom.d/config.el
+(load! "lisp/module")                  ; loads ~/.doom.d/lisp/module.el
+(load! "somefile" doom-emacs-dir)      ; loads ~/.emacs.d/somefile.el
+(load! "anotherfile" doom-private-dir) ; loads ~/.doom.d/anotherfile.el
+
+;; If you don't want a `load!' call to throw an error if the file doesn't exist:
+(load! "~/.maynotexist" nil t)
+#+END_SRC
+
 *** TODO map!
-*** TODO package!
+*** package!
+#+BEGIN_SRC elisp :eval no
+;; To install a package that can be found on ELPA or any of the sources
+;; specified in `doom-core-package-sources':
+(package! evil)
+(package! js2-mode)
+(package! rainbow-delimiters)
+
+;; To disable a package included with Doom (which will no-op all its `after!'
+;; and `use-package!' blocks):
+(package! evil :disable t)
+(package! rainbow-delimiters :disable t)
+
+;; To install a package from a github repo
+(package! so-long :recipe (:host github :repo "hlissner/emacs-so-long"))
+
+;; If a package is particularly big and comes with submodules you don't need,
+;; you can tell the package manager not to clone the repo recursively:
+(package! ansible :recipe (:nonrecursive t))
+
+;; To install a particular branch, commit or tag:
+(package! evil
+  ;; if :host and :fetcher aren't specified, the package manager will fall back
+  ;; to evil's default source provided by their (M)ELPA recipes:
+  :recipe (:commit "e7bc39de2f961505e8e112da8c1b315ae8afce52"))
+
+(package! evil :recipe (:branch "stable"))
+
+(package! evil :recipe (:tag "1.2.9"))
+
+;; If you share your config between two computers, and don't want bin/doom
+;; refresh to delete packages used only on one system, use :ignore
+(package! evil :ignore (not (equal system-name "my-desktop")))
+#+END_SRC
+
 *** TODO pushnew!
 *** TODO quiet!
 *** remove-hook!
