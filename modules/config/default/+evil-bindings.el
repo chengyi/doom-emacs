@@ -116,6 +116,8 @@
       :v  "g+"    #'evil-numbers/inc-at-pt
 
       ;; custom evil keybinds
+      :n  "zn"    #'doom/narrow-buffer-indirectly
+      :n  "zN"    #'doom/widen-indirectly-narrowed-buffer
       :n  "zx"    #'kill-current-buffer
       :n  "ZX"    #'bury-buffer
       ;; repeat in visual mode (FIXME buggy)
@@ -580,7 +582,7 @@
 
       ;;; <leader> b --- buffer
       (:prefix-map ("b" . "buffer")
-        :desc "Toggle narrowing"            "-"   #'doom/clone-and-narrow-buffer
+        :desc "Toggle narrowing"            "-"   #'doom/toggle-narrow-buffer
         :desc "Previous buffer"             "["   #'previous-buffer
         :desc "Next buffer"                 "]"   #'next-buffer
         (:when (featurep! :ui workspaces)

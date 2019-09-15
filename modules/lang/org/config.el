@@ -24,6 +24,7 @@
 (defun +org-init-appearance-h ()
   "Configures the UI for `org-mode'."
   (setq-default
+   org-indirect-buffer-display 'current-window
    org-eldoc-breadcrumb-separator " → "
    org-enforce-todo-dependencies t
    org-entities-user
@@ -44,6 +45,7 @@
    org-refile-targets
    '((nil :maxlevel . 3)
      (org-agenda-files :maxlevel . 3))
+   org-startup-indented t
    org-todo-keywords
    '((sequence "TODO(t)" "PROJ(p)" "|" "DONE(d)")
      (sequence "[ ](T)" "[-](P)" "[?](M)" "|" "[X](D)")
@@ -97,7 +99,8 @@
   (advice-add #'org-return-indent :after #'+org-fix-newline-and-indent-in-src-blocks-a)
 
   ;; `org-babel-get-header' was removed from org in 9.0. Quite a few babel
-  ;; plugins use it, so until those plugins update, this polyfill will do:
+  ;; plugins use it (like ob-spice), so until those plugins update, this
+  ;; polyfill will do:
   (defun org-babel-get-header (params key &optional others)
     (cl-loop with fn = (if others #'not #'identity)
              for p in params
@@ -686,8 +689,7 @@ between the two."
           :n "zc"  #'+org/close-fold
           :n "zC"  #'outline-hide-subtree
           :n "zm"  #'+org/hide-next-fold-level
-          :n "zn"  #'org-narrow-to-subtree
-          :n "zN"  #'org-tree-to-indirect-buffer
+          :n "zn"  #'org-tree-to-indirect-buffer
           :n "zo"  #'+org/open-fold
           :n "zO"  #'outline-show-subtree
           :n "zr"  #'+org/show-next-fold-level
@@ -812,7 +814,6 @@ compelling reason, so..."
 
   (add-hook! 'org-mode-hook
              #'org-bullets-mode  ; "prettier" bullets
-             #'org-indent-mode   ; margin-based indentation
              #'toc-org-enable    ; auto-table of contents
              #'auto-fill-mode    ; hard line wrapping
              ;; `show-paren-mode' causes flickering with indentation margins made by
