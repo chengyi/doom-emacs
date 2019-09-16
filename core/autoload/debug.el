@@ -39,7 +39,12 @@ ready to be pasted in a bug report on github."
          (version . ,emacs-version)
          (features ,@system-configuration-features)
          (build . ,(format-time-string "%b %d, %Y" emacs-build-time))
-         (buildopts ,system-configuration-options))
+         (buildopts ,system-configuration-options)
+         (windowsys . ,(if noninteractive 'batch window-system))
+         (daemonp . ,(cond ((daemonp) 'daemon)
+                           ((and (require 'server)
+                                 (server-running-p))
+                            'server-running))))
         (doom
          (version . ,doom-version)
          (build . ,(sh "git log -1 --format=\"%D %h %ci\"")))
@@ -75,16 +80,20 @@ ready to be pasted in a bug report on github."
                 '("n/a")))
          (packages
           ,@(or (ignore-errors
-                  (cl-loop for (name . plist) in (doom-package-list)
-                           if (doom-package-private-p name)
-                           collect
-                           (format
-                            "%s" (if-let (splist (doom-plist-delete (copy-sequence plist)
-                                                                    :modules))
-                                     (cons name splist)
-                                   name))))
+                  (let ((doom-interactive-mode t)
+                        doom-packages
+                        doom-disabled-packages)
+                    (doom--read-module-packages-file
+                     (doom-path doom-private-dir "packages.el")
+                     nil t)
+                    (cl-loop for (name . plist) in (nreverse doom-packages)
+                             collect
+                             (if-let (splist (doom-plist-delete (copy-sequence plist)
+                                                                :modules))
+                                 (prin1-to-string (cons name splist))
+                               name))))
                 '("n/a")))
-         (elpa-packages
+         (elpa
           ,@(or (ignore-errors
                   (cl-loop for (name . _) in package-alist
                            collect (format "%s" name)))
