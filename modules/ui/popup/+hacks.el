@@ -188,7 +188,7 @@ the command buffer."
                     ;; But it must exist for org to clean up later.
                     (get-buffer-create "*Org Links*"))
                   (apply old-org-completing-read args))))
-      (apply orig-fn args)))
+      (apply #'funcall-interactively orig-fn args)))
 
   ;; Fix left-over popup window when closing persistent help for `helm-M-x'
   (defadvice! +popup--helm-elisp--persistent-help-a (candidate _fun &optional _name)
@@ -205,10 +205,6 @@ the command buffer."
     (pop-to-buffer
      (save-window-excursion (apply orig-fn args)
                             (current-buffer)))))
-
-
-;;;###package ibuffer
-(setq ibuffer-use-other-window t)
 
 
 ;;;###package Info
@@ -297,10 +293,7 @@ Ugh, such an ugly hack."
         '((+popup-display-buffer-stacked-side-window-fn)
           (side . left)
           (slot . 3)
-          (inhibit-same-window . t)))
-
-  (add-hook 'pdf-annot-list-mode-hook #'hide-mode-line-mode)
-  (set-popup-rule! "\\(^\\*Contents\\|'s annots\\*$\\)" :ignore t))
+          (inhibit-same-window . t))))
 
 
 ;;;###package profiler

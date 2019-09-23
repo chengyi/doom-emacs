@@ -254,7 +254,7 @@ underlying, modified buffer. This fixes that."
   "I believe Org's native attachment system is over-complicated and litters
 files with metadata I don't want. So I wrote my own, which:
 
-+ Places attachments in a centralized location (`org-attach-directory' in
++ Places attachments in a centralized location (`org-attach-id-dir' in
   `org-directory').
 + Adds attach:* link abbreviation for quick links to these files from anywhere.
 + Use `+org-attach/sync' to index all attachments in `org-directory' that use
@@ -268,30 +268,30 @@ Some commands of interest:
 + `+org-attach/file'
 + `+org-attach/url'
 + `+org-attach/sync'"
-  (setq org-attach-directory (doom-path org-directory org-attach-directory))
+  (setq org-attach-id-dir (doom-path org-directory org-attach-id-dir))
 
   ;; A shorter link to attachments
   (add-to-list 'org-link-abbrev-alist
                (cons "attach"
-                     (abbreviate-file-name org-attach-directory)))
+                     (abbreviate-file-name org-attach-id-dir)))
 
   (org-link-set-parameters
    "attach"
-   :follow   (lambda (link) (find-file (doom-path org-attach-directory link)))
+   :follow   (lambda (link) (find-file (doom-path org-attach-id-dir link)))
    :complete (lambda (&optional _arg)
-               (+org--relpath (+org-link-read-file "attach" org-attach-directory)
-                              org-attach-directory))
+               (+org--relpath (+org-link-read-file "attach" org-attach-id-dir)
+                              org-attach-id-dir))
    :face     (lambda (link)
-               (if (file-exists-p (expand-file-name link org-attach-directory))
+               (if (file-exists-p (expand-file-name link org-attach-id-dir))
                    'org-link
                  'error)))
 
   (after! projectile
-    (add-to-list 'projectile-globally-ignored-directories org-attach-directory))
+    (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir))
 
   (after! recentf
     (add-to-list 'recentf-exclude
-                 (lambda (file) (file-in-directory-p file org-attach-directory)))))
+                 (lambda (file) (file-in-directory-p file org-attach-id-dir)))))
 
 
 (defun +org-init-centralized-exports-h ()
@@ -455,7 +455,7 @@ eldoc string."
                 for n from 0
                 for face = (nth (% n org-n-level-faces) org-level-faces)
                 collect
-                (org-add-props (replace-regexp-in-string org-any-link-re "\\4" part)
+                (org-add-props (replace-regexp-in-string org-link-any-re "\\4" part)
                     nil 'face `(:foreground ,(face-foreground face nil t) :weight bold)))
        separator)))
 
@@ -599,7 +599,7 @@ between the two."
         "t" #'org-agenda-todo))
 
 
-(defun +org-init-keybinds-for-evil-h (&rest args)
+(defun +org-init-keybinds-for-evil-h (&rest _)
   "TODO"
   (when (featurep! :editor evil +everywhere)
     (use-package! evil-org
@@ -653,18 +653,18 @@ between the two."
                         (org-at-table-p) 'org-table-insert-column)
           :ni "C-S-h" (general-predicate-dispatch 'org-shiftmetaleft
                         (org-at-table-p) '+org/table-insert-column-left)
-          :ni "C-S-k" (general-predicate-dispatch 'org-shiftmetaup
+          :ni "C-S-k" (general-predicate-dispatch 'org-metaup
                         (org-at-table-p) 'org-table-insert-row)
-          :ni "C-S-j" (general-predicate-dispatch 'org-shiftmetadown
+          :ni "C-S-j" (general-predicate-dispatch 'org-metadown
                         (org-at-table-p) '+org/table-insert-row-below)
           ;; moving/(de|pro)moting single headings & shifting table rows/columns
           :ni "C-M-S-l" (general-predicate-dispatch 'org-metaright
                           (org-at-table-p) 'org-table-move-column-right)
           :ni "C-M-S-h" (general-predicate-dispatch 'org-metaleft
                           (org-at-table-p) 'org-table-move-column-left)
-          :ni "C-M-S-k" (general-predicate-dispatch 'org-metaup
+          :ni "C-M-S-k" (general-predicate-dispatch 'org-shiftmetaup
                           (org-at-table-p) 'org-table-move-row-up)
-          :ni "C-M-S-j" (general-predicate-dispatch 'org-metadown
+          :ni "C-M-S-j" (general-predicate-dispatch 'org-shiftmetadown
                           (org-at-table-p) 'org-table-move-row-down)
           ;; more intuitive RET keybinds
           :i [return] #'org-return-indent
@@ -793,7 +793,7 @@ compelling reason, so..."
   :preface
   ;; Change org defaults (should be set before org loads)
   (defvar org-directory "~/org/")
-  (defvar org-attach-directory ".attach/")
+  (defvar org-attach-id-dir ".attach/")
 
   (setq org-clock-persist-file (concat doom-etc-dir "org-clock-save.el")
         org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/")
@@ -848,7 +848,8 @@ compelling reason, so..."
 
   ;; In case the user has eagerly loaded org from their configs
   (when (and (featurep 'org)
-             (not doom-reloading-p))
+             (not doom-reloading-p)
+             (not byte-compile-current-file))
     (message "`org' was already loaded by the time lang/org loaded, this may cause issues")
     (run-hooks 'org-load-hook))
 
