@@ -1,21 +1,23 @@
 ;;; tools/pdf/config.el -*- lexical-binding: t; -*-
 
 (use-package! pdf-tools
-  :mode ("\\.pdf\\'" . pdf-view-mode)
+  :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
+  :magic ("%PDF" . pdf-view-mode)
   :config
   (map! :map pdf-view-mode-map :gn "q" #'kill-current-buffer)
 
-  (defun +pdf-cleanup-windows-h ()
-    "Kill left-over annotation buffers when the document is killed."
-    (when (buffer-live-p pdf-annot-list-document-buffer)
-      (pdf-info-close pdf-annot-list-document-buffer))
-    (when (buffer-live-p pdf-annot-list-buffer)
-      (kill-buffer pdf-annot-list-buffer))
-    (let ((contents-buffer (get-buffer "*Contents*")))
-      (when (and contents-buffer (buffer-live-p contents-buffer))
-        (kill-buffer contents-buffer))))
-  (add-hook! 'pdf-view-mode-hook
-    (add-hook 'kill-buffer-hook #'+pdf-cleanup-windows-h nil t))
+  (after! pdf-annot
+    (defun +pdf-cleanup-windows-h ()
+      "Kill left-over annotation buffers when the document is killed."
+      (when (buffer-live-p pdf-annot-list-document-buffer)
+        (pdf-info-close pdf-annot-list-document-buffer))
+      (when (buffer-live-p pdf-annot-list-buffer)
+        (kill-buffer pdf-annot-list-buffer))
+      (let ((contents-buffer (get-buffer "*Contents*")))
+        (when (and contents-buffer (buffer-live-p contents-buffer))
+          (kill-buffer contents-buffer))))
+    (add-hook! 'pdf-view-mode-hook
+      (add-hook 'kill-buffer-hook #'+pdf-cleanup-windows-h nil t)))
 
   (setq-default pdf-view-display-size 'fit-page
                 pdf-view-use-scaling t
@@ -51,9 +53,23 @@
     (let ((wconf (current-window-configuration)))
       (pdf-tools-install)
       (message "Building epdfinfo, this will take a moment...")
+      ;; HACK We reset all `pdf-view-mode' buffers to fundamental mode so that
+      ;; `pdf-tools-install' has a change to reinitialize them as
+      ;; `pdf-view-mode' buffers. This is necessary because `pdf-tools-install'
+      ;; won't do this to buffers that are already in pdf-view-mode for some
+      ;; reason -- even though those are the buffers we need to reload!
       (dolist (buffer (doom-buffers-in-mode 'pdf-view-mode))
         (with-current-buffer buffer (fundamental-mode)))
       (while compilation-in-progress
+        ;; Block until `pdf-tools-install' is done
         (sleep-for 1))
+      ;; HACK If pdf-tools was loaded by you opening a pdf file, once
+      ;; `pdf-tools-install' completes, `pdf-view-mode' will throw an error
+      ;; because the compilation buffer is focused, not the pdf buffer.
+      ;; Therefore, it is imperative that the window config is restored.
       (when (file-executable-p pdf-info-epdfinfo-program)
-        (set-window-configuration wconf)))))
+        (set-window-configuration wconf))))
+
+  ;; Sets up `pdf-tools-enable-minor-modes', `pdf-occur-global-minor-mode' and
+  ;; `pdf-virtual-global-minor-mode'.
+  (pdf-tools-install-noverify))
