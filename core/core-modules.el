@@ -358,58 +358,61 @@ The overall load order of Doom is as follows:
 Module load order is determined by your `doom!' block. See `doom-modules-dirs'
 for a list of all recognized module trees. Order defines precedence (from most
 to least)."
-  (unless (keywordp (car modules))
-    (setq modules (eval modules t)))
-  (let ((doom-modules
-         (make-hash-table :test 'equal
-                          :size (if modules (length modules) 150)
-                          :rehash-threshold 1.0))
-        (inhibit-message doom-inhibit-module-warnings)
-        category m)
-    (while modules
-      (setq m (pop modules))
-      (cond ((keywordp m) (setq category m))
-            ((not category) (error "No module category specified for %s" m))
-            ((and (listp m)
-                  (keywordp (car m)))
-             (pcase (car m)
-               (:cond
-                (cl-loop for (cond . mods) in (cdr m)
-                         if (eval cond t)
-                         return (prependq! modules mods)))
-               (:if (if (eval (cadr m) t)
-                        (push (caddr m) modules)
-                      (prependq! modules (cdddr m))))
-               (fn (if (or (eval (cadr m) t)
-                           (eq fn :unless))
-                       (prependq! modules (cddr m))))))
-            ((catch 'doom-modules
-               (let* ((module (if (listp m) (car m) m))
-                      (flags  (if (listp m) (cdr m))))
-                 (when-let* ((obsolete (assq category doom-obsolete-modules))
-                             (new (assq module obsolete)))
-                   (let ((newkeys (cdr new)))
-                     (if (null newkeys)
-                         (message "WARNING %s module was removed" key)
-                       (if (cdr newkeys)
-                           (message "WARNING %s module was removed and split into the %s modules"
-                                    (list category module) (mapconcat #'prin1-to-string newkeys ", "))
-                         (message "WARNING %s module was moved to %s"
-                                  (list category module) (car newkeys)))
-                       (push category modules)
-                       (dolist (key newkeys)
-                         (push (if flags
-                                   (nconc (cdr key) flags)
-                                 (cdr key))
-                               modules)
-                         (push (car key) modules))
-                       (throw 'doom-modules t))))
-                 (if-let (path (doom-module-locate-path category module))
-                     (doom-module-set category module :flags flags :path path)
-                   (message "WARNING Couldn't find the %s %s module" category module)))))))
-    (unless doom-interactive-mode
-      (setq doom-inhibit-module-warnings t))
-    `(setq doom-modules ',doom-modules)))
+  `(let ((modules ',modules))
+     (unless (keywordp (car modules))
+       (setq modules (eval modules t)))
+     (unless doom-modules
+       (setq doom-modules
+             (make-hash-table :test 'equal
+                              :size (if modules (length modules) 150)
+                              :rehash-threshold 1.0)))
+     (let ((inhibit-message doom-inhibit-module-warnings)
+           obsolete category m)
+       (while modules
+         (setq m (pop modules))
+         (cond ((keywordp m)
+                (setq category m
+                      obsolete (assq m doom-obsolete-modules)))
+               ((not category)
+                (error "No module category specified for %s" m))
+               ((and (listp m) (keywordp (car m)))
+                (pcase (car m)
+                  (:cond
+                   (cl-loop for (cond . mods) in (cdr m)
+                            if (eval cond t)
+                            return (prependq! modules mods)))
+                  (:if (if (eval (cadr m) t)
+                           (push (caddr m) modules)
+                         (prependq! modules (cdddr m))))
+                  (fn (if (or (eval (cadr m) t)
+                              (eq fn :unless))
+                          (prependq! modules (cddr m))))))
+               ((catch 'doom-modules
+                  (let* ((module (if (listp m) (car m) m))
+                         (flags  (if (listp m) (cdr m))))
+                    (when-let (new (assq module obsolete))
+                      (let ((newkeys (cdr new)))
+                        (if (null newkeys)
+                            (message "WARNING %s module was removed" key)
+                          (if (cdr newkeys)
+                              (message "WARNING %s module was removed and split into the %s modules"
+                                       (list category module) (mapconcat #'prin1-to-string newkeys ", "))
+                            (message "WARNING %s module was moved to %s"
+                                     (list category module) (car newkeys)))
+                          (push category modules)
+                          (dolist (key newkeys)
+                            (push (if flags
+                                      (nconc (cdr key) flags)
+                                    (cdr key))
+                                  modules)
+                            (push (car key) modules))
+                          (throw 'doom-modules t))))
+                    (if-let (path (doom-module-locate-path category module))
+                        (doom-module-set category module :flags flags :path path)
+                      (message "WARNING Couldn't find the %s %s module" category module)))))))
+       (unless doom-interactive-mode
+         (setq doom-inhibit-module-warnings t))
+       doom-modules)))
 
 (defvar doom-disabled-packages)
 (define-obsolete-function-alias 'def-package! 'use-package!) ; DEPRECATED
@@ -425,26 +428,17 @@ two extra properties:
 :after-call SYMBOL|LIST
   Takes a symbol or list of symbols representing functions or hook variables.
   The first time any of these functions or hooks are executed, the package is
-  loaded. e.g.
-
-  (use-package! projectile
-    :after-call (pre-command-hook after-find-file dired-before-readin-hook)
-    ...)
+  loaded.
 
 :defer-incrementally SYMBOL|LIST|t
   Takes a symbol or list of symbols representing packages that will be loaded
   incrementally at startup before this one. This is helpful for large packages
   like magit or org, which load a lot of dependencies on first load. This lets
   you load them piece-meal during idle periods, so that when you finally do need
-  the package, it'll load quicker. e.g.
+  the package, it'll load quicker.
 
   NAME is implicitly added if this property is present and non-nil. No need to
-  specify it. A value of `t' implies NAME, e.g.
-
-  (use-package! abc
-    ;; This is equivalent to :defer-incrementally (abc)
-    :defer-incrementally t
-    ...)"
+  specify it. A value of `t' implies NAME."
   (declare (indent 1))
   (unless (or (memq name doom-disabled-packages)
               ;; At compile-time, use-package will forcibly load packages to
@@ -459,7 +453,8 @@ two extra properties:
 (defmacro use-package-hook! (package when &rest body)
   "Reconfigures a package's `use-package!' block.
 
-Only use this macro in a module's init.el file.
+This macro must be used *before* PACKAGE's `use-package!' block. Often, this
+means using it from your DOOMDIR/init.el.
 
 Under the hood, this uses use-package's `use-package-inject-hooks'.
 
@@ -467,9 +462,13 @@ PACKAGE is a symbol; the package's name.
 WHEN should be one of the following:
   :pre-init :post-init :pre-config :post-config
 
-WARNING: If :pre-init or :pre-config hooks return nil, the original
-`use-package!''s :init/:config block (respectively) is overwritten, so remember
-to have them return non-nil (or exploit that to overwrite Doom's config)."
+WARNINGS:
+- The use of this macro is more often than not a code smell. Use it as last
+  resort. There is almost always a better alternative.
+- If you are using this solely for :post-config, stop! `after!' is much better.
+- If :pre-init or :pre-config hooks return nil, the original `use-package!''s
+  :init/:config block (respectively) is overwritten, so remember to have them
+  return non-nil (or exploit that to overwrite Doom's config)."
   (declare (indent defun))
   (unless (memq when '(:pre-init :post-init :pre-config :post-config))
     (error "'%s' isn't a valid hook for use-package-hook!" when))

@@ -1,6 +1,6 @@
 ;;; core-editor.el -*- lexical-binding: t; -*-
 
-(defvar doom-detect-indentation-excluded-modes '(fundamental-mode)
+(defvar doom-detect-indentation-excluded-modes '(fundamental-mode so-long-mode)
   "A list of major modes in which indentation should be automatically
 detected.")
 
@@ -9,9 +9,45 @@ detected.")
 indentation settings or not. This should be set by editorconfig if it
 successfully sets indent_style/indent_size.")
 
+(defvar-local doom-large-file-p nil)
+(put 'doom-large-file-p 'permanent-local t)
+
+(defvar doom-large-file-size 1
+  "The threshold above which Doom enables emergency optimizations.
+
+This threshold is in MB. See `doom--optimize-for-large-files-a' for
+implementation details.")
+
+(defvar doom-large-file-excluded-modes
+  '(so-long-mode special-mode archive-mode tar-mode jka-compr
+    git-commit-mode image-mode doc-view-mode doc-view-mode-maybe
+    ebrowse-tree-mode pdf-view-mode tags-table-mode)
+  "Major modes that `doom-check-large-file-h' will ignore.")
+
 
 ;;
 ;;; File handling
+
+(defadvice! doom--optimize-for-large-files-a (orig-fn &rest args)
+  "Set `doom-large-file-p' if the file is too large.
+
+Uses `doom-large-file-size' to determine when a file is too large. When
+`doom-large-file-p' is set, other plugins can detect this and reduce their
+runtime costs (or disable themselves) to ensure the buffer is as fast as
+possible."
+  :around #'after-find-file
+  (if (setq doom-large-file-p
+            (and buffer-file-name
+                 (not doom-large-file-p)
+                 (not (memq major-mode doom-large-file-excluded-modes))
+                 (file-readable-p buffer-file-name)
+                 (> (nth 7 (file-attributes buffer-file-name))
+                    (* 1024 1024 doom-large-file-size))))
+      (delay-mode-hooks
+        (prog1 (apply orig-fn args)
+          (buffer-disable-undo)
+          (message "Large file detected! Cutting a few corners to improve performance...")))
+    (apply orig-fn args)))
 
 ;; Resolve symlinks when opening files, so that any operations are conducted
 ;; from the file's true directory (like `find-file').
@@ -127,10 +163,6 @@ successfully sets indent_style/indent_size.")
           (doom-auto-revert-buffer-h))))))
 
 
-(after! bookmark
-  (setq bookmark-save-flag t))
-
-
 (use-package! recentf
   ;; Keep track of recently opened files
   :defer-incrementally easymenu tree-widget timer
@@ -198,12 +230,22 @@ successfully sets indent_style/indent_size.")
   :after-call after-find-file dired-initial-position-hook
   :config
   (setq save-place-file (concat doom-cache-dir "saveplace")
-        save-place-forget-unreadable-files t
-        save-place-limit 200)
+        save-place-limit 100)
+
   (defadvice! doom--recenter-on-load-saveplace-a (&rest _)
     "Recenter on cursor when loading a saved place."
     :after-while #'save-place-find-file-hook
     (if buffer-file-name (ignore-errors (recenter))))
+
+  (defadvice! doom--dont-prettify-saveplace-cache-a (orig-fn)
+    "`save-place-alist-to-file' uses `pp' to prettify the contents of its cache.
+`pp' can be expensive for longer lists, and there's no reason to prettify cache
+files, so we replace calls to `pp' with the much faster `prin1'."
+    :around #'save-place-alist-to-file
+    (cl-letf (((symbol-function #'pp)
+               (symbol-function #'prin1)))
+      (funcall orig-fn)))
+
   (save-place-mode +1))
 
 
@@ -272,13 +314,18 @@ successfully sets indent_style/indent_size.")
     (defun doom-detect-indentation-h ()
       (unless (or (not after-init-time)
                   doom-inhibit-indent-detection
-                  (member (substring (buffer-name) 0 1) '(" " "*"))
-                  (memq major-mode doom-detect-indentation-excluded-modes))
+                  doom-large-file-p
+                  (memq major-mode doom-detect-indentation-excluded-modes)
+                  (member (substring (buffer-name) 0 1) '(" " "*")))
         ;; Don't display messages in the echo area, but still log them
         (let ((inhibit-message (not doom-debug-mode)))
           (dtrt-indent-mode +1)))))
   :config
+  ;; Enable dtrt-indent even in smie modes so that it can update `tab-width',
+  ;; `standard-indent' and `evil-shift-width' there as well.
   (setq dtrt-indent-run-after-smie t)
+  ;; Reduced from the default of 5000 for slightly faster analysis
+  (setq dtrt-indent-max-lines 2000)
 
   ;; always keep tab-width up-to-date
   (push '(t tab-width) dtrt-indent-hook-generic-mapping-list)
@@ -384,8 +431,17 @@ successfully sets indent_style/indent_size.")
   (sp-local-pair 'minibuffer-inactive-mode "`" nil :actions nil)
 
   ;; Smartparens breaks evil-mode's replace state
-  (add-hook 'evil-replace-state-entry-hook #'turn-off-smartparens-mode)
-  (add-hook 'evil-replace-state-exit-hook  #'turn-on-smartparens-mode)
+  (defvar doom-buffer-smartparens-mode nil)
+  (add-hook! 'evil-replace-state-exit-hook
+    (defun doom-enable-smartparens-mode-maybe-h ()
+      (when doom-buffer-smartparens-mode
+        (turn-on-smartparens-mode)
+        (kill-local-variable 'doom-buffer-smartparens-mode))))
+  (add-hook! 'evil-replace-state-entry-hook
+    (defun doom-disable-smartparens-mode-maybe-h ()
+      (when smartparens-mode
+        (setq-local doom-buffer-smartparens-mode t)
+        (turn-off-smartparens-mode))))
 
   (smartparens-global-mode +1))
 
@@ -399,19 +455,30 @@ successfully sets indent_style/indent_size.")
   ;; Branching & persistent undo
   :after-call doom-switch-buffer-hook after-find-file
   :config
-  (setq undo-tree-auto-save-history nil ; disable because unstable
-        ;; undo-in-region is known to cause undo history corruption, which can
-        ;; be very destructive! Disabling it deters the error, but does not fix
-        ;; it entirely!
-        undo-tree-enable-undo-in-region nil
+  (setq undo-tree-auto-save-history t
+        ;; Increase undo-limits by a factor of ten to avoid emacs prematurely
+        ;; truncating the undo history and corrupting the tree. See
+        ;; https://github.com/syl20bnr/spacemacs/issues/12110
+        undo-limit 800000
+        undo-strong-limit 12000000
+        undo-outer-limit 120000000
         undo-tree-history-directory-alist
         `(("." . ,(concat doom-cache-dir "undo-tree-hist/"))))
 
+  ;; Compress undo-tree history files with zstd, if available. File size isn't
+  ;; the (only) concern here: the file IO barrier is slow for Emacs to cross;
+  ;; reading a tiny file and piping it in-memory through zstd is *slightly*
+  ;; faster than Emacs reading the entire undo-tree file from the get go (on
+  ;; SSDs). Whether or not that's true in practice, we still enjoy zstd's ~80%
+  ;; file savings (these files add up over time and zstd is so incredibly fast).
   (when (executable-find "zstd")
     (defadvice! doom--undo-tree-make-history-save-file-name-a (file)
       :filter-return #'undo-tree-make-history-save-file-name
       (concat file ".zst")))
 
+  ;; Strip text properties from undo-tree data to stave off bloat. File size
+  ;; isn't the concern here; undo cache files bloat easily, which can cause
+  ;; freezing, crashes, GC-induced stuttering or delays when opening files.
   (defadvice! doom--undo-tree-strip-text-properties-a (&rest _)
     :before #'undo-list-transfer-to-tree
     (dolist (item buffer-undo-list)

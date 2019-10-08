@@ -462,7 +462,7 @@ eldoc string."
   (add-hook! 'org-agenda-finalize-hook
     (defun +org-exclude-agenda-buffers-from-workspace-h ()
       "Prevent temporarily-opened agenda buffers from being associated with the
-current workspace."
+current workspace (and clean them up)."
       (when (and org-agenda-new-buffers (bound-and-true-p persp-mode))
         (let (persp-autokill-buffer-on-remove)
           (persp-remove-buffer org-agenda-new-buffers
@@ -603,7 +603,11 @@ between the two."
     :keymap (make-sparse-keymap))
   (add-hook 'org-agenda-mode-hook #'org-agenda-localleader-mode)
 
-  (map! :map org-agenda-localleader-mode-map
+  (map! :map org-agenda-mode-map
+        ;; Always clean up after itself
+        [remap org-agenda-quit] #'org-agenda-exit
+        [remap org-agenda-Quit] #'org-agenda-exit
+        :map org-agenda-localleader-mode-map
         :localleader
         "d" #'org-agenda-deadline
         "q" #'org-agenda-set-tags
@@ -868,6 +872,7 @@ compelling reason, so..."
 
   ;;; Custom org modules
   (if (featurep! +dragndrop) (load! "contrib/dragndrop"))
+  (if (featurep! +hugo)      (load! "contrib/hugo"))
   (if (featurep! +ipython)   (load! "contrib/ipython"))
   (if (featurep! +present)   (load! "contrib/present"))
 

@@ -10,16 +10,17 @@
     (doom-one . t)
     (doom-one-light . t)
     (doom-opera . t)
+    (doom-solarized-dark . t)
     (doom-solarized-light)
     (doom-spacegrey)
     (doom-vibrant)
     (doom-tomorrow-night))
-  "An alist of themes that support `solaire-mode'. If CDR is t, then use
-`solaire-mode-swap-bg'.")
+  "An alist of themes that support `solaire-mode'. If CDR is t, then
+`solaire-mode-swap-bg' will be used automatically, when the theme is loaded.")
 
 
 ;;
-;; Packages
+;;; Packages
 
 ;; <https://github.com/hlissner/emacs-doom-theme>
 (use-package! doom-themes

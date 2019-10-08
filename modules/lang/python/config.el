@@ -77,8 +77,9 @@ called.")
                            sp-point-before-same-p))
 
   ;; Affects pyenv and conda
-  (advice-add #'pythonic-activate :after-while #'+modeline-update-env-in-all-windows-h)
-  (advice-add #'pythonic-deactivate :after #'+modeline-clear-env-in-all-windows-h)
+  (when (featurep! :ui modeline)
+    (advice-add #'pythonic-activate :after-while #'+modeline-update-env-in-all-windows-h)
+    (advice-add #'pythonic-deactivate :after #'+modeline-clear-env-in-all-windows-h))
 
   (setq-hook! 'python-mode-hook tab-width python-indent-offset))
 
@@ -116,7 +117,7 @@ called.")
     (add-hook 'anaconda-mode-hook #'evil-normalize-keymaps))
   (map! :localleader
         :map anaconda-mode-map
-        :prefix "f"
+        :prefix "g"
         "d" #'anaconda-mode-find-definitions
         "h" #'anaconda-mode-show-doc
         "a" #'anaconda-mode-find-assignments
@@ -131,10 +132,9 @@ called.")
         :localleader
         (:prefix ("i" . "imports")
           :desc "Insert missing imports" "i" #'pyimport-insert-missing
-          :desc "Remove unused imports" "r" #'pyimport-remove-unused
-          :desc "Sort imports" "s" #'pyimpsort-buffer
-          :desc "Optimize imports" "o" #'+python/optimize-imports
-          )))
+          :desc "Remove unused imports"  "r" #'pyimport-remove-unused
+          :desc "Sort imports"           "s" #'pyimpsort-buffer
+          :desc "Optimize imports"       "o" #'+python/optimize-imports)))
 
 
 (use-package! nose
@@ -165,11 +165,11 @@ called.")
   (map! :after python
         :localleader
         :map python-mode-map
-        :prefix "t"
-        "f" #'python-pytest-file
-        "k" #'python-pytest-file-dwim
-        "t" #'python-pytest-function
-        "m" #'python-pytest-function-dwim
+        :prefix ("t" . "test")
+        "f" #'python-pytest-file-dwim
+        "F" #'python-pytest-file
+        "t" #'python-pytest-function-dwim
+        "T" #'python-pytest-function
         "r" #'python-pytest-repeat
         "p" #'python-pytest-popup))
 
@@ -202,7 +202,19 @@ called.")
   (add-hook 'hack-local-variables-hook #'pyvenv-track-virtualenv)
   (add-to-list 'global-mode-string
                '(pyvenv-virtual-env-name (" venv:" pyvenv-virtual-env-name " "))
-               'append))
+               'append)
+  (map! :map python-mode-map
+        :localleader
+        :prefix "e"
+        :desc "activate"    "a" #'pipenv-activate
+        :desc "deactivate"  "d" #'pipenv-deactivate
+        :desc "install"     "i" #'pipenv-install
+        :desc "lock"        "l" #'pipenv-lock
+        :desc "open module" "o" #'pipenv-open
+        :desc "run"         "r" #'pipenv-run
+        :desc "shell"       "s" #'pipenv-shell
+        :desc "uninstall"   "u" #'pipenv-uninstall))
+
 
 
 (use-package! pyenv-mode
@@ -211,7 +223,9 @@ called.")
   :config
   (pyenv-mode +1)
   (when (executable-find "pyenv")
-    (add-to-list 'exec-path (expand-file-name "shims" (or (getenv "PYENV_ROOT") "~/.pyenv")))))
+    (add-to-list 'exec-path (expand-file-name "shims" (or (getenv "PYENV_ROOT") "~/.pyenv"))))
+  (add-hook 'python-mode-hook #'+python-pyenv-mode-set-auto-h)
+  (add-hook 'doom-switch-buffer-hook #'+python-pyenv-mode-set-auto-h))
 
 
 (use-package! conda

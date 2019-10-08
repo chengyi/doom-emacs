@@ -521,7 +521,8 @@
       :desc "window"                "w"    evil-window-map
       :desc "help"                  "h"    help-map
 
-      :desc "Toggle last popup"     "~"    #'+popup/toggle
+      (:when (featurep! :ui popup)
+        :desc "Toggle last popup"     "~"    #'+popup/toggle)
       :desc "Find file"             "."    #'find-file
 
       :desc "Switch buffer"         ","    #'switch-to-buffer
@@ -616,7 +617,10 @@
         :desc "Open REPL"                   "r"   #'+eval/open-repl-other-window
         :desc "Delete trailing whitespace"  "w"   #'delete-trailing-whitespace
         :desc "Delete trailing newlines"    "W"   #'doom/delete-trailing-newlines
-        :desc "List errors"                 "x"   #'flycheck-list-errors)
+        (:when (featurep! :tools flycheck)
+          :desc "List errors"                 "x"   #'flycheck-list-errors)
+        (:unless (featurep! :tools flycheck)
+          :desc "List errors"                 "x"   #'flymake-show-diagnostics-buffer))
 
       ;;; <leader> f --- file
       (:prefix-map ("f" . "file")
@@ -784,8 +788,9 @@
         :desc "List project tasks"           "t" #'+default/project-tasks
         :desc "Test project"                 "T" #'projectile-test-project)
 
-      ;;; <leader> q --- session
-      (:prefix-map ("q" . "session")
+      ;;; <leader> q --- quit/session
+      (:prefix-map ("q" . "quit/session")
+        :desc "Kill Emacs (and daemon)"      "K" #'save-buffers-kill-emacs
         :desc "Quit Emacs"                   "q" #'save-buffers-kill-terminal
         :desc "Quit Emacs without saving"    "Q" #'evil-quit-all-with-error-code
         :desc "Quick save current session"   "s" #'doom/quicksave-session
@@ -822,15 +827,23 @@
       ;;; <leader> t --- toggle
       (:prefix-map ("t" . "toggle")
         :desc "Big mode"                     "b" #'doom-big-font-mode
-        :desc "Flycheck"                     "f" #'flycheck-mode
+        (:when (featurep! :tools flycheck)
+          :desc "Flycheck"                     "f" #'flycheck-mode)
+        (:unless (featurep! :tools flycheck)
+          :desc "Flymake"                     "f" #'flymake-mode)
         :desc "Frame fullscreen"             "F" #'toggle-frame-fullscreen
         :desc "Evil goggles"                 "g" #'evil-goggles-mode
-        :desc "Indent guides"                "i" #'highlight-indent-guides-mode
         :desc "Indent style"                 "I" #'doom/toggle-indent-style
         :desc "Line numbers"                 "l" #'doom/toggle-line-numbers
         :desc "Word-wrap mode"               "w" #'+word-wrap-mode
-        :desc "org-tree-slide mode"          "p" #'+org-present/start
-        :desc "Flyspell"                     "s" #'flyspell-mode))
+        (:when (featurep! :lang org +present)
+          :desc "org-tree-slide mode"          "p" #'+org-present/start)
+        (:when (featurep! :tools flycheck)
+          :desc "Flycheck"                     "f" #'flycheck-mode)
+        (:when (featurep! :tools flyspell)
+          :desc "Flyspell"                     "s" #'flyspell-mode)
+        (:when (featurep! :ui indent-guides)
+          :desc "Indent guides"                "i" #'highlight-indent-guides-mode)))
 
 
 ;;
