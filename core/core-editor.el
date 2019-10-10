@@ -39,13 +39,13 @@ possible."
   (if (setq doom-large-file-p
             (and buffer-file-name
                  (not doom-large-file-p)
-                 (not (memq major-mode doom-large-file-excluded-modes))
                  (file-readable-p buffer-file-name)
                  (> (nth 7 (file-attributes buffer-file-name))
                     (* 1024 1024 doom-large-file-size))))
-      (delay-mode-hooks
-        (prog1 (apply orig-fn args)
-          (buffer-disable-undo)
+      (prog1 (apply orig-fn args)
+        (if (memq major-mode doom-large-file-excluded-modes)
+            (setq doom-large-file-p nil)
+          (so-long-minor-mode +1)
           (message "Large file detected! Cutting a few corners to improve performance...")))
     (apply orig-fn args)))
 
@@ -111,15 +111,6 @@ possible."
 
 ;; Save clipboard contents into kill-ring before replacing them
 (setq save-interprogram-paste-before-kill t)
-
-;; Fix the clipboard in terminal or daemon Emacs (non-GUI)
-(add-hook! 'tty-setup-hook
-  (defun doom-init-clipboard-in-tty-emacs-h ()
-    (unless (getenv "SSH_CONNECTION")
-      (cond (IS-MAC
-             (if (require 'osx-clipboard nil t) (osx-clipboard-mode)))
-            ((executable-find "xclip")
-             (if (require 'xclip nil t) (xclip-mode)))))))
 
 
 ;;
@@ -302,7 +293,12 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   (defun doom-set-jump-h ()
     "Run `better-jumper-set-jump' but return nil, for short-circuiting hooks."
     (better-jumper-set-jump)
-    nil))
+    nil)
+
+  ;; Creates a jump point before killing a buffer. This allows you to undo
+  ;; killing a buffer easily (only works with file buffers though; it's not
+  ;; possible to resurrect special buffers).
+  (advice-add #'kill-current-buffer :around #'doom-set-jump-a))
 
 
 (use-package! dtrt-indent
@@ -448,7 +444,21 @@ files, so we replace calls to `pp' with the much faster `prin1'."
 
 (use-package! so-long
   :after-call after-find-file
-  :config (global-so-long-mode +1))
+  :config
+  (global-so-long-mode +1)
+  (delq! 'font-lock-mode so-long-minor-modes)
+  (delq! 'display-line-numbers-mode so-long-minor-modes)
+  (appendq! so-long-minor-modes
+            '(flycheck-mode
+              eldoc-mode
+              smartparens-mode
+              highlight-numbers-mode
+              better-jumper-local-mode
+              ws-butler-mode
+              auto-composition-mode
+              undo-tree-mode
+              highlight-indent-guides-mode
+              hl-fill-column-mode)))
 
 
 (use-package! undo-tree

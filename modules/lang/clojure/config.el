@@ -1,17 +1,18 @@
 ;;; lang/clojure/config.el -*- lexical-binding: t; -*-
 
-(after! clojure-mode
-  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
-
-  (set-repl-handler! 'clojure-mode #'+clojure/open-repl)
-  (set-eval-handler! 'clojure-mode #'cider-eval-region))
+;;;###package clojure-mode
+(add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
 
 
 (use-package! cider
-  ;; NOTE: if you don't have an org directory set (the dir doesn't exist),
-  ;; cider jack in won't work.
-  :commands cider-jack-in cider-jack-in-clojurescript
+  ;; NOTE: if you don't have an org directory set (the dir doesn't exist), cider
+  ;; jack in won't work.
   :hook (clojure-mode-local-vars . cider-mode)
+  :init
+  (after! clojure-mode
+    (set-repl-handler! 'clojure-mode #'+clojure/open-repl)
+    (set-repl-handler! 'clojurescript-mode #'+clojure/open-cljs-repl)
+    (set-eval-handler! '(clojure-mode clojurescript-mode) #'cider-eval-region))
   :config
   (add-hook 'cider-mode-hook #'eldoc-mode)
   (set-lookup-handlers! 'cider-mode
@@ -119,11 +120,11 @@
           :i [S-return] #'cider-repl-newline-and-indent
           :i [M-return] #'cider-repl-return
           (:localleader
-            ("n" #'cider-repl-set-ns
-             "q" #'cider-quit
-             "r" #'cider-ns-refresh
-             "R" #'cider-restart
-             "c" #'cider-repl-clear-buffer))
+            "n" #'cider-repl-set-ns
+            "q" #'cider-quit
+            "r" #'cider-ns-refresh
+            "R" #'cider-restart
+            "c" #'cider-repl-clear-buffer)
           :map cider-repl-history-mode-map
           :i [return]  #'cider-repl-history-insert-and-quit
           :i "q"  #'cider-repl-history-quit
