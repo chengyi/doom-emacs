@@ -107,8 +107,9 @@
       :n  "gp"    #'+evil/reselect-paste
       :v  "gp"    #'+evil/paste-preserve-register
       :nv "g@"    #'+evil:apply-macro
-      :nv "gc"    #'evil-commentary
+      :nv "gc"    #'evilnc-comment-operator
       :nv "gx"    #'evil-exchange
+      :nv "gy"    #'+evil:yank-unindented
       :n  "g="    #'evil-numbers/inc-at-pt
       :n  "g-"    #'evil-numbers/dec-at-pt
       :v  "g="    #'evil-numbers/inc-at-pt-incremental
@@ -150,6 +151,7 @@
         "C-r"     #'winner-redo
         "o"       #'doom/window-enlargen
         ;; Delete window
+        "d"       #'evil-window-delete
         "C-C"     #'ace-delete-window)
 
       ;; Plugins
@@ -178,6 +180,7 @@
       :textobj "x" #'evil-inner-xml-attr               #'evil-outer-xml-attr
       :textobj "a" #'evil-inner-arg                    #'evil-outer-arg
       :textobj "B" #'evil-textobj-anyblock-inner-block #'evil-textobj-anyblock-a-block
+      :textobj "c" #'evilnc-inner-comment              #'evilnc-outer-commenter
       :textobj "i" #'evil-indent-plus-i-indent         #'evil-indent-plus-a-indent
       :textobj "k" #'evil-indent-plus-i-indent-up      #'evil-indent-plus-a-indent-up
       :textobj "j" #'evil-indent-plus-i-indent-up-down #'evil-indent-plus-a-indent-up-down
