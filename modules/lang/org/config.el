@@ -382,6 +382,10 @@ file isn't in `org-directory'."
   (when (featurep! :lang markdown)
     (add-to-list 'org-export-backends 'md))
 
+  (use-package! ox-hugo
+    :when (featurep! +hugo)
+    :after ox)
+
   (use-package! ox-pandoc
     :when (featurep! +pandoc)
     :when (executable-find "pandoc")
@@ -546,6 +550,7 @@ between the two."
           "/" #'helm-org-agenda-files-headings)
         "a" #'org-attach
         "d" #'org-deadline
+        "e" #'org-export-dispatch
         "f" #'org-footnote-new
         "h" #'org-toggle-heading
         "i" #'org-toggle-item
@@ -569,17 +574,6 @@ between the two."
           "x" #'org-clock-cancel
           "=" #'org-clock-timestamps-up
           "-" #'org-clock-timestamps-down)
-        (:prefix ("e" . "export")
-          :desc "to html"             "h" #'org-html-export-to-html
-          :desc "to html & open"      "H" #'org-html-export-as-html
-          :desc "to markdown"         "m" #'org-md-export-to-markdown
-          :desc "to markdown & open"  "M" #'org-md-export-as-markdown
-          :desc "to reveal.js"        "r" #'org-reveal-export-to-html
-          :desc "to reveal.js & open" "R" #'org-reveal-export-to-html-and-browse
-          (:prefix ("b" . "from beamer")
-            :desc "to latex"            "l" #'org-beamer-export-to-latex
-            :desc "to latex & open"     "L" #'org-beamer-export-as-latex
-            :desc "as pdf"              "p" #'org-beamer-export-to-pdf))
         (:prefix ("g" . "goto")
           "g" #'org-goto
           (:when (featurep! :completion ivy)
@@ -672,6 +666,7 @@ between the two."
           :n "[" nil
 
           :map evil-org-mode-map
+          :nv "TAB"        #'org-cycle
           :ni [C-return]   #'+org/insert-item-below
           :ni [C-S-return] #'+org/insert-item-above
           ;; navigate table cells (from insert-mode)
@@ -890,7 +885,6 @@ compelling reason, so..."
 
   ;;; Custom org modules
   (if (featurep! +dragndrop) (load! "contrib/dragndrop"))
-  (if (featurep! +hugo)      (load! "contrib/hugo"))
   (if (featurep! +ipython)   (load! "contrib/ipython"))
   (if (featurep! +present)   (load! "contrib/present"))
 
