@@ -52,6 +52,7 @@
 
 ;; And let 'er rip!
 (add-hook 'window-setup-hook #'doom-display-benchmark-h)
+(add-to-list 'command-switch-alist (cons "--restore" #'doom-restore-session-handler))
 
 (doom-initialize)
 (doom-initialize-core)

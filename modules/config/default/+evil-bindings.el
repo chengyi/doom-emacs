@@ -17,13 +17,8 @@
 ;;
 ;;; Global keybindings
 
-(map! (:map override
-        ;; A little sandbox to run code in
-        "M-;" #'eval-expression
-        "A-;" #'eval-expression)
-
-      ;; Smart tab, these will only work in GUI Emacs
-      :i [tab] (general-predicate-dispatch nil ; fall back to nearest keymap
+;; Smart tab, these will only work in GUI Emacs
+(map! :i [tab] (general-predicate-dispatch nil ; fall back to nearest keymap
                  (and (featurep! :editor snippets)
                       (bound-and-true-p yas-minor-mode)
                       (yas-maybe-expand-abbrev-key-filter 'yas-expand))
@@ -617,7 +612,7 @@
         :desc "Previous buffer"             "p"   #'previous-buffer
         :desc "Revert buffer"               "r"   #'revert-buffer
         :desc "Save buffer"                 "s"   #'save-buffer
-        :desc "Sudo edit this file"         "S"   #'doom/sudo-this-file
+        :desc "Save all buffers"            "S"   (λ!! #'save-some-buffers t)
         :desc "Pop up scratch buffer"       "x"   #'doom/open-scratch-buffer
         :desc "Switch to scratch buffer"    "X"   #'doom/switch-to-scratch-buffer
         :desc "Bury buffer"                 "z"   #'bury-buffer)
@@ -855,6 +850,8 @@
         :desc "Word-wrap mode"               "w" #'+word-wrap-mode
         (:when (featurep! :lang org +present)
           :desc "org-tree-slide mode"          "p" #'+org-present/start)
+        (:when (featurep! :lang org +pomodoro)
+          :desc "Pomodoro timer"               "t" #'org-pomodoro)
         (:when (featurep! :tools flycheck)
           :desc "Flycheck"                     "f" #'flycheck-mode)
         (:when (featurep! :tools flyspell)
