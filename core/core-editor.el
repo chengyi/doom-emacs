@@ -97,6 +97,9 @@ possible."
       require-final-newline t
       tabify-regexp "^\t* [ \t]+")  ; for :retab
 
+;; Favor hard-wrapping in text modes
+(add-hook 'text-mode-hook #'auto-fill-mode)
+
 
 ;;
 ;;; Clipboard / kill-ring
@@ -143,7 +146,7 @@ possible."
   (defun doom-auto-revert-buffer-h ()
     "Auto revert current buffer, if necessary."
     (unless auto-revert-mode
-      (let ((revert-without-query t))
+      (let ((revert-without-query (list ".")))
         (auto-revert-handler))))
 
   (defun doom-auto-revert-buffers-h ()
