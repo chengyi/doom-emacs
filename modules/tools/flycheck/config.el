@@ -12,8 +12,15 @@ errors.")
   :commands flycheck-list-errors flycheck-buffer
   :after-call doom-switch-buffer-hook after-find-file
   :config
-  ;; new-line checks are a mote excessive; idle checks are more than enough
-  (delq! 'new-line flycheck-check-syntax-automatically)
+  (setq flycheck-emacs-lisp-load-path 'inherit)
+
+  ;; Check only when saving or opening files. Newline & idle checks are a mote
+  ;; excessive, especially when that can easily catch code in an incomplete
+  ;; state, so we removed them.
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+
+  ;; Display errors a little quicker (default is 0.9s)
+  (setq flycheck-display-errors-delay 0.25)
 
   (add-hook! 'doom-escape-hook :append
     (defun +flycheck-buffer-h ()
@@ -21,14 +28,6 @@ errors.")
       (when flycheck-mode
         (ignore-errors (flycheck-buffer))
         nil)))
-
-  (add-hook! 'flycheck-after-syntax-check-hook
-    (defun +flycheck-adjust-syntax-check-eagerness-h ()
-      "Check for errors less often when there aren't any.
-Done to reduce the load flycheck imposes on the current buffer."
-      (if flycheck-current-errors
-          (kill-local-variable 'flycheck-idle-change-delay)
-        (setq-local flycheck-idle-change-delay +flycheck-lazy-idle-delay))))
 
   (global-flycheck-mode +1))
 
@@ -43,10 +42,11 @@ Done to reduce the load flycheck imposes on the current buffer."
     ;; the cursor's position or cause disruptive input delays.
     (add-hook! '(evil-insert-state-entry-hook evil-replace-state-entry-hook)
                #'flycheck-popup-tip-delete-popup)
-    (defadvice! +flycheck--disable-popup-tip-in-insert-mode-a (&rest _)
+    (defadvice! +flycheck--disable-popup-tip-maybe-a (&rest _)
       :before-while #'flycheck-popup-tip-show-popup
-      (or (not evil-local-mode)
-          (not (memq evil-state '(insert replace)))))))
+      (if evil-local-mode
+          (eq evil-state 'normal)
+        (not (bound-and-true-p company-backend))))))
 
 
 (use-package! flycheck-posframe
@@ -58,6 +58,9 @@ Done to reduce the load flycheck imposes on the current buffer."
   (setq flycheck-posframe-warning-prefix "⚠ "
         flycheck-posframe-info-prefix "··· "
         flycheck-posframe-error-prefix "✕ ")
+  (after! company
+    ;; Don't display popups if company is open
+    (add-hook 'flycheck-posframe-inhibit-functions #'company--active-p))
   (after! evil
     ;; Don't display popups while in insert or replace mode, as it can affect
     ;; the cursor's position or cause disruptive input delays.

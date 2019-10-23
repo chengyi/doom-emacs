@@ -3,10 +3,8 @@
 ;; This file defines a Spacemacs-esque keybinding scheme
 
 ;; Don't let evil-collection interfere with certain keys
-(setq evil-collection-key-blacklist
-      (list "gd" "gf" "K" "[" "]" "gz" "<escape>"
-            doom-leader-key doom-localleader-key
-            doom-leader-alt-key doom-localleader-alt-key))
+(appendq! evil-collection-key-blacklist
+          '("gd" "gf" "K" "[" "]" "gz" "<escape>"))
 
 (defadvice! +default-evil-collection-disable-blacklist-a (orig-fn)
   :around #'evil-collection-vterm-toggle-send-escape  ; allow binding to ESC
@@ -49,7 +47,14 @@
         [remap quit-window] #'kill-current-buffer)
 
       (:map (help-mode-map helpful-mode-map)
-        :n "o" #'ace-link-help)
+        :n "o"       #'ace-link-help)
+      (:map apropos-mode-map
+        :n "o"       #'ace-link-help
+        :n "TAB"     #'forward-button
+        :n [tab]     #'forward-button
+        :n [backtab] #'backward-button)
+      (:map Info-mode-map
+        :n "o"       #'ace-link-info)
 
       ;; misc
       :n "C-S-f"  #'toggle-frame-fullscreen
@@ -156,18 +161,7 @@
         :map evilem-map
         "a" (evilem-create #'evil-forward-arg)
         "A" (evilem-create #'evil-backward-arg)
-        "s" (evilem-create #'evil-snipe-repeat
-                           :name 'evil-easymotion-snipe-forward
-                           :pre-hook (save-excursion (call-interactively #'evil-snipe-s))
-                           :bind ((evil-snipe-scope 'buffer)
-                                  (evil-snipe-enable-highlight)
-                                  (evil-snipe-enable-incremental-highlight)))
-        "S" (evilem-create #'evil-snipe-repeat
-                           :name 'evil-easymotion-snipe-backward
-                           :pre-hook (save-excursion (call-interactively #'evil-snipe-S))
-                           :bind ((evil-snipe-scope 'buffer)
-                                  (evil-snipe-enable-highlight)
-                                  (evil-snipe-enable-incremental-highlight)))
+        "s" #'evil-avy-goto-char-2
         "SPC" (λ!! #'evil-avy-goto-char-timer t)
         "/" #'evil-avy-goto-char-timer)
 
@@ -397,7 +391,9 @@
           :nv "q" #'evil-mc-undo-all-cursors
           :nv "t" #'+multiple-cursors/evil-mc-toggle-cursors
           :nv "u" #'evil-mc-undo-last-added-cursor
-          :nv "z" #'+multiple-cursors/evil-mc-make-cursor-here)
+          :nv "z" #'+multiple-cursors/evil-mc-make-cursor-here
+          :v  "I" #'evil-mc-make-cursor-in-visual-selection-beg
+          :v  "A" #'evil-mc-make-cursor-in-visual-selection-end)
         (:after evil-mc
           :map evil-mc-key-map
           :nv "C-n" #'evil-mc-make-and-goto-next-cursor
@@ -554,6 +550,7 @@
 
       ;;; <leader> / --- search
       (:prefix-map ("/" . "search")
+        :desc "Search buffer"                 "/" #'swiper
         :desc "Search buffer"                 "b" #'swiper
         :desc "Search current directory"      "d" #'+default/search-cwd
         :desc "Search other directory"        "D" #'+default/search-other-cwd
@@ -604,15 +601,17 @@
         (:unless (featurep! :ui workspaces)
           :desc "Switch buffer"           "b" #'switch-to-buffer)
         :desc "Kill buffer"                 "d"   #'kill-current-buffer
+        :desc "ibuffer"                     "i"   #'ibuffer
         :desc "Kill buffer"                 "k"   #'kill-current-buffer
+        :desc "Jumplist"                    "j"   #'evil-show-jumps
         :desc "Switch to last buffer"       "l"   #'evil-switch-to-windows-last-buffer
         :desc "Next buffer"                 "n"   #'next-buffer
         :desc "New empty buffer"            "N"   #'evil-buffer-new
         :desc "Kill other buffers"          "O"   #'doom/kill-other-buffers
         :desc "Previous buffer"             "p"   #'previous-buffer
         :desc "Revert buffer"               "r"   #'revert-buffer
-        :desc "Save buffer"                 "s"   #'save-buffer
-        :desc "Save all buffers"            "S"   (λ!! #'save-some-buffers t)
+        :desc "Save buffer"                 "s"   #'basic-save-buffer
+        :desc "Save all buffers"            "S"   #'evil-write-all
         :desc "Pop up scratch buffer"       "x"   #'doom/open-scratch-buffer
         :desc "Switch to scratch buffer"    "X"   #'doom/switch-to-scratch-buffer
         :desc "Bury buffer"                 "z"   #'bury-buffer)
@@ -625,8 +624,10 @@
         :desc "Evaluate buffer/region"      "e"   #'+eval/buffer-or-region
         :desc "Evaluate & replace region"   "E"   #'+eval:replace-region
         :desc "Format buffer/region"        "f"   #'+format/region-or-buffer
+        :desc "LSP Format buffer/region"    "F"   #'+default/lsp-format-region-or-buffer
+        :desc "LSP Organize imports"        "i"   #'lsp-organize-imports
         :desc "Jump to documentation"       "k"   #'+lookup/documentation
-        :desc "Open REPL"                   "r"   #'+eval/open-repl-other-window
+        :desc "LSP Rename"                  "r"   #'lsp-rename
         :desc "Delete trailing whitespace"  "w"   #'delete-trailing-whitespace
         :desc "Delete trailing newlines"    "W"   #'doom/delete-trailing-newlines
         (:when (featurep! :tools flycheck)
@@ -643,6 +644,7 @@
           (λ! (doom-project-find-file default-directory)))
         :desc "Open project editorconfig"   "c"   #'editorconfig-find-current-editorconfig
         :desc "Find directory"              "d"   #'dired
+        :desc "Delete this file"            "D"   #'doom/delete-this-file
         :desc "Find file in emacs.d"        "e"   #'+default/find-in-emacsd
         :desc "Browse emacs.d"              "E"   #'+default/browse-emacsd
         :desc "Find file from here"         "f"   #'find-file
@@ -653,8 +655,8 @@
         :desc "Recent files"                "r"   #'recentf-open-files
         :desc "Recent project files"        "R"   #'projectile-recentf
         :desc "Save file"                   "s"   #'save-buffer
-        :desc "Sudo find file"              "S"   #'doom/sudo-find-file
-        :desc "Delete this file"            "X"   #'doom/delete-this-file
+        :desc "Save file as..."             "S"   #'write-file
+        :desc "Sudo find file"              "u"   #'doom/sudo-find-file
         :desc "Yank filename"               "y"   #'+default/yank-buffer-filename)
 
       ;;; <leader> g --- git
@@ -673,7 +675,7 @@
           :desc "Forge dispatch"            "'"   #'forge-dispatch
           :desc "Magit switch branch"       "b"   #'magit-branch-checkout
           :desc "Magit status"              "g"   #'magit-status
-          :desc "Magit file delete"         "x"   #'magit-file-delete
+          :desc "Magit file delete"         "D"   #'magit-file-delete
           :desc "Magit blame"               "B"   #'magit-blame-addition
           :desc "Magit clone"               "C"   #'+magit/clone
           :desc "Magit fetch"               "F"   #'magit-fetch
@@ -713,9 +715,10 @@
 
       ;;; <leader> i --- insert
       (:prefix-map ("i" . "insert")
-        :desc "Insert from clipboard"         "y"   #'+default/yank-pop
-        :desc "Insert from evil register"     "r"   #'evil-ex-registers
-        :desc "Insert snippet"                "s"   #'yas-insert-snippet)
+        :desc "From clipboard"                "y"   #'+default/yank-pop
+        :desc "From evil register"            "r"   #'evil-ex-registers
+        :desc "Snippet"                       "s"   #'yas-insert-snippet
+        :desc "Unicode"                       "u"   #'unicode-chars-list-chars)
 
       ;;; <leader> n --- notes
       (:prefix-map ("n" . "notes")
@@ -788,6 +791,8 @@
         :desc "Configure project"            "C" #'projectile-configure-project
         :desc "Remove known project"         "d" #'projectile-remove-known-project
         :desc "Edit project .dir-locals"     "e" #'projectile-edit-dir-locals
+        :desc "Find file in project"         "f" #'projectile-find-file
+        :desc "Browse project"               "F" #'+default/browse-project
         :desc "Invalidate project cache"     "i" #'projectile-invalidate-cache
         :desc "Kill project buffers"         "k" #'projectile-kill-buffers
         :desc "Repeat last external command" "l" #'projectile-repeat-last-command
@@ -795,6 +800,7 @@
         :desc "Switch project"               "p" #'projectile-switch-project
         :desc "Find recent project files"    "r" #'projectile-recentf
         :desc "Run project"                  "R" #'projectile-run-project
+        :desc "Save project files"           "s" #'projectile-save-project-buffers
         :desc "Pop up scratch buffer"        "x" #'doom/open-project-scratch-buffer
         :desc "Switch to scratch buffer"     "X" #'doom/switch-to-project-scratch-buffer
         :desc "List project tasks"           "t" #'+default/project-tasks
@@ -840,24 +846,23 @@
       (:prefix-map ("t" . "toggle")
         :desc "Big mode"                     "b" #'doom-big-font-mode
         (:when (featurep! :tools flycheck)
-          :desc "Flycheck"                     "f" #'flycheck-mode)
+          :desc "Flycheck"                   "f" #'flycheck-mode)
         (:unless (featurep! :tools flycheck)
-          :desc "Flymake"                     "f" #'flymake-mode)
+          :desc "Flymake"                    "f" #'flymake-mode)
         :desc "Frame fullscreen"             "F" #'toggle-frame-fullscreen
         :desc "Evil goggles"                 "g" #'evil-goggles-mode
+        (:when (featurep! :ui indent-guides)
+          :desc "Indent guides"              "i" #'highlight-indent-guides-mode)
         :desc "Indent style"                 "I" #'doom/toggle-indent-style
         :desc "Line numbers"                 "l" #'doom/toggle-line-numbers
-        :desc "Word-wrap mode"               "w" #'+word-wrap-mode
         (:when (featurep! :lang org +present)
-          :desc "org-tree-slide mode"          "p" #'+org-present/start)
-        (:when (featurep! :lang org +pomodoro)
-          :desc "Pomodoro timer"               "t" #'org-pomodoro)
-        (:when (featurep! :tools flycheck)
-          :desc "Flycheck"                     "f" #'flycheck-mode)
+          :desc "org-tree-slide mode"        "p" #'+org-present/start)
+        :desc "Read-only mode"               "r" #'read-only-mode
         (:when (featurep! :tools flyspell)
-          :desc "Flyspell"                     "s" #'flyspell-mode)
-        (:when (featurep! :ui indent-guides)
-          :desc "Indent guides"                "i" #'highlight-indent-guides-mode)))
+          :desc "Flyspell"                   "s" #'flyspell-mode)
+        (:when (featurep! :lang org +pomodoro)
+          :desc "Pomodoro timer"             "t" #'org-pomodoro)
+        :desc "Word-wrap mode"               "w" #'+word-wrap-mode))
 
 
 ;;

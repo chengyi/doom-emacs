@@ -77,7 +77,9 @@ If ARG (universal argument), runs `compile' from the current directory."
 (defun +default/project-tasks ()
   "Invokes `+ivy/tasks' or `+helm/tasks', depending on which is available."
   (interactive)
-  (cond ((featurep! :completion ivy) (+ivy/tasks))
+  (cond ((featurep! :tools magit)
+         (call-interactively #'magit-todos-list))
+        ((featurep! :completion ivy) (+ivy/tasks))
         ((featurep! :completion helm) (+helm/tasks))))
 
 ;;;###autoload
@@ -268,7 +270,13 @@ If prefix ARG is set, prompt for a known project to search from."
   "Conduct a text search in the current project for symbol at point.
 If prefix ARG is set, prompt for a known project to search from."
   (interactive
-   (list current-prefix-arg (or (thing-at-point 'symbol t) "")))
+   (list current-prefix-arg
+         (or (and (use-region-p)
+                  (rxt-quote-pcre
+                   (buffer-substring-no-properties (region-beginning)
+                                                   (region-end))))
+             (rxt-quote-pcre (thing-at-point 'symbol t))
+             "")))
   (let ((default-directory
           (if arg
               (if-let* ((projects (projectile-relevant-known-projects)))
@@ -277,9 +285,9 @@ If prefix ARG is set, prompt for a known project to search from."
                 (user-error "There are no known projects"))
             default-directory)))
     (cond ((featurep! :completion ivy)
-           (+ivy/project-search nil (rxt-quote-pcre symbol)))
+           (+ivy/project-search nil symbol))
           ((featurep! :completion helm)
-           (+helm/project-search nil (rxt-quote-pcre symbol)))
+           (+helm/project-search nil symbol))
           ((rgrep (regexp-quote symbol))))))
 
 ;;;###autoload
@@ -307,3 +315,12 @@ ARG is set, prompt for a known project to search from."
   (interactive)
   (doom-completing-read-org-headings
    "Jump to org headline: " org-agenda-files 3 t))
+
+;;;###autoload
+(defun +default/lsp-format-region-or-buffer ()
+  "Format the buffer (or selection) with LSP."
+  (interactive)
+  (call-interactively
+   (if (use-region-p)
+       #'lsp-format-region
+     #'lsp-format-buffer)))

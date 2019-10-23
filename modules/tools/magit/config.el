@@ -6,7 +6,7 @@ It is passed a user and repository name.")
 
 
 ;;
-;; Packages
+;;; Packages
 
 (use-package! magit
   :commands magit-file-delete
@@ -117,8 +117,7 @@ ensure it is built when we actually use Forge."
   (define-key magit-todos-section-map "j" nil)
   ;; Warns that jT isn't bound. Well, yeah, you don't need to tell me, that was
   ;; on purpose ya goose.
-  (advice-add #'magit-todos-mode :around #'doom-shut-up-a)
-  (magit-todos-mode +1))
+  (advice-add #'magit-todos-mode :around #'doom-shut-up-a))
 
 
 (use-package! magit-gitflow
@@ -132,11 +131,16 @@ ensure it is built when we actually use Forge."
   (setq evil-magit-state 'normal
         evil-magit-use-z-for-folds t)
   :config
-  (unmap! magit-mode-map "M-1" "M-2" "M-3" "M-4") ; replaced by z1, z2, z3, etc
+  (unmap! magit-mode-map
+    ;; Replaced by z1, z2, z3, etc
+    "M-1" "M-2" "M-3" "M-4"
+    "1" "2" "3" "4"
+    "0") ; moved to g=
   (evil-define-key* 'normal magit-status-mode-map [escape] nil) ; q is enough
   (evil-define-key* '(normal visual) magit-mode-map
+    "%"  #'magit-gitflow-popup
     "zz" #'evil-scroll-line-to-center
-    "%"  #'magit-gitflow-popup)
+    "g=" #'magit-diff-default-context)
   (define-key! 'normal
     (magit-status-mode-map
      magit-stash-mode-map

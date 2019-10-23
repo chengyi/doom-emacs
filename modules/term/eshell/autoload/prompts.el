@@ -12,16 +12,16 @@
 
 
 (defun +eshell--current-git-branch ()
-  (let ((branch (car (cl-loop for match in (split-string (shell-command-to-string "git branch") "\n")
-                              if (string-match-p "^\*" match)
-                              collect match))))
-    (if (not (eq branch nil))
-        (format " [%s]" (substring branch 2))
+  (cl-destructuring-bind (status . output)
+      (doom-call-process "git" "name-rev" "--name-only" "HEAD")
+    (if (equal status 0)
+        (format " [%s]" output)
       "")))
 
 ;;;###autoload
 (defun +eshell-default-prompt-fn ()
   "Generate the prompt string for eshell. Use for `eshell-prompt-function'."
+  (require 'shrink-path)
   (concat (if (bobp) "" "\n")
           (let ((pwd (eshell/pwd)))
             (propertize (if (equal pwd "~")

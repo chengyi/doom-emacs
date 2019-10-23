@@ -98,6 +98,10 @@
   ;; Use major-mode native TAB indentation in SRC blocks
   (advice-add #'org-return-indent :after #'+org-fix-newline-and-indent-in-src-blocks-a)
 
+  ;; Refresh inline images after executing src blocks (useful for plantuml or
+  ;; ipython, where the result could be an image)
+  (add-hook 'org-babel-after-execute-hook #'org-redisplay-inline-images)
+
   ;; `org-babel-get-header' was removed from org in 9.0. Quite a few babel
   ;; plugins use it (like ob-spice), so until those plugins update, this
   ;; polyfill will do:
@@ -377,7 +381,8 @@ file isn't in `org-directory'."
 
 
 (defun +org-init-export-h ()
-  (setq org-export-with-smart-quotes t)
+  (setq org-export-with-smart-quotes t
+        org-html-validation-link nil)
 
   (when (featurep! :lang markdown)
     (add-to-list 'org-export-backends 'md))
@@ -455,7 +460,7 @@ eldoc string."
           (separator (or separator "/")))
       (string-join
        (cl-loop for part
-                in (split-string (substring-no-properties result) separator)
+                in (cdr (split-string (substring-no-properties result) separator))
                 for n from 0
                 for face = (nth (% n org-n-level-faces) org-level-faces)
                 collect
@@ -482,10 +487,11 @@ current workspace (and clean them up)."
         (dolist (buffer org-agenda-new-buffers)
           (with-current-buffer buffer
             ;; HACK Org agenda opens temporary agenda incomplete org-mode
-            ;; buffers. These are great for extracting agenda information from,
-            ;; but what if the user tries to visit one of these buffers? Then we
-            ;; remove it from the to-be-cleaned queue and restart `org-mode' so
-            ;; they can grow up to be full-fledged org-mode buffers.
+            ;;      buffers. These are great for extracting agenda information
+            ;;      from, but what if the user tries to visit one of these
+            ;;      buffers? Then we remove it from the to-be-cleaned queue and
+            ;;      restart `org-mode' so they can grow up to be full-fledged
+            ;;      org-mode buffers.
             (add-hook 'doom-switch-buffer-hook #'+org--restart-mode-h
                       nil 'local))))))
 
@@ -496,9 +502,9 @@ current workspace (and clean them up)."
       (funcall orig-fn file)))
 
   ;; HACK With https://code.orgmode.org/bzg/org-mode/commit/48da60f4, inline
-  ;; image previews broke for users with imagemagick support built in. This
-  ;; reverses the problem, but should be removed once it is addressed upstream
-  ;; (if ever).
+  ;;      image previews broke for users with imagemagick support built in. This
+  ;;      reverses the problem, but should be removed once it is addressed
+  ;;      upstream (if ever).
   (defadvice! +org--fix-inline-images-for-imagemagick-users-a (orig-fn &rest args)
     :around #'org-display-inline-images
     (cl-letf* ((old-create-image (symbol-function #'create-image))
@@ -587,27 +593,13 @@ between the two."
           "r" #'org-refile-goto-last-stored
           "x" #'org-capture-goto-last-stored)
         (:prefix ("b" . "tables")
+          "-" #'org-table-insert-hline
           "a" #'org-table-align
+          "c" #'org-table-create-or-convert-from-region
           "e" #'org-table-edit-field
           "h" #'org-table-field-info
           (:when (featurep! +gnuplot)
-            "p" #'org-plot/gnuplot)
-          (:prefix ("i" . "insert")
-            "-" #'org-table-insert-hline
-            "h" #'+org/table-insert-column-left
-            "j" #'+org/table-insert-row-below
-            "k" #'org-table-insert-row
-            "l" #'+org/table-insert-column-right)
-          (:prefix ("m" . "move")
-            "h" #'org-table-move-column-left
-            "j" #'org-table-move-row-down
-            "k" #'org-table-move-row-up
-            "l" #'org-table-move-column-right)
-          (:prefix ("f" . "formula")
-            "c" #'org-table-create
-            "r" #'org-table-recalculate
-            "e" #'org-table-edit-formulas
-            "=" #'org-table-eval-formulas)))
+            "p" #'org-plot/gnuplot)))
 
   ;; HACK Fixes #1483: this messy hack fixes `org-agenda' or `evil-org-agenda'
   ;; overriding SPC, breaking the localleader
@@ -634,9 +626,9 @@ between the two."
     (use-package! evil-org
       :hook (org-mode . evil-org-mode)
       :init
-      (defvar evil-org-key-theme '(navigation insert textobjects))
       (defvar evil-org-retain-visual-state-on-shift t)
       (defvar evil-org-special-o/O '(table-row))
+      (defvar evil-org-use-additional-insert t)
       (add-hook 'evil-org-mode-hook #'evil-normalize-keymaps)
       :config
       ;; change `evil-org-key-theme' instead
@@ -679,23 +671,10 @@ between the two."
           :i "C-j" (general-predicate-dispatch 'org-down-element
                      (org-at-table-p) 'org-table-next-row)
           ;; moving/(de|pro)moting subtress & expanding tables (prepend/append columns/rows)
-          :ni "C-S-l" (general-predicate-dispatch 'org-shiftmetaright
-                        (org-at-table-p) 'org-table-insert-column)
-          :ni "C-S-h" (general-predicate-dispatch 'org-shiftmetaleft
-                        (org-at-table-p) '+org/table-insert-column-left)
-          :ni "C-S-k" (general-predicate-dispatch 'org-metaup
-                        (org-at-table-p) 'org-table-insert-row)
-          :ni "C-S-j" (general-predicate-dispatch 'org-metadown
-                        (org-at-table-p) '+org/table-insert-row-below)
-          ;; moving/(de|pro)moting single headings & shifting table rows/columns
-          :ni "C-M-S-l" (general-predicate-dispatch 'org-metaright
-                          (org-at-table-p) 'org-table-move-column-right)
-          :ni "C-M-S-h" (general-predicate-dispatch 'org-metaleft
-                          (org-at-table-p) 'org-table-move-column-left)
-          :ni "C-M-S-k" (general-predicate-dispatch 'org-shiftmetaup
-                          (org-at-table-p) 'org-table-move-row-up)
-          :ni "C-M-S-j" (general-predicate-dispatch 'org-shiftmetadown
-                          (org-at-table-p) 'org-table-move-row-down)
+          :ni "C-S-l" #'org-shiftright
+          :ni "C-S-h" #'org-shiftleft
+          :ni "C-S-k" #'org-shiftup
+          :ni "C-S-j" #'org-shiftdown
           ;; more intuitive RET keybinds
           :i [return] #'org-return-indent
           :i "RET"    #'org-return-indent
@@ -710,9 +689,8 @@ between the two."
           :m "[l"  #'org-previous-link
           :m "]c"  #'org-babel-next-src-block
           :m "[c"  #'org-babel-previous-src-block
-          :m "^"   #'evil-org-beginning-of-line
-          :m "0"   (λ! (let (visual-line-mode) (org-beginning-of-line)))
           :n "gQ"  #'org-fill-paragraph
+          :n "gr"  #'org-ctrl-c-ctrl-c
           ;; sensible vim-esque folding keybinds
           :n "za"  #'+org/toggle-fold
           :n "zA"  #'org-shifttab
@@ -893,12 +871,7 @@ compelling reason, so..."
 
   ;;; Packages
   (after! toc-org
-    (setq toc-org-hrefify-default "gh")
-    (defadvice! +org--unfold-toc-a (&rest _)
-      :before #'toc-org-insert-toc
-      (save-excursion
-        (when (re-search-forward toc-org-toc-org-regexp (point-max) t)
-          (+org/open-fold)))))
+    (setq toc-org-hrefify-default "gh"))
 
   (use-package! org-pdfview
     :when (featurep! :tools pdf)
@@ -922,7 +895,12 @@ compelling reason, so..."
   (use-package! org-clock ; built-in
     :commands org-clock-save
     :init
-    (setq org-clock-persist t)
+    (setq org-clock-persist t
+          ;; Resume when clocking into task with open clock
+          org-clock-in-resume t
+          ;; Remove log if task ends up with 0:00 on the clock
+          org-clock-out-remove-zero-time-clocks t)
+
     (defadvice! +org--clock-load-a (&rest _)
       "Lazy load org-clock until its commands are used."
       :before '(org-clock-in

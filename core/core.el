@@ -1,5 +1,9 @@
 ;;; core.el --- the heart of the beast -*- lexical-binding: t; -*-
 
+(when (version< emacs-version "25.3")
+  (error "Detected Emacs %s. Doom only supports Emacs 25.3 and higher"
+         emacs-version))
+
 ;; Ensure `doom-core-dir' is in `load-path'
 (add-to-list 'load-path (file-name-directory load-file-name))
 
@@ -121,6 +125,9 @@ users).")
 ;;
 ;;; Emacs core configuration
 
+;; Load the bare necessities
+(require 'core-lib)
+
 ;; Reduce debug output, well, unless we've asked for it.
 (setq debug-on-error doom-debug-mode
       jka-compr-verbose doom-debug-mode)
@@ -200,13 +207,11 @@ users).")
       url-cache-directory          (concat doom-cache-dir "url/")
       url-configuration-directory  (concat doom-etc-dir "url/")
       gamegrid-user-score-file-directory (concat doom-etc-dir "games/"))
-;; HACK
-(with-eval-after-load 'x-win
-  (defun emacs-session-filename (session-id)
-    "Construct a filename to save a session based on SESSION-ID.
-Doom Emacs overrides this function to stop sessions from littering the user
-directory. The session files are placed by default in `doom-cache-dir'"
-    (concat doom-cache-dir "emacs-session." session-id)))
+
+;; HACK Stop sessions from littering the user directory
+(defadvice! doom--use-cache-dir-a (session-id)
+  :override #'emacs-session-filename
+  (concat doom-cache-dir "emacs-session." session-id))
 
 
 ;;
@@ -262,11 +267,11 @@ directory. The session files are placed by default in `doom-cache-dir'"
 ;; To speed up minibuffer commands (like helm and ivy), we defer garbage
 ;; collection while the minibuffer is active.
 (defun doom-defer-garbage-collection-h ()
-  "TODO"
+  "Increase `gc-cons-threshold' to stave off garbage collection."
   (setq gc-cons-threshold most-positive-fixnum))
 
 (defun doom-restore-garbage-collection-h ()
-  "TODO"
+  "Restore `gc-cons-threshold' to a reasonable value so the GC can do its job."
   ;; Defer it so that commands launched immediately after will enjoy the
   ;; benefits.
   (run-at-time
@@ -279,7 +284,7 @@ directory. The session files are placed by default in `doom-cache-dir'"
 (add-hook 'emacs-startup-hook #'doom-restore-garbage-collection-h)
 
 ;; When Emacs loses focus seems like a great time to do some garbage collection
-;; all sneaky breeky like, so we can return a fresh(er) Emacs.
+;; all sneaky breeky like, so we can return to a fresh(er) Emacs.
 (add-hook 'focus-out-hook #'garbage-collect)
 
 
@@ -344,29 +349,30 @@ If NOW is non-nil, load PACKAGES incrementally, in `doom-incremental-idle-timer'
 intervals."
   (if (not now)
       (nconc doom-incremental-packages packages)
-    (when packages
-      (let ((gc-cons-threshold most-positive-fixnum)
-            (file-name-handler-alist nil)
-            (reqs (cl-delete-if #'featurep packages)))
-        (when-let (req (if reqs (pop reqs)))
+    (while packages
+      (let ((req (pop packages)))
+        (unless (featurep req)
           (doom-log "Incrementally loading %s" req)
           (condition-case e
               (or (while-no-input
                     ;; If `default-directory' is a directory that doesn't exist
                     ;; or is unreadable, Emacs throws up file-missing errors, so
                     ;; we set it to a directory we know exists and is readable.
-                    (let ((default-directory doom-emacs-dir))
+                    (let ((default-directory doom-emacs-dir)
+                          (gc-cons-threshold most-positive-fixnum)
+                          file-name-handler-alist)
                       (require req nil t))
                     t)
-                  (push req reqs))
+                  (push req packages))
             ((error debug)
              (message "Failed to load '%s' package incrementally, because: %s"
                       req e)))
-          (if reqs
-              (run-with-idle-timer doom-incremental-idle-timer
-                                   nil #'doom-load-packages-incrementally
-                                   reqs t)
-            (doom-log "Finished incremental loading")))))))
+          (if (not packages)
+              (doom-log "Finished incremental loading")
+            (run-with-idle-timer doom-incremental-idle-timer
+                                 nil #'doom-load-packages-incrementally
+                                 packages t)
+            (setq packages nil)))))))
 
 (defun doom-load-packages-incrementally-h ()
   "Begin incrementally loading packages in `doom-incremental-packages'.
@@ -486,15 +492,13 @@ to least)."
                   load-path doom--initial-load-path
                   process-environment doom--initial-process-environment)
 
-    (require 'core-lib)
-    (require 'core-modules)
-
     ;; Load shell environment, optionally generated from 'doom env'
     (when (and (or (display-graphic-p)
                    (daemonp))
                (file-exists-p doom-env-file))
       (doom-load-envvars-file doom-env-file))
 
+    (require 'core-modules)
     (let (;; `doom-autoload-file' tells Emacs where to load all its functions
           ;; from. This includes everything in core/autoload/*.el and autoload
           ;; files in enabled modules.

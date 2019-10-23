@@ -1,5 +1,12 @@
 ;;; lang/rust/config.el -*- lexical-binding: t; -*-
 
+(after! projectile
+  (add-to-list 'projectile-project-root-files "Cargo.toml"))
+
+
+;;
+;;; Packages
+
 (use-package! rust-mode
   :defer t
   :config
@@ -19,17 +26,7 @@
 
   (set-docsets! '(rust-mode rustic-mode) "Rust")
   (when (featurep! +lsp)
-    (add-hook 'rust-mode-local-vars-hook #'lsp!))
-
-  ;; TODO PR these upstream
-  (after! dtrt-indent
-    (pushnew! dtrt-indent-hook-mapping-list
-              '(rust-mode default rust-indent-offset)
-              '(rustic-mode default rustic-indent-offset)))
-  (when (featurep! :tools editorconfig)
-    (after! editorconfig
-      (pushnew! editorconfig-indentation-alist
-                '(rustic-mode rustic-indent-offset)))))
+    (add-hook 'rust-mode-local-vars-hook #'lsp!)))
 
 
 (use-package! racer
@@ -50,7 +47,12 @@
   (setq rustic-indent-method-chain t
         rustic-flycheck-setup-mode-line-p nil
         ;; use :editor format instead
-        rustic-format-on-save nil)
+        rustic-format-on-save nil
+        ;; REVIEW `rust-ordinary-lt-gt-p' is terribly expensive in large rust
+        ;;        buffers, so we disable it, but only for evil users, because it
+        ;;        affects `forward-sexp' and its ilk. See
+        ;;        https://github.com/rust-lang/rust-mode/issues/288.
+        rustic-match-angle-brackets (not (featurep! :editor evil)))
 
   (add-hook 'rustic-mode-hook #'rainbow-delimiters-mode)
 

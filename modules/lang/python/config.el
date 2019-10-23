@@ -8,6 +8,9 @@ called.")
   "CLI arguments to initialize 'jupiter console %s' with when
 `+python/open-ipython-repl' is called.")
 
+(after! projectile
+  (pushnew! projectile-project-root-files "setup.py" "requirements.txt"))
+
 
 ;;
 ;; Packages
@@ -268,6 +271,9 @@ called.")
   :init
   (setq lsp-python-ms-dir (concat doom-etc-dir "mspyls/"))
 
+  (after! python
+    (setq lsp-python-ms-python-executable-cmd python-shell-interpreter))
+
   ;; HACK lsp-python-ms shouldn't install itself if it isn't present. This
   ;; circumvents LSP falling back to pyls when lsp-python-ms is absent.
   ;; Installing the server should be a deliberate act; either 'M-x
@@ -276,3 +282,19 @@ called.")
   (defadvice! +python--dont-auto-install-server-a ()
     :override #'lsp-python-ms--command-string
     lsp-python-ms-executable))
+
+
+(use-package! cython-mode
+  :when (featurep! +cython)
+  :mode "\\.p\\(yx\\|x[di]\\)\\'"
+  :config
+  (setq cython-default-compile-format "cython -a %s")
+  (map! :map cython-mode-map
+        :localleader
+        :prefix "c"
+        :desc "Cython compile buffer"    "c" #'cython-compile))
+
+
+(use-package! flycheck-cython
+  :when (featurep! :tools flycheck)
+  :after cython-mode)
