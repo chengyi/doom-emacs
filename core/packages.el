@@ -36,6 +36,7 @@
   ;; from emacsmirror/undo-tree instead.
   :recipe (:host github :repo "emacsmirror/undo-tree"))
 (package! ws-butler)
+(package! xclip)
 
 ;; core-projects.el
 (package! projectile)

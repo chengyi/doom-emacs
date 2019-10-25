@@ -123,6 +123,14 @@ possible."
 ;; Save clipboard contents into kill-ring before replacing them
 (setq save-interprogram-paste-before-kill t)
 
+;; Fixes the clipboard in tty Emacs by piping clipboard I/O through xclip, xsel,
+;; pb{copy,paste}, wl-copy, termux-clipboard-get, or getclip (cygwin).
+(add-hook! 'tty-setup-hook
+  (defun doom-init-clipboard-in-tty-emacs-h ()
+    (and (not (getenv "SSH_CONNECTION"))
+         (require 'xclip nil t)
+         (xclip-mode +1))))
+
 
 ;;
 ;;; Extra file extensions to support
@@ -156,7 +164,7 @@ possible."
     "Auto revert current buffer, if necessary."
     (unless (or auto-revert-mode (active-minibuffer-window))
       ;; Only prompts for confirmation when buffer is unsaved.
-      (let ((revert-without-query (list ".")))
+      (let ((revert-without-query (list "")))
         (auto-revert-handler))))
 
   (defun doom-auto-revert-buffers-h ()
@@ -172,6 +180,13 @@ possible."
   :after-call after-find-file
   :commands recentf-open-files
   :config
+  (defun doom--recent-file-truename (file)
+    (if (or (file-remote-p file nil t)
+            (not (file-remote-p file)))
+        (file-truename file)
+      file))
+  (setq recentf-filename-handlers '(doom--recent-file-truename abbreviate-file-name))
+
   (setq recentf-save-file (concat doom-cache-dir "recentf")
         recentf-auto-cleanup 'never
         recentf-max-menu-items 0
@@ -180,15 +195,7 @@ possible."
         (list "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$" "^/tmp/" "^/ssh:"
               "\\.?ido\\.last$" "\\.revive$" "/TAGS$" "^/var/folders/.+$"
               ;; ignore private DOOM temp files
-              (lambda (path)
-                (ignore-errors (file-in-directory-p path doom-local-dir)))))
-
-  (defun doom--recent-file-truename (file)
-    (if (or (file-remote-p file nil t)
-            (not (file-remote-p file)))
-        (file-truename file)
-      file))
-  (setq recentf-filename-handlers '(doom--recent-file-truename abbreviate-file-name))
+              (concat "^" (recentf-apply-filename-handlers doom-local-dir))))
 
   (add-hook! '(doom-switch-window-hook write-file-functions)
     (defun doom--recentf-touch-buffer-h ()

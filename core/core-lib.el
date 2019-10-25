@@ -3,7 +3,7 @@
 (require 'cl-lib)
 (require 'subr-x)
 
-;; Polyfills
+;; DEPRECATED Polyfills
 (unless EMACS26+
   (with-no-warnings
     ;; `kill-current-buffer' was introduced in Emacs 26
@@ -198,6 +198,14 @@ If FETCHER is a function, ELT is used as the key in LIST (an alist)."
                     `(funcall ,fetcher ,elt ,list)
                   elt)
                ,list)))
+
+(defmacro add-load-path! (&rest dirs)
+  "Add DIRS to `load-path', relative to the current file.
+The current file is the file from which `add-to-load-path!' is used."
+  `(let ((default-directory ,(dir!))
+         file-name-handler-alist)
+     (dolist (dir (list ,@dirs))
+       (cl-pushnew (expand-file-name dir) load-path))))
 
 (defmacro add-transient-hook! (hook-or-function &rest forms)
   "Attaches a self-removing function to HOOK-OR-FUNCTION.

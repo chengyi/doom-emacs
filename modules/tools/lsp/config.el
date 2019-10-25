@@ -21,11 +21,12 @@ This can be a single company backend or a list thereof. It can be anything
   ;; project.
   (setq lsp-keep-workspace-alive nil)
 
-  :config
+  ;; For `lsp-clients'
   (setq lsp-fsharp-server-install-dir (concat doom-etc-dir "lsp-fsharp/")
         lsp-groovy-server-install-dir (concat doom-etc-dir "lsp-groovy/")
         lsp-intelephense-storage-path (concat doom-cache-dir "lsp-intelephense/"))
 
+  :config
   (set-lookup-handlers! 'lsp-mode :async t
     :documentation 'lsp-describe-thing-at-point
     :definition 'lsp-find-definition
@@ -45,7 +46,8 @@ auto-killed (which is usually an expensive process)."
             (run-at-time
              3 nil (lambda (workspace)
                      (let ((lsp--cur-workspace workspace))
-                       (unless (lsp--workspace-buffers lsp--cur-workspace)
+                       (if (lsp--workspace-buffers lsp--cur-workspace)
+                           (setf (lsp--workspace-shutdown-action lsp--cur-workspace) nil)
                          (funcall orig-fn))))
              lsp--cur-workspace))))
 

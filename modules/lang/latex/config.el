@@ -44,7 +44,7 @@ If no viewers are found, `latex-preview-pane' is used.")
   (load! "+fontification")
   ;; select viewer
   (load! "+viewers")
-  ;; prompt for master
+  ;; do not prompt for master
   (setq-default TeX-master t)
   ;; set-up chktex
   (setcar (cdr (assoc "Check" TeX-command-list)) "chktex -v6 -H %s")
@@ -55,10 +55,9 @@ If no viewers are found, `latex-preview-pane' is used.")
   ;; Fold TeX macros
   (add-hook 'TeX-mode-hook #'TeX-fold-mode)
   ;; Enable rainbow mode after applying styles to the buffer
-  (add-hook 'TeX-mode-hook #'rainbow-delimiters-mode)
+  (add-hook 'TeX-update-style-hook #'rainbow-delimiters-mode)
   ;; display output of latex commands in popup
   (set-popup-rule! " output\\*$" :size 15)
-  (add-hook 'latex-mode-local-vars-hook #'flyspell-mode!)
   (after! smartparens-latex
     (let ((modes '(tex-mode plain-tex-mode latex-mode LaTeX-mode)))
       ;; All these excess pairs dramatically slow down typing in latex buffers,
@@ -92,7 +91,15 @@ If no viewers are found, `latex-preview-pane' is used.")
   ;; http://emacs.stackexchange.com/questions/3083/how-to-indent-items-in-latex-auctex-itemize-environments
   (dolist (env '("itemize" "enumerate" "description"))
     (add-to-list 'LaTeX-indent-environment-list `(,env +latex/LaTeX-indent-item)))
+
   ;; Fix #1849: allow fill-paragraph in itemize/enumerate
+  (defadvice! +latex--re-indent-itemize-and-enumerate-a (orig-fn &rest args)
+    :around #'LaTeX-fill-region-as-para-do
+    (let ((LaTeX-indent-environment-list
+           (append LaTeX-indent-environment-list
+                   '(("itemize"   +latex/LaTeX-indent-item)
+                     ("enumerate" +latex/LaTeX-indent-item)))))
+      (apply orig-fn args)))
   (defadvice! +latex--dont-indent-itemize-and-enumerate-a (orig-fn &rest args)
     :around #'LaTeX-fill-region-as-paragraph
     (let ((LaTeX-indent-environment-list LaTeX-indent-environment-list))

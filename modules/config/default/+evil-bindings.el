@@ -619,6 +619,7 @@
       ;;; <leader> c --- code
       (:prefix-map ("c" . "code")
         :desc "Compile"                     "c"   #'compile
+        :desc "Recompile"                   "C"   #'recompile
         :desc "Jump to definition"          "d"   #'+lookup/definition
         :desc "Jump to references"          "D"   #'+lookup/references
         :desc "Evaluate buffer/region"      "e"   #'+eval/buffer-or-region
@@ -628,6 +629,7 @@
         :desc "LSP Organize imports"        "i"   #'lsp-organize-imports
         :desc "Jump to documentation"       "k"   #'+lookup/documentation
         :desc "LSP Rename"                  "r"   #'lsp-rename
+        :desc "Send to repl"                "s"   #'+eval/send-region-to-repl
         :desc "Delete trailing whitespace"  "w"   #'delete-trailing-whitespace
         :desc "Delete trailing newlines"    "W"   #'doom/delete-trailing-newlines
         (:when (featurep! :tools flycheck)
@@ -643,6 +645,7 @@
             #'counsel-file-jump
           (λ! (doom-project-find-file default-directory)))
         :desc "Open project editorconfig"   "c"   #'editorconfig-find-current-editorconfig
+        :desc "Copy this file"              "C"   #'doom/copy-this-file
         :desc "Find directory"              "d"   #'dired
         :desc "Delete this file"            "D"   #'doom/delete-this-file
         :desc "Find file in emacs.d"        "e"   #'+default/find-in-emacsd
@@ -657,6 +660,7 @@
         :desc "Save file"                   "s"   #'save-buffer
         :desc "Save file as..."             "S"   #'write-file
         :desc "Sudo find file"              "u"   #'doom/sudo-find-file
+        :desc "Sudo this file"              "U"   #'doom/sudo-this-file
         :desc "Yank filename"               "y"   #'+default/yank-buffer-filename)
 
       ;;; <leader> g --- git
@@ -747,6 +751,7 @@
           :desc "View search"    "v"  #'org-search-view)
         :desc "Default browser"    "b"  #'browse-url-of-file
         :desc "Start debugger"     "d"  #'+debugger/start
+        :desc "New frame"          "f"  #'make-frame
         :desc "REPL"               "r"  #'+eval/open-repl-other-window
         :desc "REPL (same window)" "R"  #'+eval/open-repl-same-window
         :desc "Dired"              "-"  #'dired-jump
@@ -788,14 +793,14 @@
         :desc "Add new project"              "a" #'projectile-add-known-project
         :desc "Switch to project buffer"     "b" #'projectile-switch-to-buffer
         :desc "Compile in project"           "c" #'projectile-compile-project
-        :desc "Configure project"            "C" #'projectile-configure-project
+        :desc "Repeat last command"          "C" #'projectile-repeat-last-command
         :desc "Remove known project"         "d" #'projectile-remove-known-project
         :desc "Edit project .dir-locals"     "e" #'projectile-edit-dir-locals
         :desc "Find file in project"         "f" #'projectile-find-file
         :desc "Browse project"               "F" #'+default/browse-project
+        :desc "Configure project"            "g" #'projectile-configure-project
         :desc "Invalidate project cache"     "i" #'projectile-invalidate-cache
         :desc "Kill project buffers"         "k" #'projectile-kill-buffers
-        :desc "Repeat last external command" "l" #'projectile-repeat-last-command
         :desc "Find other file"              "o" #'projectile-find-other-file
         :desc "Switch project"               "p" #'projectile-switch-project
         :desc "Find recent project files"    "r" #'projectile-recentf
