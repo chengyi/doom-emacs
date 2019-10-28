@@ -7,9 +7,13 @@
     minibuffer-local-must-match-map
     minibuffer-local-isearch-map
     read-expression-map
-    ,@(when (featurep! :completion ivy)
-        '(ivy-minibuffer-map
-          ivy-switch-buffer-map)))
+    ,@(cond ((featurep! :completion ivy)
+             '(ivy-minibuffer-map
+               ivy-switch-buffer-map))
+            ((featurep! :completion helm)
+             '(helm-map
+               helm-ag-map
+               helm-read-file-map))))
   "A list of all the keymaps used for the minibuffer.")
 
 
@@ -285,7 +289,6 @@
   "E"    #'doom/sandbox
   "M"    #'doom/describe-active-minor-mode
   "O"    #'+lookup/online
-  "R"    #'doom/reload
   "T"    #'doom/toggle-profiler
   "V"    #'set-variable
   "W"    #'+default/man-or-woman
@@ -314,13 +317,16 @@
   "dd"   #'doom/toggle-debug-mode
   "df"   #'doom/help-faq
   "dh"   #'doom/help
+  "dk"   #'doom/goto-packages-file
   "dl"   #'doom/help-search-load-path
   "dm"   #'doom/help-modules
   "dn"   #'doom/help-news
   "dN"   #'doom/help-news-search
+  "di"   #'doom/goto-doomblock
   "dp"   #'doom/help-packages
   "dP"   #'doom/help-package-homepage
-  "dc"   #'doom/help-package-config
+  "dc"   #'doom/goto-config-file
+  "dC"   #'doom/help-package-config
   "ds"   #'doom/sandbox
   "dt"   #'doom/toggle-profiler
   "dv"   #'doom/version
@@ -343,10 +349,13 @@
   "P"    #'find-library)
 
 (after! which-key
-  (which-key-add-key-based-replacements "C-h r" "reload")
-  (when (featurep 'evil)
-    (which-key-add-key-based-replacements (concat doom-leader-key     " r") "reload")
-    (which-key-add-key-based-replacements (concat doom-leader-alt-key " r") "reload")))
+  (let ((prefix-re (regexp-opt (list doom-leader-key doom-leader-alt-key))))
+    (cl-pushnew `((,(format "\\`\\(?:<\\(?:\\(?:f1\\|help\\)>\\)\\|%s h\\) d\\'" prefix-re))
+                  nil . "doom")
+                which-key-replacement-alist)
+    (cl-pushnew `((,(format "\\`\\(?:<\\(?:\\(?:f1\\|help\\)>\\)\\|%s h\\) r\\'" prefix-re))
+                  nil . "reload")
+                which-key-replacement-alist)))
 
 
 (when (featurep! +bindings)
