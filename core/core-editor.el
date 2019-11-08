@@ -62,14 +62,17 @@ possible."
 (add-hook! 'find-file-not-found-functions
   (defun doom-create-missing-directories-h ()
     "Automatically create missing directories when creating new files."
-    (let ((parent-directory (file-name-directory buffer-file-name)))
-      (when (and (not (file-exists-p parent-directory))
-                 (y-or-n-p (format "Directory `%s' does not exist! Create it?" parent-directory)))
-        (make-directory parent-directory t)))))
+    (unless (file-remote-p buffer-file-name)
+      (let ((parent-directory (file-name-directory buffer-file-name)))
+        (and (not (file-directory-p parent-directory))
+             (y-or-n-p (format "Directory `%s' does not exist! Create it?"
+                               parent-directory))
+             (progn (make-directory parent-directory 'parents)
+                    t))))))
 
-;; Don't autosave files or create lock/history/backup files. The
-;; editor doesn't need to hold our hands so much. We'll rely on git
-;; and our own good fortune instead. Fingers crossed!
+;; Don't autosave files or create lock/history/backup files. We don't want
+;; copies of potentially sensitive material floating around, and we'll rely on
+;; git and our own good fortune instead. Fingers crossed!
 (setq auto-save-default nil
       create-lockfiles nil
       make-backup-files nil
@@ -151,7 +154,9 @@ possible."
   :config
   (setq auto-revert-verbose t ; let us know when it happens
         auto-revert-use-notify nil
-        auto-revert-stop-on-user-input nil)
+        auto-revert-stop-on-user-input nil
+        ;; Only prompts for confirmation when buffer is unsaved.
+        revert-without-query (list "."))
 
   ;; Instead of using `auto-revert-mode' or `global-auto-revert-mode', we employ
   ;; lazy auto reverting on `focus-in-hook' and `doom-switch-buffer-hook'.
@@ -163,9 +168,7 @@ possible."
   (defun doom-auto-revert-buffer-h ()
     "Auto revert current buffer, if necessary."
     (unless (or auto-revert-mode (active-minibuffer-window))
-      ;; Only prompts for confirmation when buffer is unsaved.
-      (let ((revert-without-query (list "")))
-        (auto-revert-handler))))
+      (auto-revert-handler)))
 
   (defun doom-auto-revert-buffers-h ()
     "Auto revert stale buffers in visible windows, if necessary."
@@ -467,7 +470,8 @@ files, so we replace calls to `pp' with the much faster `prin1'."
 (use-package! so-long
   :after-call after-find-file
   :config
-  (global-so-long-mode +1)
+  (when doom-interactive-mode
+    (global-so-long-mode +1))
   ;; Don't disable syntax highlighting and line numbers, or make the buffer
   ;; read-only, in `so-long-minor-mode', so we can have a basic editing
   ;; experience in them, at least. It will remain off in `so-long-mode',

@@ -399,7 +399,7 @@ current file is in, or d) the module associated with the current major mode (see
   (let ((default-directory doom-emacs-dir))
     (split-string
      (shell-command-to-string
-      (format "git grep --no-break --no-heading --line-number '%s %s\\($\\| \\)'"
+      (format "git grep --no-break --no-heading --line-number '%s %s\\($\\| \\)' ':(exclude)*.org'"
               "\\(^;;;###package\\|(after!\\|(use-package!\\)"
               package))
      "\n" t)))
@@ -500,10 +500,10 @@ If prefix arg is present, refresh the cache."
            'action
            `(lambda (_)
               (cl-destructuring-bind (file line _match)
-                  ,(split-string location ":")
+                  ',(split-string location ":")
                 (find-file (expand-file-name file doom-emacs-dir))
                 (goto-char (point-min))
-                (forward-line (1- line))
+                (forward-line (1- (string-to-number line)))
                 (recenter)))))
 
         (insert "\n\n")))))
@@ -614,7 +614,7 @@ Uses the symbol at point or the current selection, if available."
    (mapconcat
     #'shell-quote-argument
     (cond ((executable-find "rg")
-           `("rg" "--search-zip" "--no-heading" "--color=never"
+           `("rg" "-L" "--search-zip" "--no-heading" "--color=never"
              ,query ,@(cl-remove-if-not #'file-directory-p load-path)))
           ((executable-find "ag")
            `("ag" "--search-zip" "--nogroup" "--nocolor"
@@ -623,7 +623,7 @@ Uses the symbol at point or the current selection, if available."
     " ")))
 
 ;; TODO factor our the duplicate code between this and the above
-;;;autoload
+;;;###autoload
 (defun doom/help-search-loaded-files (query)
   "Perform a text search on your `load-path'.
 Uses the symbol at point or the current selection, if available."
@@ -645,7 +645,7 @@ Uses the symbol at point or the current selection, if available."
     #'shell-quote-argument
     (let ((search (elisp-refs--loaded-paths)))
       (cond ((executable-find "rg")
-             `("rg" "--search-zip" "--no-heading" "--color=never"
+             `("rg" "-L" "--search-zip" "--no-heading" "--color=never"
                ,query ,@(cl-remove-if-not #'file-directory-p search)))
             ((executable-find "ag")
              `("ag" "--search-zip" "--nogroup" "--nocolor"

@@ -1,4 +1,5 @@
 #+TITLE: Frequently Asked Questions
+#+STARTUP: nofold
 
 * Table of Contents                                                     :TOC:
 - [[#general][General]]
@@ -133,11 +134,11 @@ Doom had ++four++ *five* goals for its package management system:
 4. *Organization:* an Emacs configuration grows so quickly, in complexity and
    size. A clear separation of concerns (configuration of packages from their
    installation) is more organized.
-5. *Reproducability:* /This goal hasn't been implemented yet/, but all our work
+5. *Reproducibility:* /This goal hasn't been implemented yet/, but all our work
    up until now is aimed at this goal. Emacs is a tumultuous ecosystem; packages
    break left and right, and we rely on hundreds of them. Eventually, we want
    package versions to be locked to versions of Doom so that Doom installs are
-   reproducable.
+   reproducible.
 
 ** How does Doom start up so quickly?
 Doom employs a number of techniques to cut down startup time. Here are its most
@@ -383,7 +384,7 @@ editing in the terminal (without ~-Q~). This also facilitates:
   for nix-shell users, or to isolate one instance for IRC from an instance for
   writing code, etc).
 - Quicker restarting of Emacs, to reload package settings or recover from
-  disasterous errors which can leave Emacs in a broken state.
+  disastrous errors which can leave Emacs in a broken state.
 - Faster integration with "edit in Emacs" solutions (like [[https://github.com/alpha22jp/atomic-chrome][atomic-chrome]]), and
   the potential to use them without a running daemon.
 
@@ -465,7 +466,7 @@ public variables/functions (e.g. ~bookmark-default-file~ or
   ~doom--fix-broken-smie-modes-a~, ~+org--babel-lazy-load-library-a~
 + ~doom-[-]NAME-fn~ or ~+MODULE-[-]NAME-fn~ :: Indicates an [[https://en.wikipedia.org/wiki/Strategy_pattern][strategy]] function. A
   good rule of thumb for what makes a strategy function is: is it
-  interchangable? Can it be replaced with another function with a matching
+  interchangeable? Can it be replaced with another function with a matching
   signature? e.g. ~+lookup-dumb-jump-backend-fn~, ~+magit-display-buffer-fn~,
   ~+workspaces-set-project-action-fn~
 + ~abc!~ :: A public Doom "autodef" function or macro. An autodef should always
@@ -545,6 +546,9 @@ install packages from just about anywhere:
 (package! evil :recipe (:host github :repo "hlissner/my-evil-fork"))
 #+END_SRC
 
+Remember to run ~doom refresh~ every time you modify you package list, to ensure
+your packages are set up and installed.
+
 You can find more information about the recipe format [[https://github.com/raxod502/straight.el#the-recipe-format][in the straight.el package
 readme]].
 
@@ -553,9 +557,6 @@ If a MELPA recipe exists for the package you are writing a ~package!~
 declaration for, you may omit keywords and Doom's package manager will fill them
 in with values from its original recipe.
 #+end_quote
-
-Remember to run ~doom refresh~ every time you modify you package list, to ensure
-your packages are set up and installed.
 
 You'll find more information in the "[[file:getting_started.org::*Installing%20packages%20from%20external%20sources][Installing packages from external sources]]"
 section of the [[file:getting_started.org][Getting Started]] guide.
@@ -587,20 +588,28 @@ Started]] guide.
 packages in Doom.
 
 #+BEGIN_SRC elisp
-(use-package! doom-themes
-  :defer t
+;; Takes a feature symbol or a library name (string)
+(after! evil
+  (setq evil-magic nil))
+
+;; Takes a major-mode, a quoted hook function or a list of either
+(add-hook! python-mode
+  (setq python-shell-interpreter "bpython"))
+
+(use-package! hl-todo
+  ;; if you omit :defer, :hook, :commands, or :after, then the package is loaded
+  ;; immediately. By using :hook here, the `hl-todo` package won't be loaded
+  ;; until prog-mode-hook is triggered (by activating a major mode derived from
+  ;; it, e.g. python-mode)
+  :hook (prog-mode . hl-todo-mode)
   :init
-  (unless doom-theme
-    (setq doom-theme 'doom-one))
+  ;; code here will run immediately
   :config
-  (add-hook 'doom-load-theme-hook #'doom-themes-org-config))
+  ;; code here will run after the package is loaded
+  (setq hl-todo-highlight-punctuation ":"))
 
-;; is equivalent to
-
-(unless doom-theme
-  (setq doom-theme 'doom-one))
-(after! doom-themes
-  (add-hook 'doom-load-theme-hook #'doom-themes-org-config))
+;; There's also `setq-hook!' for setting variables buffer-locally
+(setq-hook! python-mode python-indent-offset 2)
 #+END_SRC
 
 See the "[[file:getting_started.org::*Configuring%20Doom][Configuring Doom]]" section of the [[file:getting_started.org][Getting Started]] guide for more
@@ -737,7 +746,7 @@ consistent with other Emacs functions. For example, word characters are exactly
 those characters that are matched by the regular expression character class
 ~[:word:]~.
 
-If you want the underscore to be recognised as word character, you can modify
+If you want the underscore to be recognized as word character, you can modify
 its entry in the syntax-table:
 
 #+BEGIN_SRC emacs-lisp
@@ -931,7 +940,8 @@ than electric-{pair,quote}-mode or the multitude of other pair-management
 solutions in the Emacs ecosystem at the time of writing).
 
 None of smartparen's commands have default keybinds for evil users because they
-are redundant with motions and text-objects provided by evil/vim.
+are redundant with motions and text-objects provided by evil/vim. If you
+disagree, I recommend trying the =:editor lispy= or =:editor parinfer= modules.
 
 ** Why do non-evil users get expand-region, but not evil users?
 ~expand-region~ is redundant with and less precise than evil's text objects and
@@ -1010,8 +1020,8 @@ TL;DR: =ws-butler= is less imposing.
 Don't be that guy who PRs 99 whitespace adjustments around his one-line
 contribution. Don't automate this aggressive behavior by attaching
 ~delete-trailing-whitespace~ (or ~whitespace-cleanup~) to ~before-save-hook~. If
-you have rambunctous colleagues peppering trailing whitespace into your project,
-you need to have a talk (with wiffle bats, preferrably) rather than play this
+you have rambunctious colleagues peppering trailing whitespace into your project,
+you need to have a talk (with wiffle bats, preferably) rather than play this
 passive-aggressive game of whack-a-mole.
 
 Here at Doom Inc we believe that operations that mutate entire files should
@@ -1128,7 +1138,7 @@ If neither of these solve your issue, try ~bin/doom doctor~. It will detect a
 variety of common issues, and may give you some clues as to what is wrong.
 
 ** The frame goes black on MacOS, while in full-screen mode
-There are known issues with childframes and MacOS's fullscreen mode. There is no
+There are known issues with childframes and macOS's fullscreen mode. There is no
 known fix for this. To work around it, you must either:
 
 1. Avoid MacOS native fullscreen by maximizing Emacs instead,

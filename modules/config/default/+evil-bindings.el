@@ -3,11 +3,11 @@
 (when (featurep! :editor evil +everywhere)
   ;; Have C-u behave similarly to `doom/backward-to-bol-or-indent'.
   ;; NOTE SPC u replaces C-u as the universal argument.
-  (map! :gi "C-u" #'doom/backward-kill-to-bol-and-indent
-        :gi "C-w" #'backward-kill-word
+  (map! :i "C-u" #'doom/backward-kill-to-bol-and-indent
+        :i "C-w" #'backward-kill-word
         ;; Vimmish ex motion keys
-        :gi "C-b" #'backward-word
-        :gi "C-f" #'forward-word)
+        :i "C-b" #'backward-word
+        :i "C-f" #'forward-word)
 
   ;; Minibuffer
   (define-key! evil-ex-completion-map
@@ -19,11 +19,14 @@
 
   (define-key! :keymaps +default-minibuffer-maps
     [escape] #'abort-recursive-edit
-    "C-v"    #'yank
-    "C-z"    (λ! (ignore-errors (call-interactively #'undo)))
     "C-a"    #'move-beginning-of-line
     "C-b"    #'backward-word
+    "C-f"    #'forward-word
     "C-r"    #'evil-paste-from-register
+    "C-u"    #'doom/backward-kill-to-bol-and-indent
+    "C-v"    #'yank
+    "C-w"    #'backward-kill-word
+    "C-z"    (λ! (ignore-errors (call-interactively #'undo)))
     ;; Scrolling lines
     "C-j"    #'next-line
     "C-k"    #'previous-line
@@ -262,7 +265,7 @@
 ;;; <leader>
 
 (map! :leader
-      :desc "Eval expression"       ";"    #'eval-expression
+      :desc "Eval expression"       ";"    #'pp-eval-expression
       :desc "M-x"                   ":"    #'execute-extended-command
       :desc "Pop up scratch buffer" "x"    #'doom/open-scratch-buffer
       :desc "Org Capture"           "X"    #'org-capture
@@ -289,7 +292,6 @@
       :desc "Search for symbol in project" "*" #'+default/search-project-for-symbol-at-point
 
       :desc "Find file in project"  "SPC"  #'projectile-find-file
-      :desc "Blink cursor line"     "DEL"  #'+nav-flash/blink-cursor
       :desc "Jump to bookmark"      "RET"  #'bookmark-jump
 
       ;;; <leader> / --- search
@@ -301,8 +303,8 @@
         :desc "Locate file"                   "f" #'locate
         :desc "Jump to symbol"                "i" #'imenu
         :desc "Jump to link"                  "l" #'ace-link
-        :desc "jump list"                     "j" #'evil-show-jumps
-        :desc "Jump to mark"                  "m"   #'evil-show-marks
+        :desc "Jump list"                     "j" #'evil-show-jumps
+        :desc "Jump to mark"                  "m" #'evil-show-marks
         :desc "Look up online"                "o" #'+lookup/online
         :desc "Look up online (w/ prompt)"    "O" #'+lookup/online-select
         :desc "Look up in local docsets"      "k" #'+lookup/in-docsets
@@ -350,7 +352,6 @@
         :desc "ibuffer"                     "i"   #'ibuffer
         :desc "Kill buffer"                 "k"   #'kill-current-buffer
         :desc "Kill all buffers"            "K"   #'doom/kill-all-buffers
-        :desc "Jumplist"                    "j"   #'evil-show-jumps
         :desc "Switch to last buffer"       "l"   #'evil-switch-to-windows-last-buffer
         :desc "Next buffer"                 "n"   #'next-buffer
         :desc "New empty buffer"            "N"   #'evil-buffer-new
@@ -567,6 +568,9 @@
 
       ;;; <leader> q --- quit/session
       (:prefix-map ("q" . "quit/session")
+        :desc "Restart emacs server"         "d" #'+default/restart-server
+        :desc "Delete frame"                 "f" #'delete-frame
+        :desc "Clear current frame"          "F" #'doom/kill-all-buffers
         :desc "Kill Emacs (and daemon)"      "K" #'save-buffers-kill-emacs
         :desc "Quit Emacs"                   "q" #'save-buffers-kill-terminal
         :desc "Quit Emacs without saving"    "Q" #'evil-quit-all-with-error-code
@@ -575,8 +579,7 @@
         :desc "Save session to file"         "S" #'doom/save-session
         :desc "Restore session from file"    "L" #'doom/load-session
         :desc "Restart & restore Emacs"      "r" #'doom/restart-and-restore
-        :desc "Restart Emacs"                "R" #'doom/restart
-        :desc "Restart emacs server"         "d" #'+default/restart-server)
+        :desc "Restart Emacs"                "R" #'doom/restart)
 
       ;;; <leader> r --- remote
       (:when (featurep! :tools upload)
@@ -623,3 +626,9 @@
         (:when (featurep! :lang org +pomodoro)
           :desc "Pomodoro timer"             "t" #'org-pomodoro)
         :desc "Word-wrap mode"               "w" #'+word-wrap-mode))
+
+(after! which-key
+  (let ((prefix-re (regexp-opt (list doom-leader-key doom-leader-alt-key))))
+    (cl-pushnew `((,(format "\\`\\(?:C-w\\|%s w\\) m\\'" prefix-re))
+                  nil . "maximize")
+                which-key-replacement-alist)))

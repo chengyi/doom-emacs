@@ -52,14 +52,6 @@
 (unless IS-WINDOWS
   (setq tramp-default-method "ssh")) ; faster than the default scp
 
-(defadvice! +default-inhibit-authinfo-for-sudo-a (orig-fn &rest args)
-  "Don't consult .authinfo for local sudo TRAMP buffers."
-  :around #'tramp-read-passwd
-  (let ((auth-sources
-         (unless (equal tramp-current-method "sudo")
-           auth-sources)))
-    (apply orig-fn args)))
-
 
 ;;
 ;;; Smartparens config
@@ -350,10 +342,10 @@
 
 (after! which-key
   (let ((prefix-re (regexp-opt (list doom-leader-key doom-leader-alt-key))))
-    (cl-pushnew `((,(format "\\`\\(?:<\\(?:\\(?:f1\\|help\\)>\\)\\|%s h\\) d\\'" prefix-re))
+    (cl-pushnew `((,(format "\\`\\(?:<\\(?:\\(?:f1\\|help\\)>\\)\\|C-h\\|%s h\\) d\\'" prefix-re))
                   nil . "doom")
                 which-key-replacement-alist)
-    (cl-pushnew `((,(format "\\`\\(?:<\\(?:\\(?:f1\\|help\\)>\\)\\|%s h\\) r\\'" prefix-re))
+    (cl-pushnew `((,(format "\\`\\(?:<\\(?:\\(?:f1\\|help\\)>\\)\\|C-h\\|%s h\\) r\\'" prefix-re))
                   nil . "reload")
                 which-key-replacement-alist)))
 

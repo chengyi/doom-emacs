@@ -279,7 +279,7 @@ If prefix ARG is set, prompt for a known project to search from."
              "")))
   (let ((default-directory
           (if arg
-              (if-let* ((projects (projectile-relevant-known-projects)))
+              (if-let (projects (projectile-relevant-known-projects))
                   (completing-read "Switch to project: " projects
                                    nil t nil nil (doom-project-root))
                 (user-error "There are no known projects"))
@@ -295,7 +295,7 @@ If prefix ARG is set, prompt for a known project to search from."
   "Conduct a text search in the current project for symbol at point. If prefix
 ARG is set, prompt for a known project to search from."
   (interactive
-   (list (thing-at-point 'symbol t)))
+   (list (rxt-quote-pcre (or (thing-at-point 'symbol t) ""))))
   (require 'org)
   (let ((default-directory org-directory))
     (+default/search-project-for-symbol-at-point

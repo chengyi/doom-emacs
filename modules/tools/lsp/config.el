@@ -38,7 +38,9 @@ This can be a single company backend or a list thereof. It can be anything
 This gives the user a chance to open other project files before the server is
 auto-killed (which is usually an expensive process)."
     :around #'lsp--shutdown-workspace
-    (if lsp-keep-workspace-alive
+    (if (or lsp-keep-workspace-alive
+            (eq (lsp--workspace-shutdown-action lsp--cur-workspace)
+                'restart))
         (funcall orig-fn)
       (when (timerp +lsp--deferred-shutdown-timer)
         (cancel-timer +lsp--deferred-shutdown-timer))
@@ -46,8 +48,7 @@ auto-killed (which is usually an expensive process)."
             (run-at-time
              3 nil (lambda (workspace)
                      (let ((lsp--cur-workspace workspace))
-                       (if (lsp--workspace-buffers lsp--cur-workspace)
-                           (setf (lsp--workspace-shutdown-action lsp--cur-workspace) nil)
+                       (unless (lsp--workspace-buffers lsp--cur-workspace)
                          (funcall orig-fn))))
              lsp--cur-workspace))))
 
@@ -73,27 +74,26 @@ been moved out to their respective modules, or these hooks:
 Also logs the resolved project root, if found."
     :override #'lsp
     (interactive "P")
-    (if (bound-and-true-p lsp-mode) t
-      (require 'lsp-mode)
-      (when lsp-auto-configure
-        (require 'lsp-clients))
-      (and (buffer-file-name)
-           (setq-local
-            lsp--buffer-workspaces
-            (or (lsp--try-open-in-library-workspace)
-                (lsp--try-project-root-workspaces
-                 (equal arg '(4))
-                 (and arg (not (equal arg 1))))))
-           (prog1 (lsp-mode 1)
-             ;; Announce what project root we're using, for diagnostic purposes
-             (if-let (root (lsp--calculate-root (lsp-session) (buffer-file-name)))
-                 (lsp--info "Guessed project root is %s" (abbreviate-file-name root))
-               (lsp--info "Could not guess project root."))
-             (lsp--info "Connected to %s."
-                        (apply #'concat
-                               (mapcar
-                                (lambda (it) (format "[%s]" (lsp--workspace-print it)))
-                                lsp--buffer-workspaces)))))))
+    (require 'lsp-mode)
+    (when lsp-auto-configure
+      (require 'lsp-clients))
+    (and (buffer-file-name)
+         (setq-local
+          lsp--buffer-workspaces
+          (or (lsp--try-open-in-library-workspace)
+              (lsp--try-project-root-workspaces
+               (equal arg '(4))
+               (and arg (not (equal arg 1))))))
+         (prog1 (lsp-mode 1)
+           ;; Announce what project root we're using, for diagnostic purposes
+           (if-let (root (lsp--calculate-root (lsp-session) (buffer-file-name)))
+               (lsp--info "Guessed project root is %s" (abbreviate-file-name root))
+             (lsp--info "Could not guess project root."))
+           (lsp--info "Connected to %s."
+                      (apply #'concat
+                             (mapcar
+                              (lambda (it) (format "[%s]" (lsp--workspace-print it)))
+                              lsp--buffer-workspaces))))))
 
   ;; Don't prompt to restart LSP servers while quitting Emacs
   (add-hook! 'kill-emacs-hook (setq lsp-restart 'ignore)))

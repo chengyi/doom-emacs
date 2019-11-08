@@ -14,7 +14,7 @@
 
 ![Doom Emacs Screenshot](https://raw.githubusercontent.com/hlissner/doom-emacs/screenshots/main.png)
 
-<!--p align="center">
+<p align="center">
   <b><a href="/../../tree/screenshots">Screenshots</a></b>
   |
   <b><a href="docs/getting_started.org">Get started</a></b>
@@ -24,7 +24,7 @@
   <b><a href="docs/index.org">Documentation</a></b>
   |
   <b><a href="docs/faq.org">FAQ</a></b>
-</p-->
+</p>
 
 ---
 
@@ -108,15 +108,15 @@ to learn more about our favorite OS.
   [the_silver_searcher][url:the_silver_searcher] or [ripgrep][url:ripgrep].
 - Isolated and persistent workspaces (also substitutes for vim tabs).
 - An environment variables file generator and loader, so that Emacs can
-  perfeclty inherit your shell configuration.
+  perfectly inherit your shell configuration.
 - Everything is optional!
-   
+
 # Getting Help
-  
+
 ## Community
 
 We have [a Discord server][url:discord]! Hop on and say hi!
-  
+
 ## Troubleshooting
 
 Encountered strange behavior or an error? Here are some things to try before you
@@ -159,10 +159,10 @@ you can do to help; I welcome any contribution!
   my freelance work.
 
 [docs:wiki]: docs/index.org
-[docs:wiki-quickstart]: docs/getting-started.org
-[docs:wiki-modules]: docs/modules.org
-[docs:wiki-customization]: docs/customize.org
-[docs:contributing]: docs/contribute.org
+[docs:wiki-quickstart]: docs/getting_started.org
+[docs:wiki-modules]: docs/index.org#Module%20List
+[docs:wiki-customization]: docs/getting_started.org#Customize
+[docs:contributing]: docs/contributing.org
 [docs:faq]: docs/faq.org
 [github:new-issue]: https://github.com/hlissner/doom-emacs/issues/new
 [doom:bindings]: modules/config/default/+evil-bindings.el

@@ -65,6 +65,9 @@ directives. By default, this only recognizes C directives.")
   ;; Start help-with-tutorial in emacs state
   (advice-add #'help-with-tutorial :after (lambda (&rest _) (evil-emacs-state +1)))
 
+  ;; Allows you to click buttons without initiating a selection
+  (define-key evil-motion-state-map [down-mouse-1] nil)
+
   ;; Done in a hook to ensure the popup rules load as late as possible
   (add-hook! 'doom-init-modules-hook
     (defun +evil--init-popup-rules-h ()
@@ -117,10 +120,21 @@ directives. By default, this only recognizes C directives.")
                    (buffer-name))
                  (count-lines (point-min) (point-max))
                  (buffer-size)))))
+
+  ;; 'gq' moves the cursor to the beginning of selection. Disable this, since
+  ;; it's more disruptive than helpful.
+  (defadvice! +evil--dont-move-cursor-a (orig-fn &rest args)
+    :around #'evil-indent
+    (save-excursion (apply orig-fn args)))
+
+  ;; In evil, registers 2-9 are buffer-local. In vim, they're global, so...
+  (defadvice! +evil--make-numbered-markers-global-a (arg)
+    :after-until #'evil-global-marker-p
+    (and (>= char ?2) (<= char ?9)))
+
   ;; Make ESC (from normal mode) the universal escaper. See `doom-escape-hook'.
   (advice-add #'evil-force-normal-state :after #'+evil-escape-a)
-  ;; Don't move cursor when indenting
-  (advice-add #'evil-indent :around #'+evil--static-reindent-a)
+
   ;; monkey patch `evil-ex-replace-special-filenames' to improve support for
   ;; file modifiers like %:p:h. This adds support for most of vim's modifiers,
   ;; and one custom one: %:P (expand to the project root).
@@ -132,9 +146,6 @@ directives. By default, this only recognizes C directives.")
   ;; Focus and recenter new splits
   (advice-add #'evil-window-split  :override #'+evil-window-split-a)
   (advice-add #'evil-window-vsplit :override #'+evil-window-vsplit-a)
-
-  ;; In evil, registers 2-9 are buffer-local. In vim, they're global, so...
-  (advice-add #'evil-global-marker-p :around #'+evil--make-numbered-markers-global-a)
 
   ;; Make o/O continue comments (see `+evil-want-o/O-to-continue-comments')
   (advice-add #'evil-open-above :around #'+evil--insert-newline-above-and-respect-comments-a)
@@ -335,42 +346,42 @@ directives. By default, this only recognizes C directives.")
 ;;
 ;;; Keybinds
 
-(when +evil-repeat-keys
-  (defmacro set-repeater! (command next-func prev-func)
-    "Makes ; and , the universal repeat-keys in evil-mode.
+(defmacro set-repeater! (command next-func prev-func)
+  "Makes ; and , the universal repeat-keys in evil-mode.
 To change these keys see `+evil-repeat-keys'."
-    (let ((fn-sym (intern (format "+default/repeat-%s" (doom-unquote command)))))
-      `(progn
-         (defun ,fn-sym (&rest _)
+  (let ((fn-sym (intern (format "+evil/repeat-%s" (doom-unquote command)))))
+    `(progn
+       (defun ,fn-sym (&rest _)
+         (when +evil-repeat-keys
            (evil-define-key* 'motion 'local
              (kbd (car +evil-repeat-keys)) #',next-func
-             (kbd (cdr +evil-repeat-keys)) #',prev-func))
-         (advice-add #',command :after-while #',fn-sym))))
+             (kbd (cdr +evil-repeat-keys)) #',prev-func)))
+       (advice-add #',command :after-while #',fn-sym))))
 
-  ;; n/N
-  (set-repeater! evil-ex-search-next evil-ex-search-next evil-ex-search-previous)
-  (set-repeater! evil-ex-search-previous evil-ex-search-next evil-ex-search-previous)
-  (set-repeater! evil-ex-search-forward evil-ex-search-next evil-ex-search-previous)
-  (set-repeater! evil-ex-search-backward evil-ex-search-next evil-ex-search-previous)
+;; n/N
+(set-repeater! evil-ex-search-next evil-ex-search-next evil-ex-search-previous)
+(set-repeater! evil-ex-search-previous evil-ex-search-next evil-ex-search-previous)
+(set-repeater! evil-ex-search-forward evil-ex-search-next evil-ex-search-previous)
+(set-repeater! evil-ex-search-backward evil-ex-search-next evil-ex-search-previous)
 
-  ;; f/F/t/T/s/S
-  (after! evil-snipe
-    (setq evil-snipe-repeat-keys nil
-          evil-snipe-override-evil-repeat-keys nil) ; causes problems with remapped ;
-    (set-repeater! evil-snipe-f evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-F evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-t evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-T evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-s evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-S evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-x evil-snipe-repeat evil-snipe-repeat-reverse)
-    (set-repeater! evil-snipe-X evil-snipe-repeat evil-snipe-repeat-reverse))
+;; f/F/t/T/s/S
+(after! evil-snipe
+  (setq evil-snipe-repeat-keys nil
+        evil-snipe-override-evil-repeat-keys nil) ; causes problems with remapped ;
+  (set-repeater! evil-snipe-f evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-F evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-t evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-T evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-s evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-S evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-x evil-snipe-repeat evil-snipe-repeat-reverse)
+  (set-repeater! evil-snipe-X evil-snipe-repeat evil-snipe-repeat-reverse))
 
-  ;; */#
-  (set-repeater! evil-visualstar/begin-search-forward
-                 evil-ex-search-next evil-ex-search-previous)
-  (set-repeater! evil-visualstar/begin-search-backward
-                 evil-ex-search-previous evil-ex-search-next))
+;; */#
+(set-repeater! evil-visualstar/begin-search-forward
+               evil-ex-search-next evil-ex-search-previous)
+(set-repeater! evil-visualstar/begin-search-backward
+               evil-ex-search-previous evil-ex-search-next)
 
 
 ;; `evil-collection'
@@ -388,7 +399,7 @@ To change these keys see `+evil-repeat-keys'."
                       '("gr" "gR"))
                     '("[" "]" "gz" "<escape>")))
 
-  (defadvice! +default-evil-collection-disable-blacklist-a (orig-fn)
+  (defadvice! +evil-collection-disable-blacklist-a (orig-fn)
     :around #'evil-collection-vterm-toggle-send-escape  ; allow binding to ESC
     (let (evil-collection-key-blacklist)
       (apply orig-fn))))
@@ -402,17 +413,7 @@ To change these keys see `+evil-repeat-keys'."
 ;;   ]s - jump to previous spelling error
 ;;   [s - jump to next spelling error
 
-(map! :m  "]m"    #'+evil/next-beginning-of-method
-      :m  "[m"    #'+evil/previous-beginning-of-method
-      :m  "]M"    #'+evil/next-end-of-method
-      :m  "[M"    #'+evil/previous-end-of-method
-      :m  "]#"    #'+evil/next-preproc-directive
-      :m  "[#"    #'+evil/previous-preproc-directive
-      :m  "]*"    #'+evil/next-comment
-      :m  "[*"    #'+evil/previous-comment
-      :m  "]\\"   #'+evil/next-comment
-      :m  "[\\"   #'+evil/previous-comment
-      :v  "@"     #'+evil:apply-macro
+(map! :v  "@"     #'+evil:apply-macro
 
       ;; ported from vim-unimpaired
       :n  "] SPC" #'+evil/insert-newline-below
@@ -441,14 +442,22 @@ To change these keys see `+evil-repeat-keys'."
         :n "[w"   #'+workspace/switch-left)
 
       ;; custom vim-unmpaired-esque keys
+      :m  "]#"    #'+evil/next-preproc-directive
+      :m  "[#"    #'+evil/previous-preproc-directive
       :m  "]a"    #'evil-forward-arg
       :m  "[a"    #'evil-backward-arg
+      :m  "]c"    #'+evil/next-comment
+      :m  "[c"    #'+evil/previous-comment
       :m  "]e"    #'next-error
       :m  "[e"    #'previous-error
       :n  "]F"    #'+evil/next-frame
       :n  "[F"    #'+evil/previous-frame
       :m  "]h"    #'outline-next-visible-heading
       :m  "[h"    #'outline-previous-visible-heading
+      :m  "]m"    #'+evil/next-beginning-of-method
+      :m  "[m"    #'+evil/previous-beginning-of-method
+      :m  "]M"    #'+evil/next-end-of-method
+      :m  "[M"    #'+evil/previous-end-of-method
       :n  "[o"    #'+evil/insert-newline-above
       :n  "]o"    #'+evil/insert-newline-below
       :n  "gp"    #'+evil/reselect-paste
@@ -474,7 +483,7 @@ To change these keys see `+evil-repeat-keys'."
 
       :nv "z="    #'flyspell-correct-word-generic
       ;; custom evil keybinds
-      :n  "zn"    #'+evil:narrow-buffer
+      :nv "zn"    #'+evil:narrow-buffer
       :n  "zN"    #'doom/widen-indirectly-narrowed-buffer
       :n  "zx"    #'kill-current-buffer
       :n  "ZX"    #'bury-buffer
@@ -510,15 +519,15 @@ To change these keys see `+evil-repeat-keys'."
         "C-C"     #'ace-delete-window)
 
       ;; text objects
-      :textobj "x" #'evil-inner-xml-attr               #'evil-outer-xml-attr
       :textobj "a" #'evil-inner-arg                    #'evil-outer-arg
       :textobj "B" #'evil-textobj-anyblock-inner-block #'evil-textobj-anyblock-a-block
       :textobj "c" #'evilnc-inner-comment              #'evilnc-outer-commenter
       :textobj "f" #'+evil:defun-txtobj                #'+evil:defun-txtobj
       :textobj "g" #'+evil:whole-buffer-txtobj         #'+evil:whole-buffer-txtobj
       :textobj "i" #'evil-indent-plus-i-indent         #'evil-indent-plus-a-indent
-      :textobj "k" #'evil-indent-plus-i-indent-up      #'evil-indent-plus-a-indent-up
       :textobj "j" #'evil-indent-plus-i-indent-up-down #'evil-indent-plus-a-indent-up-down
+      :textobj "k" #'evil-indent-plus-i-indent-up      #'evil-indent-plus-a-indent-up
+      :textobj "x" #'evil-inner-xml-attr               #'evil-outer-xml-attr
 
       ;; evil-easymotion
       (:after evil-easymotion
