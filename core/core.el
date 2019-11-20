@@ -210,6 +210,7 @@ users).")
       tramp-auto-save-directory    (concat doom-cache-dir "tramp-auto-save/")
       tramp-backup-directory-alist backup-directory-alist
       tramp-persistency-file-name  (concat doom-cache-dir "tramp-persistency.el")
+      tramp-histfile-override      (concat doom-cache-dir "tramp-histfile.el")
       url-cache-directory          (concat doom-cache-dir "url/")
       url-configuration-directory  (concat doom-etc-dir "url/")
       gamegrid-user-score-file-directory (concat doom-etc-dir "games/"))
@@ -440,7 +441,7 @@ in interactive sessions, nil otherwise (but logs a warning)."
         (save-excursion
           (insert "\n")
           (insert-file-contents file))
-        (while (re-search-forward "\n *\\([^#][^= \n]*\\)=" nil t)
+        (while (re-search-forward "\n *\\([^#= \n]*\\)=" nil t)
           (push (buffer-substring
                  (match-beginning 1)
                  (1- (or (save-excursion
