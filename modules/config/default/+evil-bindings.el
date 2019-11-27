@@ -378,11 +378,10 @@
         :desc "Find file"                   "f"   #'find-file
         :desc "Find file from here"         "F"   #'+default/find-file-under-here
         :desc "Locate file"                 "l"   #'locate
-        :desc "Move/rename file"            "m"   #'doom/move-this-file
         :desc "Find file in private config" "p"   #'doom/find-file-in-private-config
         :desc "Browse private config"       "P"   #'doom/open-private-config
         :desc "Recent files"                "r"   #'recentf-open-files
-        :desc "Recent project files"        "R"   #'projectile-recentf
+        :desc "Rename/move file"            "R"   #'doom/move-this-file
         :desc "Save file"                   "s"   #'save-buffer
         :desc "Save file as..."             "S"   #'write-file
         :desc "Sudo find file"              "u"   #'doom/sudo-find-file
@@ -407,7 +406,7 @@
           :desc "Magit status"              "g"   #'magit-status
           :desc "Magit file delete"         "D"   #'magit-file-delete
           :desc "Magit blame"               "B"   #'magit-blame-addition
-          :desc "Magit clone"               "C"   #'+magit/clone
+          :desc "Magit clone"               "C"   #'magit-clone
           :desc "Magit fetch"               "F"   #'magit-fetch
           :desc "Magit buffer log"          "L"   #'magit-log
           :desc "Git stage file"            "S"   #'magit-stage-file
@@ -436,7 +435,7 @@
             :desc "List notifications"        "n"   #'forge-list-notifications)
           (:prefix ("c" . "create")
             :desc "Initialize repo"           "r"   #'magit-init
-            :desc "Clone repo"                "R"   #'+magit/clone
+            :desc "Clone repo"                "R"   #'magit-clone
             :desc "Commit"                    "c"   #'magit-commit-create
             :desc "Fixup"                     "f"   #'magit-commit-fixup
             :desc "Branch"                    "b"   #'magit-branch-and-checkout

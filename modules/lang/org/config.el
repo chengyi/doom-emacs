@@ -140,9 +140,10 @@ background (and foreground) match the current theme."
   ;; HACK Face specs fed directly to `org-todo-keyword-faces' don't respect
   ;;      underlying faces like the `org-todo' face does, so we define our own
   ;;      intermediary faces that extend from org-todo.
-  (custom-declare-face '+org-todo-active '((t (:inherit (bold font-lock-constant-face org-todo)))) "")
-  (custom-declare-face '+org-todo-project '((t (:inherit (bold font-lock-doc-face org-todo)))) "")
-  (custom-declare-face '+org-todo-onhold '((t (:inherit (bold warning org-todo)))) "")
+  (with-no-warnings
+    (custom-declare-face '+org-todo-active '((t (:inherit (bold font-lock-constant-face org-todo)))) "")
+    (custom-declare-face '+org-todo-project '((t (:inherit (bold font-lock-doc-face org-todo)))) "")
+    (custom-declare-face '+org-todo-onhold '((t (:inherit (bold warning org-todo)))) ""))
   (setq org-todo-keywords
         '((sequence
            "TODO(t)"  ; A task that needs doing & is ready to do
@@ -628,8 +629,6 @@ between the two."
         "h" #'org-toggle-heading
         "i" #'org-toggle-item
         "I" #'org-toggle-inline-images
-        "l" #'org-insert-link
-        "L" #'+org/remove-link
         "n" #'org-store-link
         "o" #'org-set-property
         "p" #'org-priority
@@ -673,6 +672,14 @@ between the two."
           "i" #'org-id-goto
           "r" #'org-refile-goto-last-stored
           "x" #'org-capture-goto-last-stored)
+        (:prefix ("l" . "links")
+          "c" 'org-cliplink
+          "l" #'org-insert-link
+          "L" #'org-insert-all-links
+          "s" #'org-store-link
+          "S" #'org-insert-last-stored-link
+          "i" #'org-id-store-link
+          "d" #'+org/remove-link)
         (:prefix ("r" . "refile")
           "." #'+org/refile-to-current-file
           "c" #'+org/refile-to-running-clock

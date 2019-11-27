@@ -345,11 +345,6 @@ treat Emacs as a non-application window."
       ;; But don't let the minibuffer grow beyond this size
       max-mini-window-height 0.15)
 
-;; Disable help mouse-overs for mode-line segments (i.e. :help-echo text).
-;; They're generally unhelpful and only add confusing visual clutter.
-(setq mode-line-default-help-echo nil
-      show-help-function nil)
-
 ;; Typing yes/no is obnoxious when y/n will do
 (fset #'yes-or-no-p #'y-or-n-p)
 
@@ -615,6 +610,12 @@ startup (or theme switch) time, so long as `doom--prefer-theme-elc' is non-nil."
 
 ;;
 ;;; Fixes/hacks
+
+;; Doom doesn't support `customize' and it never will. It's a clumsy interface
+;; for something that should be configured from only one place ($DOOMDIR), so we
+;; disable them.
+(put 'customize 'disabled "Doom doesn't support `customize', configure Emacs from $DOOMDIR/config.el instead")
+(put 'customize-themes 'disabled "Set `doom-theme' or use `load-theme' in $DOOMDIR/config.el instead")
 
 ;; doesn't exist in terminal Emacs; we define it to prevent errors
 (unless (fboundp 'define-fringe-bitmap)

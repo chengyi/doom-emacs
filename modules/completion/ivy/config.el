@@ -197,6 +197,7 @@ evil-ex-specific constructs, so we disable it solely in evil-ex."
     [remap evil-ex-registers]        #'counsel-evil-registers
     [remap evil-show-marks]          #'counsel-mark-ring
     [remap yank-pop]                 #'counsel-yank-pop
+    [remap load-theme]               #'counsel-load-theme
     [remap locate]                   #'counsel-locate
     [remap unicode-chars-list-chars] #'counsel-unicode-char
     [remap compile]                    #'+ivy/compile
@@ -333,7 +334,7 @@ evil-ex-specific constructs, so we disable it solely in evil-ex."
         #'+ivy-display-at-frame-center-near-bottom-fn)
 
   ;; posframe doesn't work well with async sources
-  (dolist (fn '(swiper counsel-ag counsel-grep counsel-git-grep))
+  (dolist (fn '(swiper counsel-rg counsel-grep counsel-git-grep))
     (setf (alist-get fn ivy-posframe-display-functions-alist)
           #'ivy-display-function-fallback)))
 

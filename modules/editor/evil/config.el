@@ -39,7 +39,6 @@ directives. By default, this only recognizes C directives.")
         evil-ex-visual-char-range t  ; column range for ex commands
         evil-insert-skip-empty-lines t
         evil-mode-line-format 'nil
-        evil-respect-visual-line-mode t
         ;; more vim-like behavior
         evil-symbol-word-search t
         ;; cursor appearance
@@ -128,7 +127,7 @@ directives. By default, this only recognizes C directives.")
     (save-excursion (apply orig-fn args)))
 
   ;; In evil, registers 2-9 are buffer-local. In vim, they're global, so...
-  (defadvice! +evil--make-numbered-markers-global-a (arg)
+  (defadvice! +evil--make-numbered-markers-global-a (_arg)
     :after-until #'evil-global-marker-p
     (and (>= char ?2) (<= char ?9)))
 

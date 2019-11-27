@@ -45,6 +45,9 @@ only variant that supports --group-directories-first."
                                    "--group-directories-first")
                      " ")))))
 
+  ;; hide details by default
+  (add-hook 'dired-mode-hook 'dired-hide-details-mode)
+
   ;; Don't complain about this command being disabled when we use it
   (put 'dired-find-alternate-file 'disabled nil)
 
@@ -161,10 +164,34 @@ we have to clean it up ourselves."
             ("\\.\\(?:mp4\\|mkv\\|avi\\|flv\\|rm\\|rmvb\\|ogv\\)\\(?:\\.part\\)?\\'" ,cmd)
             ("\\.\\(?:mp3\\|flac\\)\\'" ,cmd)
             ("\\.html?\\'" ,cmd)
-            ("\\.md\\'" ,cmd)))))
+            ("\\.md\\'" ,cmd))))
+  (map! :map dired-mode-map
+        :localleader
+        "h" #'dired-omit-mode))
 
 
 (use-package! fd-dired
   :when (executable-find doom-projectile-fd-binary)
   :defer t
   :init (advice-add #'find-dired :override #'fd-dired))
+
+
+;;;###package dired-git-info
+(map! :after dired
+      :map (dired-mode-map ranger-mode-map)
+      :ng ")" #'dired-git-info-mode)
+(after! wdired
+  ;; Temporarily disable `dired-git-info-mode' when entering wdired, due to
+  ;; reported incompatibilities.
+  (defvar +dired--git-info-p nil)
+  (defadvice! +dired--disable-git-info-a (&rest _)
+    :before #'wdired-change-to-wdired-mode
+    (setq +dired--git-info-p (bound-and-true-p dired-git-info-mode))
+    (when +dired--git-info-p
+      (dired-git-info-mode -1)))
+  (defadvice! +dired--reactivate-git-info-a (&rest _)
+    :after '(wdired-exit
+             wdired-abort-changes
+             wdired-finish-edit)
+    (when +dired--git-info-p
+      (dired-git-info-mode +1))))

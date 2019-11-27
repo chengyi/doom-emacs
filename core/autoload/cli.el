@@ -5,6 +5,9 @@
 
 ;;;###autoload
 (defun doom--cli-run (command &rest _args)
+  (require 'core-cli)
+  (require 'core-packages)
+  (require 'straight)
   (when (featurep 'general)
     (general-auto-unbind-keys))
   (let* ((evil-collection-mode-list nil)
@@ -20,15 +23,12 @@
               (when (memq char '(?\n ?\r))
                 (ansi-color-apply-on-region (line-beginning-position -1) (line-end-position))
                 (redisplay))))))
-    (doom-initialize t)
     (setq doom-modules (doom-modules))
-    (doom-initialize-modules t)
-    (doom-initialize-packages t)
     (with-current-buffer (switch-to-buffer buf)
       (erase-buffer)
       (require 'package)
       (redisplay)
-      (doom-dispatch command nil)
+      (doom-cli-execute command nil)
       (print! (green "\nDone!"))))
   (when (featurep 'general)
     (general-auto-unbind-keys 'undo))
@@ -113,7 +113,7 @@ Warning: freezes indefinitely on any stdin prompt."
                                :connection-type 'pipe))
                 done-p)
             (set-process-filter
-             process (lambda (process output)
+             process (lambda (_process output)
                        (princ output (current-buffer))
                        (princ output)))
             (set-process-sentinel

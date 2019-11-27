@@ -147,25 +147,26 @@ declaration) or dependency thereof that hasn't already been."
              (let* ((default-directory (straight--repos-dir local-repo))
                     (commit (straight-vc-get-commit type local-repo)))
                (if (not (straight-vc-fetch-from-remote recipe))
-                   (print! (warn "(%d/%d) Failed to fetch %s" i total package))
+                   (print! (warn "\033[K(%d/%d) Failed to fetch %s" i total package))
                  (let ((output (straight--process-get-output)))
                    (straight-merge-package package)
                    (let ((newcommit (straight-vc-get-commit type local-repo)))
                      (if (string= commit newcommit)
-                         (print! (info "(%d/%d) %s is up-to-date") i total package)
+                         (print! (start "\033[K(%d/%d) %s is up-to-date\033[1A") i total package)
                        (ignore-errors
                          (delete-directory (straight--build-dir package) 'recursive))
                        (puthash package t straight--packages-to-rebuild)
-                       (print! (success "(%d/%d) %s updated (%s -> %s)") i total package
-                               (substring commit 0 7)
-                               (substring newcommit 0 7))
+                       (print! (info "\033[K(%d/%d) Updating %s...") i total package)
                        (unless (string-empty-p output)
                          (print-group!
                           (print! (info "%s") output)
                           (when (eq type 'git)
                             (straight--call "git" "log" "--oneline" newcommit (concat "^" commit))
                             (print-group!
-                             (print! "%s" (straight--process-get-output))))))))))
+                             (print! "%s" (straight--process-get-output))))))
+                       (print! (success "(%d/%d) %s updated (%s -> %s)") i total package
+                               (substring commit 0 7)
+                               (substring newcommit 0 7))))))
                (cl-incf i))
            (user-error
             (signal 'user-error (error-message-string e)))
@@ -175,6 +176,7 @@ declaration) or dependency thereof that hasn't already been."
              (print! (error "%s" e))
              (print-group! (print! (info "%s" (straight--process-get-output)))))
             (push package errors)))))
+     (princ "\033[K")
      (when errors
        (print! (error "There were %d errors, the offending packages are: %s")
                (length errors) (string-join errors ", ")))
@@ -210,14 +212,14 @@ declaration) or dependency thereof that hasn't already been."
 (defun doom--cli-packages-regraft-repo (repo)
   (let ((default-directory (straight--repos-dir repo)))
     (if (not (file-directory-p ".git"))
-        (ignore (print! (warn "repos/%s is not a git repo, skipping" repo)))
+        (ignore (print! (warn "\033[Krepos/%s is not a git repo, skipping" repo)))
       (let ((before-size (doom-directory-size default-directory)))
         (straight--call "git" "reset" "--hard")
         (straight--call "git" "clean" "-ffd")
         (if (not (car (straight--call "git" "replace" "--graft" "HEAD")))
-            (print! (info "repos/%s is already compact" repo))
+            (print! (info "\033[Krepos/%s is already compact\033[1A" repo))
           (straight--call "git" "gc")
-          (print! (success "Regrafted repos/%s (from %0.1fKB to %0.1fKB)")
+          (print! (success "\033[KRegrafted repos/%s (from %0.1fKB to %0.1fKB)")
                   repo before-size (doom-directory-size default-directory))
           (print-group! (print! "%s" (straight--process-get-output)))))
       t)))
@@ -227,11 +229,13 @@ declaration) or dependency thereof that hasn't already been."
       (progn (print! (info "No repos to regraft"))
              0)
     (let ((before-size (doom-directory-size (straight--repos-dir))))
-      (prog1 (print-group! (delq nil (mapcar #'doom--cli-packages-regraft-repo repos)))
-        (let ((after-size (doom-directory-size (straight--repos-dir))))
-          (print! (success "Finished regrafting. Size before: %0.1fKB and after: %0.1fKB (%0.1fKB)")
-                  before-size after-size
-                  (- after-size before-size)))))))
+      (print-group!
+       (prog1 (delq nil (mapcar #'doom--cli-packages-regraft-repo repos))
+         (princ "\033[K")
+         (let ((after-size (doom-directory-size (straight--repos-dir))))
+           (print! (success "Finished regrafting. Size before: %0.1fKB and after: %0.1fKB (%0.1fKB)")
+                   before-size after-size
+                   (- after-size before-size))))))))
 
 (defun doom--cli-packages-purge-repo (repo)
   (let ((repo-dir (straight--repos-dir repo)))
@@ -300,6 +304,7 @@ If ELPA-P, include packages installed with package.el (M-x package-install)."
               (setq success t)))
        (if (not regraft-repos-p)
            (print! (info "Skipping regrafting"))
+         (print! (start "Regrafting %d repos..." (length repos-to-regraft)))
          (and (doom--cli-packages-regraft-repos repos-to-regraft)
               (setq success t)))
        (when success
