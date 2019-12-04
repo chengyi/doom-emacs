@@ -69,7 +69,7 @@ config for it, you're doomed from the get go.
 ** Does Doom work on Windows?
 Windows support is weak and will generally lag behind Linux/MacOS support, so
 your mileage will vary. However, many have reported success installing Doom
-Emacs on Windows (using WSL, WSL2 or scope/chocolatey). You'll find install
+Emacs on Windows (using WSL, WSL2 or scoop/chocolatey). You'll find install
 instructions for Windows in the [[file:getting_started.org::On Windows][Getting Starting guide]].
 
 If you're a Windows user, help us improve our documentation on Windows support!
@@ -116,8 +116,8 @@ To paraphrase (and expand upon) a [[https://www.reddit.com/r/emacs/comments/6pa0
   you into Doom.
 + *Doom manages its packages outside of Emacs.* Spacemacs installs (and checks
   for packages) on startup or on demand. Doom leaves package management to be
-  done externally, through the ~bin/doom~ script. This allows package management
-  can be scripted on the command line and enables a number of startup
+  done externally, through the ~bin/doom~ script. This allows for package
+  management to be scripted on the command line and enables a number of startup
   optimizations we wouldn't have otherwise.
 
 ** Why such a complicated package management system?

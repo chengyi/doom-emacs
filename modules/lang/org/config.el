@@ -111,7 +111,7 @@ path too.")
           (?B . warning)
           (?C . success))
         org-startup-indented t
-        org-tags-column -80
+        org-tags-column 0
         org-use-sub-superscripts '{})
 
   (setq org-refile-targets
@@ -188,9 +188,10 @@ background (and foreground) match the current theme."
         ;; You don't need my permission (just be careful, mkay?)
         org-confirm-babel-evaluate nil
         org-link-elisp-confirm-function nil
-        org-link-shell-confirm-function t   ; except you, too dangerous
         ;; Show src buffer in popup, and don't monopolize the frame
-        org-src-window-setup 'other-window)
+        org-src-window-setup 'other-window
+        ;; Our :lang common-lisp module uses sly, so...
+        org-babel-lisp-eval-fn #'sly-eval)
 
   ;; I prefer C-c C-c over C-c ' (more consistent)
   (define-key org-src-mode-map (kbd "C-c C-c") #'org-edit-src-exit)
@@ -523,17 +524,16 @@ conditions where a window's buffer hasn't changed at the time this hook is run."
     "Remove link syntax and fix variable height text (e.g. org headings) in the
 eldoc string."
     :around #'org-format-outline-path
-    (let ((result (funcall orig-fn path width prefix separator))
-          (separator (or separator "/")))
-      (string-join
-       (cl-loop for part
-                in (cdr (split-string (substring-no-properties result) separator))
-                for n from 0
-                for face = (nth (% n org-n-level-faces) org-level-faces)
-                collect
-                (org-add-props (replace-regexp-in-string org-link-any-re "\\4" part)
-                    nil 'face `(:foreground ,(face-foreground face nil t) :weight bold)))
-       separator)))
+    (funcall orig-fn
+             (cl-loop for part in path
+                      ;; Remove full link syntax
+                      for part = (replace-regexp-in-string org-link-any-re "\\4" part)
+                      for n from 0
+                      for face = (nth (% n org-n-level-faces) org-level-faces)
+                      collect
+                      (org-add-props part
+                          nil 'face `(:foreground ,(face-foreground face nil t) :weight bold)))
+             width prefix separator))
 
   (defun +org--restart-mode-h ()
     "Restart `org-mode', but only once."
@@ -547,10 +547,11 @@ eldoc string."
       "Prevent temporarily-opened agenda buffers from being associated with the
 current workspace (and clean them up)."
       (when (and org-agenda-new-buffers (bound-and-true-p persp-mode))
-        (let (persp-autokill-buffer-on-remove)
-          (persp-remove-buffer org-agenda-new-buffers
-                               (get-current-persp)
-                               nil))
+        (unless org-agenda-sticky
+          (let (persp-autokill-buffer-on-remove)
+            (persp-remove-buffer org-agenda-new-buffers
+                                 (get-current-persp)
+                                 nil)))
         (dolist (buffer org-agenda-new-buffers)
           (with-current-buffer buffer
             ;; HACK Org agenda opens temporary agenda incomplete org-mode
@@ -690,9 +691,6 @@ between the two."
 
   (map! :after org-agenda
         :map org-agenda-mode-map
-        ;; Always clean up after itself
-        [remap org-agenda-quit] #'org-agenda-exit
-        [remap org-agenda-Quit] #'org-agenda-exit
         :localleader
         "d" #'org-agenda-deadline
         (:prefix ("c" . "clock")
@@ -981,6 +979,7 @@ compelling reason, so..."
   ;;; Custom org modules
   (if (featurep! +dragndrop) (load! "contrib/dragndrop"))
   (if (featurep! +ipython)   (load! "contrib/ipython"))
+  (if (featurep! +journal)   (load! "contrib/journal"))
   (if (featurep! +pomodoro)  (load! "contrib/pomodoro"))
   (if (featurep! +present)   (load! "contrib/present"))
 

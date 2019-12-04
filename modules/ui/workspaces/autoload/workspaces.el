@@ -305,7 +305,12 @@ workspace, otherwise the new workspace is blank."
 end of the workspace list."
   (interactive
    (list (or current-prefix-arg
-             (completing-read "Switch to workspace: " (+workspace-list-names)))))
+             (if (featurep! :completion ivy)
+                 (ivy-read "Switch to workspace: "
+                           (+workspace-list-names)
+                           :caller #'+workspace/switch-to
+                           :preselect (+workspace-current-name))
+               (completing-read "Switch to workspace: " (+workspace-list-names))))))
   (when (and (stringp index)
              (string-match-p "^[0-9]+$" index))
     (setq index (string-to-number index)))
@@ -318,9 +323,7 @@ end of the workspace list."
                    (error "No workspace at #%s" (1+ index)))
                  (+workspace-switch dest)))
               ((stringp index)
-               (unless (member index names)
-                 (error "No workspace named %s" index))
-               (+workspace-switch index))
+               (+workspace-switch index t))
               (t
                (error "Not a valid index: %s" index)))
         (unless (called-interactively-p 'interactive)

@@ -11,24 +11,24 @@
   :mode ("\\.rs$" . rustic-mode)
   :commands rustic-run-cargo-command rustic-cargo-outdated
   :preface
-  (setq rustic-rls-pkg (if (featurep! +lsp) 'lsp-mode))
+  (setq rustic-rls-pkg (if (featurep! +lsp) 'lsp-mode)
+        ;; `rustic-setup-rls' uses `package-installed-p' to determine if
+        ;; lsp-mode/elgot are available. This breaks because Doom doesn't use
+        ;; package.el to begin with (and lazy loads it). This is already handled
+        ;; by the :tools lsp module, so...
+        rustic-lsp-setup-p nil)
   :config
   (set-docsets! 'rustic-mode "Rust")
 
   (setq rustic-indent-method-chain t
         rustic-flycheck-setup-mode-line-p nil
         ;; use :editor format instead
-        rustic-format-on-save nil
+        rustic-format-trigger nil
         ;; REVIEW `rust-ordinary-lt-gt-p' is terribly expensive in large rust
         ;;        buffers, so we disable it, but only for evil users, because it
         ;;        affects `forward-sexp' and its ilk. See
         ;;        https://github.com/rust-lang/rust-mode/issues/288.
-        rustic-match-angle-brackets (not (featurep! :editor evil))
-        ;; `rustic-setup-rls' uses `package-installed-p' to determine if
-        ;; lsp-mode/elgot are available. This breaks because Doom doesn't use
-        ;; package.el to begin with (and lazy loads it). This is already handled
-        ;; by the :tools lsp module, so...
-        rustic-lsp-setup-p nil)
+        rustic-match-angle-brackets (not (featurep! :editor evil)))
 
   (add-hook 'rustic-mode-hook #'rainbow-delimiters-mode)
 
@@ -56,6 +56,12 @@
 (use-package! racer
   :unless (featurep! +lsp)
   :hook (rustic-mode . racer-mode)
+  :init
+  ;; Fix #2132: `racer' depends on `rust-mode', which tries to modify
+  ;; `auto-mode-alist'. We make extra sure that doesn't stick, especially when a
+  ;; buffer is reverted, as it is after rustfmt is done wiht it.
+  (after! rust-mode
+    (setq auto-mode-alist (delete '("\\.rs\\'" . rust-mode)) auto-mode-alist))
   :config
   (set-lookup-handlers! 'rustic-mode
     :definition '(racer-find-definition :async t)
