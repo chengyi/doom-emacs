@@ -313,7 +313,6 @@
 
   ;; replaces `apropos-documentation' b/c `apropos' covers this
   "d"    nil
-  "d/"   #'doom/help-search
   "da"   #'doom/help-autodefs
   "db"   #'doom/report-bug
   "dd"   #'doom/toggle-debug-mode
@@ -329,14 +328,14 @@
   "dP"   #'doom/help-package-homepage
   "dc"   #'doom/goto-config-file
   "dC"   #'doom/help-package-config
-  "ds"   #'doom/sandbox
+  "ds"   #'doom/help-search
+  "dx"   #'doom/sandbox
   "dt"   #'doom/toggle-profiler
   "dv"   #'doom/version
 
   ;; replaces `apropos-command'
   "a"    #'apropos
   "A"    #'apropos-documentation
-  "/"    #'apropos-documentation
   ;; replaces `describe-copying' b/c not useful
   "C-c"  #'describe-coding-system
   ;; replaces `Info-got-emacs-command-node' b/c redundant w/ `Info-goto-node'

@@ -376,11 +376,7 @@ Some commands of interest:
                  'error)))
 
   (after! projectile
-    (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir))
-
-  (after! recentf
-    (add-to-list 'recentf-exclude
-                 (lambda (file) (file-in-directory-p file org-attach-id-dir)))))
+    (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir)))
 
 
 (defun +org-init-centralized-exports-h ()
@@ -668,10 +664,14 @@ between the two."
           (:when (featurep! :completion ivy)
             "g" #'counsel-org-goto
             "G" #'counsel-org-goto-all)
+          (:when (featurep! :completion helm)
+            "g" #'helm-org-in-buffer-headings
+            "G" #'helm-org-agenda-files-headings)
           "c" #'org-clock-goto
           "C" (λ! (org-clock-goto 'select))
           "i" #'org-id-goto
           "r" #'org-refile-goto-last-stored
+          "v" #'+org/goto-visible
           "x" #'org-capture-goto-last-stored)
         (:prefix ("l" . "links")
           "c" 'org-cliplink
@@ -687,10 +687,12 @@ between the two."
           "l" #'+org/refile-to-last-location
           "o" #'+org/refile-to-other-window
           "O" #'+org/refile-to-other-buffers
+          "v" #'+org/refile-to-visible
           "r" #'org-refile)) ; to all `org-refile-targets'
 
   (map! :after org-agenda
         :map org-agenda-mode-map
+        :m "C-SPC" #'org-agenda-show-and-scroll-up
         :localleader
         "d" #'org-agenda-deadline
         (:prefix ("c" . "clock")

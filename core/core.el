@@ -228,7 +228,8 @@ users).")
 ;; Disable bidirectional text rendering for a modest performance boost. Of
 ;; course, this renders Emacs unable to detect/display right-to-left languages
 ;; (sorry!), but for us left-to-right language speakers/writers, it's a boon.
-(setq-default bidi-display-reordering 'left-to-right)
+(setq-default bidi-display-reordering 'left-to-right
+              bidi-paragraph-direction 'left-to-right)
 
 ;; Reduce rendering/line scan work for Emacs by not rendering cursors or regions
 ;; in non-focused windows.
@@ -247,8 +248,8 @@ users).")
 ;; Don't ping things that look like domain names.
 (setq ffap-machine-p-known 'reject)
 
-;; Performance on Windows is considerably worse than elsewhere. We'll need
-;; everything we can get.
+;; Performance on Windows is considerably worse than elsewhere, especially if
+;; WSL is involved. We'll need everything we can get.
 (when IS-WINDOWS
   ;; Reduce the workload when doing file IO
   (setq w32-get-true-file-attributes nil)
@@ -258,13 +259,13 @@ users).")
   ;; been determined.
   (setq inhibit-compacting-font-caches t))
 
-;; Remove command line options that aren't relevant to our current OS; that
-;; means less to process at startup.
+;; Remove command line options that aren't relevant to our current OS; means
+;; slightly less to process at startup.
 (unless IS-MAC   (setq command-line-ns-option-alist nil))
 (unless IS-LINUX (setq command-line-x-option-alist nil))
 
 ;; Adopt a sneaky garbage collection strategy of waiting until idle time to
-;; collect and staving off the collector while the user is working.
+;; collect; staving off the collector while the user is working.
 (when doom-interactive-mode
   (add-transient-hook! 'pre-command-hook (gcmh-mode +1))
   (with-eval-after-load 'gcmh
@@ -377,9 +378,7 @@ If this is a daemon session, load them all immediately instead."
 ;;; Bootstrap helpers
 
 (defun doom-try-run-hook (hook)
-  "Run HOOK (a hook function), but handle errors better, to make debugging
-issues easier.
-
+  "Run HOOK (a hook function) with better error handling.
 Meant to be used with `run-hook-wrapped'."
   (doom-log "Running doom hook: %s" hook)
   (condition-case e
@@ -402,18 +401,19 @@ If RETURN-P, return the message as a string instead of displaying it."
                (setq doom-init-time
                      (float-time (time-subtract (current-time) before-init-time))))))
 
-(defun doom-load-autoloads-file (file)
-  "Tries to load FILE (an autoloads file). Return t on success, throws an error
-in interactive sessions, nil otherwise (but logs a warning)."
+(defun doom-load-autoloads-file (file &optional noerror)
+  "Tries to load FILE (an autoloads file).
+Return t on success, nil otherwise (but logs a warning)."
   (condition-case e
-      (let (command-switch-alist)
-        (load (substring file 0 -3) 'noerror 'nomessage))
+      (load (substring file 0 -3) noerror 'nomessage)
     ((debug error)
      (message "Autoload file error: %s -> %s" (file-name-nondirectory file) e)
      nil)))
 
 (defun doom-load-envvars-file (file &optional noerror)
-  "Read and set envvars from FILE."
+  "Read and set envvars from FILE.
+If NOERROR is non-nil, don't throw an error if the file doesn't exist or is
+unreadable. Returns the names of envvars that were changed."
   (if (not (file-readable-p file))
       (unless noerror
         (signal 'file-error (list "Couldn't read envvar file" file)))
@@ -446,16 +446,13 @@ in interactive sessions, nil otherwise (but logs a warning)."
                 shell-file-name))
         envvars))))
 
-(defun doom-initialize (&optional force-p)
+(defun doom-initialize (&optional force-p noerror)
   "Bootstrap Doom, if it hasn't already (or if FORCE-P is non-nil).
 
-The bootstrap process involves making sure 1) the essential directories exist,
-2) the core packages are installed, 3) `doom-autoload-file' and
-`doom-package-autoload-file' exist and have been loaded, and 4) Doom's core
-files are loaded.
-
-If the cache exists, much of this function isn't run, which substantially
-reduces startup time.
+The bootstrap process ensures that the essential directories exist, all core
+packages are installed, `doom-autoload-file' and `doom-package-autoload-file'
+exist and are loaded, and that `core-packages' is auto-loaded when `package' or
+`straight' are.
 
 The overall load order of Doom is as follows:
 
@@ -494,12 +491,12 @@ to least)."
     (let (;; `doom-autoload-file' tells Emacs where to load all its functions
           ;; from. This includes everything in core/autoload/*.el and autoload
           ;; files in enabled modules.
-          (core-autoloads-p (doom-load-autoloads-file doom-autoload-file))
+          (core-autoloads-p (doom-load-autoloads-file doom-autoload-file noerror))
           ;; Loads `doom-package-autoload-file', which loads a concatenated
           ;; package autoloads file which caches `load-path', `auto-mode-alist',
           ;; `Info-directory-list', and `doom-disabled-packages'. A big
           ;; reduction in startup time.
-          (pkg-autoloads-p (doom-load-autoloads-file doom-package-autoload-file)))
+          (pkg-autoloads-p (doom-load-autoloads-file doom-package-autoload-file noerror)))
 
       (if (and core-autoloads-p pkg-autoloads-p (not force-p))
           ;; In case we want to use package.el or straight via M-x
@@ -509,6 +506,12 @@ to least)."
             (with-eval-after-load 'straight
               (require 'core-packages)
               (doom-initialize-packages)))
+
+        ;; Eagerly load these libraries because we may be in a session that hasn't been
+        ;; fully initialized (e.g. where autoloads files haven't been generated or
+        ;; `load-path' populated).
+        (mapc (doom-rpartial #'load nil (not doom-debug-mode) 'nosuffix)
+              (file-expand-wildcards (concat doom-core-dir "autoload/*.el")))
 
         ;; Create all our core directories to quell file errors
         (dolist (dir (list doom-local-dir
@@ -523,8 +526,7 @@ to least)."
         (doom-initialize-packages force-p))
 
       (unless (or (and core-autoloads-p pkg-autoloads-p)
-                  force-p
-                  (not doom-interactive-mode))
+                  noerror)
         (unless core-autoloads-p
           (warn "Your Doom core autoloads file is missing"))
         (unless pkg-autoloads-p

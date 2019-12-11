@@ -197,14 +197,7 @@ the command buffer."
       (when (and (helm-attr 'help-running-p)
                  (string= candidate (helm-attr 'help-current-symbol))
                  (setq win (get-buffer-window (get-buffer (help-buffer)))))
-        (delete-window win))))
-
-  ;; `helm-ag'
-  (defadvice! +popup--helm-pop-to-buffer-a (orig-fn &rest args)
-    :around #'helm-ag--edit
-    (pop-to-buffer
-     (save-window-excursion (apply orig-fn args)
-                            (current-buffer)))))
+        (delete-window win)))))
 
 
 ;;;###package Info

@@ -56,7 +56,8 @@ possible."
 
 ;; Resolve symlinks when opening files, so that any operations are conducted
 ;; from the file's true directory (like `find-file').
-(setq find-file-visit-truename t)
+(setq find-file-visit-truename t
+      vc-follow-symlinks t)
 
 ;; Disable the warning "X and Y are the same file". It's fine to ignore this
 ;; warning as it will redirect you to the existing buffer anyway.
@@ -198,12 +199,7 @@ possible."
   (setq recentf-save-file (concat doom-cache-dir "recentf")
         recentf-auto-cleanup 'never
         recentf-max-menu-items 0
-        recentf-max-saved-items 200
-        recentf-exclude
-        (list "\\.\\(?:gz\\|gif\\|svg\\|png\\|jpe?g\\)$" "^/tmp/" "^/ssh:"
-              "\\.?ido\\.last$" "\\.revive$" "/TAGS$" "^/var/folders/.+$"
-              ;; ignore private DOOM temp files
-              (concat "^" (recentf-apply-filename-handlers doom-local-dir))))
+        recentf-max-saved-items 200)
 
   (add-hook! '(doom-switch-window-hook write-file-functions)
     (defun doom--recentf-touch-buffer-h ()
@@ -490,6 +486,8 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   (delq! 'buffer-read-only so-long-variable-overrides 'assq)
   ;; ...but at least reduce the level of syntax highlighting
   (add-to-list 'so-long-variable-overrides '(font-lock-maximum-decoration . 1))
+  ;; Text files could possibly be too long too
+  (add-to-list 'so-long-target-modes 'text-mode)
   ;; But disable everything else that may be unnecessary/expensive for large
   ;; or wide buffers.
   (appendq! so-long-minor-modes
