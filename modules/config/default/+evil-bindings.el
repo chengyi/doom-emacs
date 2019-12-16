@@ -141,7 +141,8 @@
             "C-SPC"   #'company-complete-common
             "TAB"     #'company-complete-common-or-cycle
             [tab]     #'company-complete-common-or-cycle
-            [backtab] #'company-select-previous)
+            [backtab] #'company-select-previous
+            [f1]      nil)
           (:map company-search-map  ; applies to `company-filter-map' too
             "C-n"     #'company-select-next-or-abort
             "C-p"     #'company-select-previous-or-abort
@@ -395,8 +396,8 @@
       ;;; <leader> g --- git
       (:prefix-map ("g" . "git")
         :desc "Git revert file"             "R"   #'vc-revert
-        :desc "Copy git link"               "y"   #'git-link
-        :desc "Copy git link to homepage"   "Y"   #'git-link-homepage
+        :desc "Copy link to remote"         "y"   #'+vc/browse-at-remote-kill-file-or-region
+        :desc "Copy link to homepage"       "Y"   #'+vc/browse-at-remote-kill-homepage
         (:when (featurep! :ui vc-gutter)
           :desc "Git revert hunk"           "r"   #'git-gutter:revert-hunk
           :desc "Git stage hunk"            "s"   #'git-gutter:stage-hunk
@@ -422,7 +423,8 @@
             :desc "Find issue"                "i"   #'forge-visit-issue
             :desc "Find pull request"         "p"   #'forge-visit-pullreq)
           (:prefix ("o" . "open in browser")
-            :desc "Browse region or line"     "o"   #'+vc/git-browse-region-or-line
+            :desc "Browse file or region"     "o"   #'+vc/browse-at-remote-file-or-region
+            :desc "Browse homepage"           "h"   #'+vc/browse-at-remote-homepage
             :desc "Browse remote"             "r"   #'forge-browse-remote
             :desc "Browse commit"             "c"   #'forge-browse-commit
             :desc "Browse an issue"           "i"   #'forge-browse-issue
@@ -581,7 +583,8 @@
         :desc "Search other directory"       "D" #'+default/search-other-cwd
         :desc "Locate file"                  "f" #'locate
         :desc "Jump to symbol"               "i" #'imenu
-        :desc "Jump to link"                 "l" #'ace-link
+        :desc "Jump to visible link"         "l" #'ace-link
+        :desc "Jump to link"                 "L" #'ffap-menu
         :desc "Jump list"                    "j" #'evil-show-jumps
         :desc "Jump to mark"                 "m" #'evil-show-marks
         :desc "Look up online"               "o" #'+lookup/online

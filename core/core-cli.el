@@ -222,8 +222,9 @@ BODY will be run when this dispatcher is called."
 (defcligroup! "Maintenance"
   "For managing your config and packages"
   (defcli! (refresh re sync)
-    ((if-necessary-p ["-n" "--if-necessary"] "Only regenerate autoloads files if necessary")
-     (purge-p ["-p" "--purge"] "Also purge orphaned repos and ELPA packages"))
+    ((if-necessary-p   ["-n" "--if-necessary"] "Only regenerate autoloads files if necessary")
+     (inhibit-envvar-p ["-e"] "Don't regenerate the envvar file")
+     (prune-p          ["-p" "--prune"] "Purge orphaned packages & regraft repos"))
     "Ensure Doom is properly set up.
 
 This is the equivalent of running autoremove, install, autoloads, then
@@ -241,7 +242,8 @@ stale."
     (print! (start "Initiating a refresh of Doom Emacs..."))
     (print-group!
      (let (success)
-       (when (file-exists-p doom-env-file)
+       (when (and (not inhibit-envvar-p)
+                  (file-exists-p doom-env-file))
          (doom-cli-reload-env-file 'force))
 
        ;; Ensures that no pre-existing state pollutes the generation of the new
@@ -259,7 +261,7 @@ stale."
                   (setq success t))
              (and (doom-cli-packages-build)
                   (setq success t))
-             (and (doom-cli-packages-purge purge-p 'builds-p purge-p)
+             (and (doom-cli-packages-purge prune-p 'builds-p prune-p prune-p)
                   (setq success t)))
          (doom-cli-reload-package-autoloads (or success (not if-necessary-p)))
          (doom-cli-byte-compile nil 'recompile))

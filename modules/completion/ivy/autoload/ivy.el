@@ -14,6 +14,16 @@
          (+workspace-contains-buffer-p buffer))))
 
 ;;;###autoload
+(defun +ivy-standard-search (str)
+  "TODO"
+  (funcall +ivy-standard-search-fn str))
+
+;;;###autoload
+(defun +ivy-alternative-search (str)
+  "TODO"
+  (funcall +ivy-alternative-search-fn str))
+
+;;;###autoload
 (defun +ivy-rich-buffer-name (candidate)
   "Display the buffer name.
 
@@ -21,16 +31,7 @@ Buffers that are considered unreal (see `doom-real-buffer-p') are dimmed with
 `+ivy-buffer-unreal-face'."
   (let ((b (get-buffer candidate)))
     (when (null uniquify-buffer-name-style)
-      (when-let* ((file-path (buffer-file-name b))
-                  (uniquify-buffer-name-style 'forward))
-        (setq candidate
-              (uniquify-get-proposed-name
-               (replace-regexp-in-string "<[0-9]+>$" "" (buffer-name b))
-               (directory-file-name
-                (if file-path
-                    (file-name-directory file-path)
-                  default-directory))
-               1))))
+      (setq candidate (replace-regexp-in-string "<[0-9]+>$" "" candidate)))
     (cond ((ignore-errors
              (file-remote-p
               (buffer-local-value 'default-directory b)))
@@ -165,10 +166,10 @@ If ARG (universal argument), open selection in other-window."
     (user-error "No completion session is active"))
   (require 'wgrep)
   (let ((caller (ivy-state-caller ivy-last)))
-    (if-let* ((occur-fn (plist-get +ivy-edit-functions caller)))
+    (if-let (occur-fn (plist-get +ivy-edit-functions caller))
         (ivy-exit-with-action
          (lambda (_) (funcall occur-fn)))
-      (if-let* ((occur-fn (plist-get ivy--occurs-list caller)))
+      (if-let (occur-fn (plist-get ivy--occurs-list caller))
           (let ((buffer (generate-new-buffer
                          (format "*ivy-occur%s \"%s\"*"
                                  (if caller (concat " " (prin1-to-string caller)) "")

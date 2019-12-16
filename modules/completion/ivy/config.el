@@ -7,16 +7,6 @@ When nil, don't preview anything.
 When non-nil, preview non-virtual buffers.
 When 'everything, also preview virtual buffers")
 
-(defvar +ivy-project-search-engines '(rg ag)
-  "What search tools for `+ivy/project-search' (and `+ivy-file-search' when no
-ENGINE is specified) to try, and in what order.
-
-To disable a particular tool, remove it from this list. To prioritize a tool
-over others, move it to the front of the list. Later duplicates in this list are
-silently ignored.
-
-If you want to already use git-grep or grep, set this to nil.")
-
 (defvar +ivy-buffer-unreal-face 'font-lock-comment-face
   "The face for unreal buffers in `ivy-switch-to-buffer'.")
 
@@ -44,14 +34,12 @@ results buffer.")
   :after-call pre-command-hook
   :init
   (setq ivy-re-builders-alist
-        `(,@(cl-loop for cmd in '(counsel-ag
-                                  counsel-rg
-                                  counsel-grep
+        `(,@(cl-loop for cmd in '(counsel-rg
                                   swiper
                                   swiper-isearch)
-                     collect (cons cmd +ivy-standard-search-fn))
+                     collect (cons cmd #'+ivy-alternative-search))
           ;; Ignore order for non-fuzzy searches by default
-          (t . ,+ivy-alternative-search-fn)))
+          (t . +ivy-standard-search)))
 
   (define-key!
     [remap switch-to-buffer]              #'+ivy/switch-buffer
@@ -75,7 +63,7 @@ results buffer.")
         ;; ...but if that ever changes, show their full path
         ivy-virtual-abbreviate 'full
         ;; don't quit minibuffer on delete-error
-        ivy-on-del-error-function nil
+        ivy-on-del-error-function #'ignore
         ;; enable ability to select prompt (alternative to `ivy-immediate-done')
         ivy-use-selectable-prompt t)
 
@@ -247,7 +235,8 @@ evil-ex-specific constructs, so we disable it solely in evil-ex."
     ;; Persist `counsel-compile' history
     (add-to-list 'savehist-additional-variables 'counsel-compile-history))
 
-  ;; Use spotlight on mac for `counsel-locate' by default
+  ;; Use spotlight on mac for `counsel-locate' by default, since it doesn't need
+  ;; any additional setup.
   (when IS-MAC
     (setq counsel-locate-cmd #'counsel-locate-cmd-mdfind))
 
@@ -257,37 +246,18 @@ evil-ex-specific constructs, so we disable it solely in evil-ex."
   ;; Record in jumplist when opening files via counsel-{ag,rg,pt,git-grep}
   (add-hook 'counsel-grep-post-action-hook #'better-jumper-set-jump)
 
-  ;; Factories
-  (defun +ivy-action-reloading (cmd)
-    (lambda (x)
-      (funcall cmd x)
-      (ivy--reset-state ivy-last)))
-
-  (defun +ivy-action-given-file (cmd prompt)
-    (lambda (source)
-      (let* ((enable-recursive-minibuffers t)
-             (target (read-file-name (format "%s %s to:" prompt source))))
-        (funcall cmd source target 1))))
-
   ;; Configure `counsel-find-file'
   (setq counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:[#~]$\\)\\|\\(?:^Icon?\\)")
   (ivy-add-actions
    'counsel-find-file
-   `(("b" counsel-find-file-cd-bookmark-action "cd bookmark")
-     ("s" counsel-find-file-as-root "open as root")
-     ("m" counsel-find-file-mkdir-action "mkdir")
-     ("c" ,(+ivy-action-given-file #'copy-file "Copy file") "copy file")
-     ("d" ,(+ivy-action-reloading #'+ivy-confirm-delete-file) "delete")
-     ("r" (lambda (path) (rename-file path (read-string "New name: "))) "rename")
-     ("R" ,(+ivy-action-reloading (+ivy-action-given-file #'rename-file "Move")) "move")
-     ("f" find-file-other-window "other window")
-     ("F" find-file-other-frame "other frame")
-     ("p" (lambda (path) (with-ivy-window (insert (file-relative-name path default-directory)))) "insert relative path")
-     ("P" (lambda (path) (with-ivy-window (insert path))) "insert absolute path")
-     ("l" (lambda (path) "Insert org-link with relative path"
-            (with-ivy-window (insert (format "[[./%s]]" (file-relative-name path default-directory))))) "insert org-link (rel. path)")
-     ("L" (lambda (path) "Insert org-link with absolute path"
-            (with-ivy-window (insert (format "[[%s]]" path)))) "insert org-link (abs. path)")))
+   '(("p" (lambda (path) (with-ivy-window (insert (file-relative-name path default-directory))))
+      "insert relative path")
+     ("P" (lambda (path) (with-ivy-window (insert path)))
+      "insert absolute path")
+     ("l" (lambda (path) (with-ivy-window (insert (format "[[./%s]]" (file-relative-name path default-directory)))))
+      "insert relative org-link")
+     ("L" (lambda (path) (with-ivy-window (insert (format "[[%s]]" path))))
+      "Insert absolute org-link")))
 
   (ivy-add-actions
    'counsel-ag ; also applies to `counsel-rg'
