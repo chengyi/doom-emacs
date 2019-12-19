@@ -144,6 +144,9 @@ If DEFAULT is non-nil, apply to all future buffers. Modelines are defined with
 See `def-modeline!' on how modelines are defined."
   (let ((fn (intern (format "+modeline-set-%s-format-h" name))))
     (dolist (hook (doom-enlist hooks))
+      (when after-init-time
+        (dolist (name (mapcar #'car +modeline-format-alist))
+          (remove-hook hook (intern (format "+modeline-set-%s-format-h" name)))))
       (add-hook hook fn))))
 
 (defmacro def-modeline! (name lhs rhs)
@@ -545,7 +548,7 @@ lines are selected, or the NxM dimensions of a block selection.")
 ;; Other modes
 (set-modeline! :main 'default)
 (set-modeline-hook! '+doom-dashboard-mode-hook 'project)
-(set-modeline-hook! 'pdf-tools-enabled-hook 'pdf)
+;; (set-modeline-hook! 'pdf-tools-enabled-hook 'pdf)
 (set-modeline-hook! '(special-mode-hook
                       image-mode-hook
                       circe-mode-hook)
