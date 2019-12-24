@@ -237,7 +237,8 @@ Small modules that give Emacs access to external tools & services.
 + flycheck - Live error/warning highlights
 + flyspell - Spell checking
 + gist - TODO
-+ [[file:../modules/tools/lookup/README.org][lookup]] =+docsets= - Universal jump-to & documentation lookup backend
++ [[file:../modules/tools/lookup/README.org][lookup]] =+dictionary +docsets= - Universal jump-to & documentation lookup
+  backend
 + [[file:../modules/tools/lsp/README.org][lsp]] - TODO
 + macos - TODO
 + magit - TODO
@@ -274,3 +275,4 @@ Aesthetic modules that affect the Emacs interface or user experience.
 + vi-tilde-fringe - TODO
 + [[file:../modules/ui/window-select/README.org][window-select]] =+switch-window +numbers= - TODO
 + [[file:../modules/ui/workspaces/README.org][workspaces]] - Isolated workspaces
++ [[file:../modules/ui/zen/README.org][zen]] - Distraction-free coding (or writing)

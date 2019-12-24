@@ -31,7 +31,6 @@ Emacs.")
   :init
   (setq projectile-cache-file (concat doom-cache-dir "projectile.cache")
         projectile-enable-caching doom-interactive-mode
-        projectile-files-cache-expire 86400 ; expire after a day
         projectile-globally-ignored-files '(".DS_Store" "Icon" "TAGS")
         projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o")
         projectile-kill-buffers-filter 'kill-only-files
@@ -66,18 +65,13 @@ Emacs.")
                   ".git")        ; Git VCS root dir
                 (when (executable-find "hg")
                   '(".hg"))      ; Mercurial VCS root dir
-                (when (executable-find "fossil")
-                  '(".fslckout"  ; Fossil VCS root dir
-                    "_FOSSIL_")) ; Fossil VCS root DB on Windows
                 (when (executable-find "bzr")
-                  '(".bzr"))     ; Bazaar VCS root dir
-                (when (executable-find "darcs")
-                  '("_darcs")))  ; Darcs VCS root dir
+                  '(".bzr")))    ; Bazaar VCS root dir
         ;; This will be filled by other modules. We build this list manually so
         ;; projectile doesn't perform so many file checks every time it resolves
         ;; a project's root -- particularly when a file has no project.
-        projectile-project-root-files '("TAGS")
-        projectile-project-root-files-top-down-recurring '(".svn" "Makefile"))
+        projectile-project-root-files '()
+        projectile-project-root-files-top-down-recurring '("Makefile"))
 
   (push (abbreviate-file-name doom-local-dir) projectile-globally-ignored-directories)
 
@@ -157,18 +151,8 @@ c) are not valid projectile projects."
 
    ;; Fix breakage on windows in git projects with submodules, since Windows
    ;; doesn't have tr
-   ((not (executable-find "tr"))
+   (IS-WINDOWS
     (setq projectile-git-submodule-command nil)))
-
-  (defadvice! doom--projectile-cache-timers-a ()
-    "Persist `projectile-projects-cache-time' across sessions, so that
-`projectile-files-cache-expire' checks won't reset when restarting Emacs."
-    :before #'projectile-serialize-cache
-    (projectile-serialize projectile-projects-cache-time doom-projectile-cache-timer-file))
-  ;; Restore it
-  (when (file-readable-p doom-projectile-cache-timer-file)
-    (setq projectile-projects-cache-time
-          (projectile-unserialize doom-projectile-cache-timer-file)))
 
   (defadvice! doom--projectile-default-generic-command-a (orig-fn &rest args)
     "If projectile can't tell what kind of project you're in, it issues an error
@@ -184,12 +168,11 @@ the command instead."
   ;; Projectile root-searching functions can cause an infinite loop on TRAMP
   ;; connections, so disable them.
   ;; TODO Is this still necessary?
-  (defadvice! doom--projectile-locate-dominating-file-a (orig-fn file name)
+  (defadvice! doom--projectile-locate-dominating-file-a (file _name)
     "Don't traverse the file system if on a remote connection."
-    :around #'projectile-locate-dominating-file
-    (when (and (stringp file)
-               (not (file-remote-p file nil t)))
-      (funcall orig-fn file name))))
+    :before-while #'projectile-locate-dominating-file
+    (and (stringp file)
+         (not (file-remote-p file nil t)))))
 
 
 ;;

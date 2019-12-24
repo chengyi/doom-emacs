@@ -273,6 +273,16 @@ users).")
           gcmh-verbose doom-debug-mode)
     (add-hook 'focus-out-hook #'gcmh-idle-garbage-collect)))
 
+;; HACK `tty-run-terminal-initialization' is *tremendously* slow for some
+;;      reason. Disabling it completely could have many side-effects, so we
+;;      defer it until later.
+(unless (display-graphic-p)
+  (advice-add #'tty-run-terminal-initialization :override #'ignore)
+  (add-hook! 'window-setup-hook
+    (defun doom-init-tty-h ()
+      (advice-remove #'tty-run-terminal-initialization #'ignore)
+      (tty-run-terminal-initialization (selected-frame) nil t))))
+
 
 ;;
 ;;; MODE-local-vars-hook

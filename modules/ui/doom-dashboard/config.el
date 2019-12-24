@@ -125,6 +125,10 @@ PLIST can have the following properties:
     ;; `persp-mode' integration: update `default-directory' when switching perspectives
     (add-hook 'persp-created-functions #'+doom-dashboard--persp-record-project-h)
     (add-hook 'persp-activated-functions #'+doom-dashboard--persp-detect-project-h)
+    ;; HACK Fix #2219 where, in GUI daemon frames, the dashboard loses center
+    ;;      alignment after switching (or killing) workspaces.
+    (when (daemonp)
+      (add-hook 'persp-activated-functions #'+doom-dashboard-reload-maybe-h))
     (add-hook 'persp-before-switch-functions #'+doom-dashboard--persp-record-project-h)))
 
 (add-hook 'doom-init-ui-hook #'+doom-dashboard-init-h)
@@ -202,7 +206,7 @@ PLIST can have the following properties:
         (goto-char (point-min))
         (forward-button 1))))
 
-(defun +doom-dashboard-reload-maybe-h ()
+(defun +doom-dashboard-reload-maybe-h (&rest _)
   "Reload the dashboard or its state.
 
 If this isn't a dashboard buffer, move along, but record its `default-directory'

@@ -262,7 +262,7 @@
         "s-/" (λ! (save-excursion (comment-line 1)))
         :n "s-/" #'evilnc-comment-or-uncomment-lines
         :v "s-/" #'evilnc-comment-operator
-        :gi  [s-backspace] #'doom/backward-kill-to-bol-and-indent
+        :gi  [s-backspace] #'evil-delete-back-to-indentation
         :gi  [s-left]      #'doom/backward-to-bol-or-indent
         :gi  [s-right]     #'doom/forward-to-last-non-comment-or-eol
         :gi  [M-backspace] #'backward-kill-word
@@ -328,7 +328,8 @@
   "dP"   #'doom/help-package-homepage
   "dc"   #'doom/goto-config-file
   "dC"   #'doom/help-package-config
-  "ds"   #'doom/help-search
+  "ds"   #'doom/help-search-headings
+  "dS"   #'doom/help-search
   "dx"   #'doom/sandbox
   "dt"   #'doom/toggle-profiler
   "dv"   #'doom/version

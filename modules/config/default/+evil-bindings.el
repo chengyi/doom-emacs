@@ -1,18 +1,12 @@
 ;;; config/default/+bindings.el -*- lexical-binding: t; -*-
 
 (when (featurep! :editor evil +everywhere)
-  ;; Have C-u behave similarly to `doom/backward-to-bol-or-indent'.
   ;; NOTE SPC u replaces C-u as the universal argument.
-  (map! :i "C-u" #'doom/backward-kill-to-bol-and-indent
-        :i "C-w" #'backward-kill-word
-        ;; Vimmish ex motion keys
-        :i "C-b" #'backward-word
-        :i "C-f" #'forward-word)
 
   ;; Minibuffer
   (define-key! evil-ex-completion-map
-    "C-a" #'move-beginning-of-line
-    "C-b" #'backward-word
+    "C-a" #'evil-beginning-of-line
+    "C-b" #'evil-backward-char
     "C-s" (if (featurep! :completion ivy)
               #'counsel-minibuffer-history
             #'helm-minibuffer-history))
@@ -20,12 +14,10 @@
   (define-key! :keymaps +default-minibuffer-maps
     [escape] #'abort-recursive-edit
     "C-a"    #'move-beginning-of-line
-    "C-b"    #'backward-word
-    "C-f"    #'forward-word
     "C-r"    #'evil-paste-from-register
-    "C-u"    #'doom/backward-kill-to-bol-and-indent
+    "C-u"    #'evil-delete-back-to-indentation
     "C-v"    #'yank
-    "C-w"    #'backward-kill-word
+    "C-w"    #'evil-delete-backward-word
     "C-z"    (λ! (ignore-errors (call-interactively #'undo)))
     ;; Scrolling lines
     "C-j"    #'next-line
@@ -87,7 +79,8 @@
       :m "gs"     #'+evil/easymotion  ; lazy-load `evil-easymotion'
       (:after org
         :map org-mode-map
-        :m "gsh" #'+org/goto-visible)
+        :prefix "<easymotion>"
+        "h" #'+org/goto-visible)
 
       (:when (featurep! :editor multiple-cursors)
         :prefix "gz"
@@ -621,7 +614,8 @@
           :desc "Flyspell"                   "s" #'flyspell-mode)
         (:when (featurep! :lang org +pomodoro)
           :desc "Pomodoro timer"             "t" #'org-pomodoro)
-        :desc "Word-wrap mode"               "w" #'+word-wrap-mode))
+        :desc "Word-wrap mode"               "w" #'+word-wrap-mode
+        :desc "Zen mode"                     "z" #'writeroom-mode))
 
 (after! which-key
   (let ((prefix-re (regexp-opt (list doom-leader-key doom-leader-alt-key))))
