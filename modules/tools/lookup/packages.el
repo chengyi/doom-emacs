@@ -10,11 +10,8 @@
 ;;
 (package! dumb-jump)
 (when (featurep! :completion ivy)
-  (package! ivy-xref)
-  ;; Need for Google/DuckDuckGo auto-completion on `+lookup/online'
-  (package! request))
+  (package! ivy-xref))
 (when (featurep! :completion helm)
-  (package! helm-google)
   (package! helm-xref))
 
 (when (featurep! +docsets)
@@ -28,4 +25,6 @@
   (if IS-MAC
       (package! osx-dictionary)
     (package! define-word))
-  (package! powerthesaurus))
+  ;; Need for Google/DuckDuckGo auto-completion on `+lookup/online'
+  (package! powerthesaurus)
+  (package! request))

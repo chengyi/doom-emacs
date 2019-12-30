@@ -142,7 +142,7 @@
             "C-j"     #'company-select-next-or-abort
             "C-k"     #'company-select-previous-or-abort
             "C-s"     (λ! (company-search-abort) (company-filter-candidates))
-            "ESC"     #'company-search-abort))
+            [escape]  #'company-search-abort))
         ;; TAB auto-completion in term buffers
         (:after comint :map comint-mode-map
           "TAB" #'company-complete
@@ -340,6 +340,7 @@
         :desc "Revert buffer"               "r"   #'revert-buffer
         :desc "Save buffer"                 "s"   #'basic-save-buffer
         :desc "Save all buffers"            "S"   #'evil-write-all
+        :desc "Save buffer as root"         "u"   #'doom/sudo-save-buffer
         :desc "Pop up scratch buffer"       "x"   #'doom/open-scratch-buffer
         :desc "Switch to scratch buffer"    "X"   #'doom/switch-to-scratch-buffer
         :desc "Bury buffer"                 "z"   #'bury-buffer

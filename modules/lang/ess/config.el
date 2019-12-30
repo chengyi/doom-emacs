@@ -10,15 +10,13 @@
 (use-package! ess
   :commands stata SAS
   :init
-  (setq ess-smart-S-assign-key nil)
   (unless (featurep! :lang julia)
     (add-to-list 'auto-mode-alist '("\\.jl\\'" . ess-julia-mode)))
   :config
   (setq ess-offset-continued 'straight
-        ess-expression-offset 2
         ess-use-flymake (not (featurep! :tools flycheck))
         ess-nuke-trailing-whitespace-p t
-        ess-default-style 'DEFAULT
+        ess-style 'DEFAULT
         ess-history-directory (expand-file-name "ess-history/" doom-cache-dir))
 
   (set-repl-handler! 'ess-r-mode #'+ess/open-r-repl)
@@ -29,6 +27,11 @@
   (set-evil-initial-state! 'ess-r-help-mode 'normal)
   (set-eval-handler! 'ess-help-mode #'ess-eval-region-and-go)
   (set-eval-handler! 'ess-r-help-mode #'ess-eval-region-and-go)
+
+  (setq-hook! 'ess-r-mode-hook
+    ;; HACK Fix #2233: Doom continues comments on RET, but ess-r-mode doesn't
+    ;;      have a sane `comment-line-break-function', so...
+    comment-line-break-function nil)
 
   (map! (:after ess-help
           :map ess-help-mode-map
