@@ -10,9 +10,9 @@ between HEAD and FETCH_HEAD. This can take a while.
 This excludes packages whose `package!' declaration contains a non-nil :freeze
 or :ignore property."
   (straight-check-all)
-  (doom-cli-reload-core-autoloads)
+  (doom-cli-reload-autoloads 'core)
   (when (doom-cli-packages-update)
-    (doom-cli-reload-package-autoloads 'force-p))
+    (doom-cli-reload-autoloads 'package))
   t)
 
 (defcli! (build b)
@@ -23,7 +23,7 @@ This ensures that all needed files are symlinked from their package repo and
 their elisp files are byte-compiled. This is especially necessary if you upgrade
 Emacs (as byte-code is generally not forward-compatible)."
   (when (doom-cli-packages-build (not rebuild-p))
-    (doom-cli-reload-package-autoloads 'force-p))
+    (doom-cli-reload-autoloads 'package))
   t)
 
 (defcli! (purge p)
@@ -46,7 +46,7 @@ list remains lean."
          (not norepos-p)
          (not nobuilds-p)
          regraft-p)
-    (doom-cli-reload-package-autoloads 'force-p))
+    (doom-cli-reload-autoloads 'package))
   t)
 
 ;; (defcli! rollback () ; TODO doom rollback
@@ -296,10 +296,11 @@ declaration) or dependency thereof that hasn't already been."
              (if (file-directory-p path)
                  (delete-directory path 'recursive)
                (delete-file path))
-             (print! (success "Deleted %s") (relpath path)))
+             (print! (success "Deleted %s") (filename path)))
           (error
            (print! (error "Failed to delete %s because: %s")
-                   (relpath path) e)))))))
+                   (filename path)
+                   e)))))))
 
 (defun doom-cli-packages-purge (&optional elpa-p builds-p repos-p regraft-repos-p)
   "Auto-removes orphaned packages and repos.
@@ -310,7 +311,7 @@ a `package!' declaration) or isn't depended on by another primary package.
 If BUILDS-P, include straight package builds.
 If REPOS-P, include straight repos.
 If ELPA-P, include packages installed with package.el (M-x package-install)."
-  (print! (start "Searching for orphaned packages to purge (for the emperor)..."))
+  (print! (start "Purging orphaned packages (for the emperor)..."))
   (cl-destructuring-bind (&optional builds-to-purge repos-to-purge repos-to-regraft)
       (let ((rdirs (straight--directory-files (straight--repos-dir) nil nil 'sort))
             (bdirs (straight--directory-files (straight--build-dir) nil nil 'sort)))
