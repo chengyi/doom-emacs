@@ -379,6 +379,7 @@ current file is in, or d) the module associated with the current major mode (see
   (cl-destructuring-bind (module-string path)
       (or (assoc (format "%s %s" category module) (doom--help-modules-list))
           (user-error "'%s %s' is not a valid module" category module))
+    (setq module-string (substring-no-properties module-string))
     (unless (file-readable-p path)
       (error "Can't find or read %S module at %S" module-string path))
     (cond ((not (file-directory-p path))
@@ -621,10 +622,7 @@ config blocks in your private config."
 
 
 (defun doom--help-search-prompt (prompt)
-  (let ((query
-         (if (use-region-p)
-             (buffer-substring-no-properties (region-beginning) (region-end))
-           (or (thing-at-point 'symbol t) ""))))
+  (let ((query (doom-thing-at-point-or-region)))
     (if (featurep 'counsel)
         query
       (read-string prompt query 'git-grep query))))

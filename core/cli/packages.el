@@ -10,9 +10,9 @@ between HEAD and FETCH_HEAD. This can take a while.
 This excludes packages whose `package!' declaration contains a non-nil :freeze
 or :ignore property."
   (straight-check-all)
-  (doom-cli-reload-autoloads 'core)
+  (doom-cli-reload-core-autoloads)
   (when (doom-cli-packages-update)
-    (doom-cli-reload-autoloads 'package))
+    (doom-cli-reload-package-autoloads))
   t)
 
 (defcli! (build b)
@@ -23,7 +23,7 @@ This ensures that all needed files are symlinked from their package repo and
 their elisp files are byte-compiled. This is especially necessary if you upgrade
 Emacs (as byte-code is generally not forward-compatible)."
   (when (doom-cli-packages-build (not rebuild-p))
-    (doom-cli-reload-autoloads 'package))
+    (doom-cli-reload-package-autoloads))
   t)
 
 (defcli! (purge p)
@@ -46,7 +46,7 @@ list remains lean."
          (not norepos-p)
          (not nobuilds-p)
          regraft-p)
-    (doom-cli-reload-autoloads 'package))
+    (doom-cli-reload-package-autoloads))
   t)
 
 ;; (defcli! rollback () ; TODO doom rollback
@@ -64,8 +64,8 @@ list remains lean."
 
 This function will install any primary package (i.e. a package with a `package!'
 declaration) or dependency thereof that hasn't already been."
-  (print! (start "Installing & building packages..."))
   (straight--transaction-finalize)
+  (print! (start "Installing & building packages..."))
   (print-group!
    (let ((versions-alist doom-pinned-packages)
          (n 0))
@@ -74,9 +74,7 @@ declaration) or dependency thereof that hasn't already been."
            (package local-repo)
          (let ((existed-p (file-directory-p (straight--repos-dir package))))
            (condition-case-unless-debug e
-               (and (straight-use-package
-                     (intern package) nil nil
-                     (make-string (1- (or doom-format-indent 1)) 32))
+               (and (straight-use-package (intern package))
                     (not existed-p)
                     (file-directory-p (straight--repos-dir package))
                     (if-let (commit (cdr (assoc package versions-alist)))
@@ -100,32 +98,26 @@ declaration) or dependency thereof that hasn't already been."
 
 (defun doom-cli-packages-build (&optional force-p)
   "(Re)build all packages."
-  (print! (start "(Re)building %spackages...") (if force-p "all " ""))
   (straight--transaction-finalize)
+  (print! (start "(Re)building %spackages...") (if force-p "all " ""))
   (print-group!
-   (let ((straight-check-for-modifications
-          (when (file-directory-p (straight--modified-dir))
-            '(find-when-checking)))
-         (straight--allow-find (and straight-check-for-modifications t))
-         (straight--packages-not-to-rebuild
-          (or straight--packages-not-to-rebuild (make-hash-table :test #'equal)))
-         (straight-use-package-pre-build-functions
-          straight-use-package-pre-build-functions)
-         (n 0))
-     (add-hook! 'straight-use-package-pre-build-functions (cl-incf n))
-     (if force-p
-         (let ((straight--packages-to-rebuild :all))
-           (dolist (package (hash-table-keys straight--recipe-cache))
-             (straight-use-package
-              (intern package) nil nil
-              (make-string (1- (or doom-format-indent 1)) 32))))
-       (straight--make-package-modifications-available)
-       (dolist (recipe (hash-table-values straight--recipe-cache))
-         (straight--with-plist recipe (package local-repo no-build)
-           (unless (or no-build (null local-repo))
-             (straight-use-package
-              (intern package) nil nil
-              (make-string (or doom-format-indent 0) 32))))))
+   (let* ((n 0)
+          (straight-check-for-modifications
+           (when (file-directory-p (straight--modified-dir))
+             '(find-when-checking)))
+          (straight--allow-find (and straight-check-for-modifications t))
+          (straight--packages-not-to-rebuild
+           (or straight--packages-not-to-rebuild (make-hash-table :test #'equal)))
+          (straight--packages-to-rebuild
+           (or (if force-p :all straight--packages-to-rebuild)
+               (make-hash-table :test #'equal)))
+          (straight-use-package-pre-build-functions
+           (cons (lambda (&rest _) (cl-incf n))
+                 straight-use-package-pre-build-functions)))
+     (unless force-p
+       (straight--make-package-modifications-available))
+     (dolist (package (hash-table-keys straight--recipe-cache))
+       (straight-use-package (intern package)))
      (if (= n 0)
          (ignore (print! (success "No packages need rebuilding")))
        (print! (success "Rebuilt %d package(s)" n))
@@ -134,8 +126,8 @@ declaration) or dependency thereof that hasn't already been."
 
 (defun doom-cli-packages-update ()
   "Updates packages."
-  (print! (start "Updating packages (this may take a while)..."))
   (straight--transaction-finalize)
+  (print! (start "Updating packages (this may take a while)..."))
   (let ((straight--repos-dir (straight--repos-dir))
         (straight--packages-to-rebuild (make-hash-table :test #'equal))
         (total (hash-table-count straight--repo-cache))

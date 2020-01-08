@@ -17,11 +17,12 @@
 (package! better-jumper)
 (package! dtrt-indent)
 (package! helpful)
-(package! ns-auto-titlebar :ignore (not IS-MAC))
+(when IS-MAC
+  (package! ns-auto-titlebar))
 (package! pcre2el)
 (package! smartparens)
 (package! so-long
-  :built-in 'prefer
+  :built-in 'prefer ; included in Emacs 27+
   ;; REVIEW so-long is slated to be published to ELPA eventually, but until then
   ;; I've created my own mirror for it because git.savannah.gnu.org runs on a
   ;; potato.
@@ -30,8 +31,12 @@
   ;; Version 0.6.5 is on ELPA which lacks a fix we need, so we install 0.6.6
   ;; from emacsmirror/undo-tree instead.
   :recipe (:host github :repo "emacsmirror/undo-tree"))
-(package! ws-butler)
-(package! xclip)
+(package! ws-butler
+  ;; Use my fork of ws-butler, which has a few choice improvements and
+  ;; optimizations (the original has been abandoned).
+  :recipe (:host github :repo "hlissner/ws-butler"))
+(unless IS-WINDOWS
+  (package! xclip))
 
 ;; core-projects.el
 (package! projectile)

@@ -14,16 +14,6 @@
          (+workspace-contains-buffer-p buffer))))
 
 ;;;###autoload
-(defun +ivy-standard-search (str)
-  "TODO"
-  (funcall +ivy-standard-search-fn str))
-
-;;;###autoload
-(defun +ivy-alternative-search (str)
-  "TODO"
-  (funcall +ivy-alternative-search-fn str))
-
-;;;###autoload
 (defun +ivy-rich-buffer-name (candidate)
   "Display the buffer name.
 
@@ -264,21 +254,17 @@ The point of this is to avoid Emacs locking up indexing massive file trees."
                        " "
                        (mapconcat #'shell-quote-argument args " "))))
     (counsel-rg
-     (or (if query query)
-         (when (use-region-p)
-           (let ((beg (or (bound-and-true-p evil-visual-beginning) (region-beginning)))
-                 (end (or (bound-and-true-p evil-visual-end) (region-end))))
-             (when (> (abs (- end beg)) 1)
-               (let ((query (buffer-substring-no-properties beg end)))
-                 ;; Escape characters that are special to ivy searches
-                 (replace-regexp-in-string "[! |]" (lambda (substr)
-                                                     (cond ((and (string= substr " ")
-                                                                 (not (featurep! +fuzzy)))
-                                                            "  ")
-                                                           ((string= substr "|")
-                                                            "\\\\\\\\|")
-                                                           ((concat "\\\\" substr))))
-                                           (rxt-quote-pcre query)))))))
+     (or query
+         (when (doom-region-active-p)
+           (replace-regexp-in-string
+            "[! |]" (lambda (substr)
+                      (cond ((and (string= substr " ")
+                                  (not (featurep! +fuzzy)))
+                             "  ")
+                            ((string= substr "|")
+                             "\\\\\\\\|")
+                            ((concat "\\\\" substr))))
+            (rxt-quote-pcre (doom-thing-at-point-or-region)))))
      directory args
      (or prompt
          (format "rg%s [%s]: "

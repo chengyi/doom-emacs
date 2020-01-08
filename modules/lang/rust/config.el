@@ -61,7 +61,7 @@
               ;; that behavior.
               ((symbol-function #'rustic-install-lsp-client-p)
                (lambda (&rest _)
-                 (message "No RLS server running"))))
+                 (message "No LSP server running"))))
       (apply orig-fn args))))
 
 
@@ -69,9 +69,9 @@
   :unless (featurep! +lsp)
   :hook (rustic-mode . racer-mode)
   :init
-  ;; Fix #2132: `racer' depends on `rust-mode', which tries to modify
-  ;; `auto-mode-alist'. We make extra sure that doesn't stick, especially when a
-  ;; buffer is reverted, as it is after rustfmt is done wiht it.
+  ;; HACK Fix #2132: `racer' depends on `rust-mode', which tries to modify
+  ;;      `auto-mode-alist'. We make extra sure that doesn't stick, especially
+  ;;      when a buffer is reverted, as it is after rustfmt is done wiht it.
   (after! rust-mode
     (setq auto-mode-alist (delete '("\\.rs\\'" . rust-mode) auto-mode-alist)))
   :config

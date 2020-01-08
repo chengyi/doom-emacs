@@ -80,8 +80,6 @@ error if NAME doesn't exist."
 (defun +workspace-buffer-list (&optional persp)
   "Return a list of buffers in PERSP.
 
-The buffer list is ordered by recency (same as `buffer-list').
-
 PERSP can be a string (name of a workspace) or a workspace (satisfies
 `+workspace-p'). If nil or omitted, it defaults to the current workspace."
   (let ((persp (or persp (+workspace-current))))
@@ -174,11 +172,12 @@ throws an error."
         (+workspace-new name)
       (error "%s is not an available workspace" name)))
   (let ((old-name (+workspace-current-name)))
-    (setq +workspace--last
-          (or (and (not (string= old-name persp-nil-name))
-                   old-name)
-              +workspaces-main))
-    (persp-frame-switch name)
+    (unless (equal old-name name)
+      (setq +workspace--last
+            (or (and (not (string= old-name persp-nil-name))
+                     old-name)
+                +workspaces-main))
+      (persp-frame-switch name))
     (equal (+workspace-current-name) name)))
 
 

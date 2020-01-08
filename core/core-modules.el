@@ -76,6 +76,7 @@ non-nil."
   (when (or force-p (not doom-init-modules-p))
     (setq doom-init-modules-p t
           doom-modules nil)
+    (load custom-file 'noerror 'nomessage)
     (when (load! "init" doom-private-dir t)
       (when doom-modules
         (maphash (lambda (key plist)
@@ -101,11 +102,10 @@ non-nil."
 (defun doom-module-p (category module &optional flag)
   "Returns t if CATEGORY MODULE is enabled (ie. present in `doom-modules')."
   (declare (pure t) (side-effect-free t))
-  (let ((plist (gethash (cons category module) doom-modules)))
-    (and plist
-         (or (null flag)
-             (memq flag (plist-get plist :flags)))
-         t)))
+  (when-let (plist (gethash (cons category module) doom-modules))
+    (or (null flag)
+        (and (memq flag (plist-get plist :flags))
+             t))))
 
 (defun doom-module-get (category module &optional property)
   "Returns the plist for CATEGORY MODULE. Gets PROPERTY, specifically, if set."
@@ -527,7 +527,7 @@ Module FLAGs are set in your config's `doom!' block, typically in
   :config (default +flag1 -flag2)
 
 CATEGORY and MODULE can be omitted When this macro is used from inside a module
-(except your DOOMDIR, which is a special moduel). e.g. (featurep! +flag)"
+(except your DOOMDIR, which is a special module). e.g. (featurep! +flag)"
   (and (cond (flag (memq flag (doom-module-get category module :flags)))
              (module (doom-module-p category module))
              (doom--current-flags (memq category doom--current-flags))

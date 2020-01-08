@@ -196,11 +196,12 @@ users).")
 (when IS-WINDOWS
   (setq abbreviated-home-dir "\\`'"))
 
-;; Don't litter `doom-emacs-dir'
+;; Don't litter `doom-emacs-dir'. We don't use `no-littering' because it's a
+;; mote too opinionated for our needs.
 (setq abbrev-file-name             (concat doom-local-dir "abbrev.el")
       async-byte-compile-log-file  (concat doom-etc-dir "async-bytecomp.log")
       bookmark-default-file        (concat doom-etc-dir "bookmarks")
-      custom-file                  (concat doom-private-dir "init.el")
+      custom-file                  (concat doom-local-dir "custom.el")
       custom-theme-directory       (concat doom-private-dir "themes/")
       desktop-dirname              (concat doom-etc-dir "desktop")
       desktop-base-file-name       "autosave"

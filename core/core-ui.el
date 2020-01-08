@@ -173,7 +173,12 @@ read-only or not file-visiting."
 
 (setq hscroll-margin 2
       hscroll-step 1
-      scroll-conservatively 10
+      ;; Emacs spends too much effort recentering the screen if you scroll the
+      ;; cursor more than N lines past window edges (where N is the settings of
+      ;; `scroll-conservatively'). This is especially slow in larger files
+      ;; during large-scale scrolling commands. If kept over 100, the window is
+      ;; never automatically recentered.
+      scroll-conservatively 101
       scroll-margin 0
       scroll-preserve-screen-position t
       ;; Reduce cursor lag by a tiny bit by not auto-adjusting `window-vscroll'
@@ -277,9 +282,11 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
 (setq window-resize-pixelwise t
       frame-resize-pixelwise t)
 
-(unless EMACS27+  ; We already do this in early-init.el
-  ;; Disable tool and scrollbars; Doom encourages keyboard-centric workflows, so
-  ;; these are just clutter (the scrollbar also impacts Emacs' performance).
+(unless EMACS27+
+  ;; We do this in early-init.el too, but in case the user is on Emacs 26 we do
+  ;; it here too: disable tool and scrollbars, as Doom encourages
+  ;; keyboard-centric workflows, so these are just clutter (the scrollbar also
+  ;; impacts performance).
   (push '(menu-bar-lines . 0) default-frame-alist)
   (push '(tool-bar-lines . 0) default-frame-alist)
   (push '(vertical-scroll-bars) default-frame-alist))
@@ -514,15 +521,15 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
 ;; Explicitly define a width to reduce computation
 (setq-default display-line-numbers-width 3)
 
-;; Show absolute line numbers for narrowed regions
+;; Show absolute line numbers for narrowed regions makes it easier to tell the
+;; buffer is narrowed, and where you are, exactly.
 (setq-default display-line-numbers-widen t)
 
-;; Enable line numbers in most text-editing modes
+;; Enable line numbers in most text-editing modes. We avoid
+;; `global-display-line-numbers-mode' because there are many special and
+;; temporary modes where we don't need/want them.
 (add-hook! '(prog-mode-hook text-mode-hook conf-mode-hook)
            #'display-line-numbers-mode)
-
-(defun doom-enable-line-numbers-h ()  (display-line-numbers-mode +1))
-(defun doom-disable-line-numbers-h () (display-line-numbers-mode -1))
 
 
 ;;
@@ -539,6 +546,8 @@ behavior). Do not set this directly, this is let-bound in `doom-init-theme-h'.")
   "Loads `doom-font'."
   (cond (doom-font
          (cl-pushnew
+          ;; Avoiding `set-frame-font' because it does a lot of extra, expensive
+          ;; work we can avoid by setting the font frame parameter instead.
           (cons 'font
                 (cond ((stringp doom-font) doom-font)
                       ((fontp doom-font) (font-xlfd-name doom-font))
@@ -547,6 +556,8 @@ behavior). Do not set this directly, this is let-bound in `doom-init-theme-h'.")
           default-frame-alist
           :key #'car :test #'eq))
         ((display-graphic-p)
+         ;; We try our best to record your system font, so `doom-big-font-mode'
+         ;; can still use it to compute a larger font size with.
          (setq font-use-system-font t
                doom-font (face-attribute 'default :font)))))
 
@@ -639,7 +650,8 @@ startup (or theme switch) time, so long as `doom--prefer-theme-elc' is non-nil."
 (put 'customize 'disabled "Doom doesn't support `customize', configure Emacs from $DOOMDIR/config.el instead")
 (put 'customize-themes 'disabled "Set `doom-theme' or use `load-theme' in $DOOMDIR/config.el instead")
 
-;; doesn't exist in terminal Emacs; we define it to prevent errors
+;; Doesn't exist in terminal Emacs, so we define it to prevent void-function
+;; errors emitted from packages use it without checking for it first.
 (unless (fboundp 'define-fringe-bitmap)
   (fset 'define-fringe-bitmap #'ignore))
 

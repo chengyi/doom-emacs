@@ -21,7 +21,11 @@
                 "(fset 'org-git-version #'ignore)\n"
                 "(provide 'org-version)\n")))))
 
-(package! org-plus-contrib) ; install cutting-edge version of org-mode
+;; install cutting-edge version of org-mode
+(package! org-plus-contrib)
+;; ...And prevent other packages from pulling org; org-plus-contrib satisfies
+;; the dependency already: https://github.com/raxod502/straight.el/issues/352
+(package! org :recipe (:local-repo nil))
 
 (package! avy)
 (package! htmlize)
@@ -31,6 +35,7 @@
 (package! ox-clip)
 (package! toc-org)
 (package! org-cliplink)
+(package! org-bookmark-heading)
 
 (when (featurep! :editor evil +everywhere)
   (package! evil-org :recipe (:host github :repo "hlissner/evil-org-mode")))

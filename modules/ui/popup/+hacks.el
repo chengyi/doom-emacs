@@ -37,8 +37,8 @@ to this commmand."
   (let ((orig-buffer (current-buffer)))
     (quit-window)
     (when (and (eq orig-buffer (current-buffer))
-               (+popup-window-p))
-      (+popup/close))))
+               (+popup-buffer-p))
+      (+popup/close nil 'force))))
 (global-set-key [remap quit-window] #'+popup/quit-window)
 
 
@@ -240,6 +240,8 @@ the command buffer."
               org-fast-todo-selection)
     (if +popup-mode
         (cl-letf (((symbol-function #'delete-other-windows)
+                   (symbol-function #'ignore))
+                  ((symbol-function #'delete-window)
                    (symbol-function #'ignore)))
           (apply orig-fn args))
       (apply orig-fn args)))

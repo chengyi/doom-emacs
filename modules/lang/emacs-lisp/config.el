@@ -31,6 +31,7 @@ This marks a foldable marker for `outline-minor-mode' in elisp buffers.")
                ("let" "let*")
                ("when" "unless")
                ("advice-add" "advice-remove")
+               ("defadvice!" "undefadvice!")
                ("add-hook" "remove-hook")
                ("add-hook!" "remove-hook!")
                ("it" "xit")
@@ -57,6 +58,13 @@ This marks a foldable marker for `outline-minor-mode' in elisp buffers.")
              #'highlight-quoted-mode
              ;; initialization
              #'+emacs-lisp-extend-imenu-h)
+
+  (autoload 'straight-register-file-modification "straight")
+  (add-hook! 'emacs-lisp-mode-hook
+    (defun +emacs-lisp-init-straight-h ()
+      (when (file-in-directory-p (or buffer-file-name default-directory) doom-local-dir)
+        (add-hook 'after-save-hook #'straight-register-file-modification
+                  nil 'local))))
 
   ;; Flycheck's two emacs-lisp checkers produce a *lot* of false positives in
   ;; emacs configs, so we disable `emacs-lisp-checkdoc' and reduce the

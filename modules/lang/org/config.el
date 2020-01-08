@@ -124,18 +124,12 @@ path too.")
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil)
 
-  ;; Scale up LaTeX previews a bit (default is too small)
-  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-  ;; ...and fix their background w/ themes
-  (add-hook! 'doom-load-theme-hook
-    (defun +org-refresh-latex-background ()
-      "Previews are usually rendered with light backgrounds, so ensure their
-background (and foreground) match the current theme."
-      (plist-put! org-format-latex-options
-                  :background
-                  (face-attribute (or (cadr (assq 'default face-remapping-alist))
-                                      'default)
-                                  :background nil t))))
+  ;; Fontify latex blocks and entities natively
+  (setq org-highlight-latex-and-related '(native script entities))
+  (plist-put! org-format-latex-options
+              :scale 1.5         ; larger previews
+              :foreground 'auto  ; match the theme foreground
+              :background 'auto) ; ... and its background
 
   ;; HACK Face specs fed directly to `org-todo-keyword-faces' don't respect
   ;;      underlying faces like the `org-todo' face does, so we define our own
@@ -184,7 +178,7 @@ background (and foreground) match the current theme."
 
 (defun +org-init-babel-h ()
   (setq org-src-preserve-indentation t  ; use native major-mode indentation
-        org-src-tab-acts-natively t
+        org-src-tab-acts-natively t     ; we do this ourselves
         ;; You don't need my permission (just be careful, mkay?)
         org-confirm-babel-evaluate nil
         org-link-elisp-confirm-function nil
@@ -581,8 +575,8 @@ between the two."
         org-insert-heading-respect-content t)
 
   (add-hook! 'org-tab-first-hook
-             #'+org-indent-maybe-h
-             #'+org-yas-expand-maybe-h)
+             #'+org-yas-expand-maybe-h
+             #'+org-indent-maybe-h)
 
   (add-hook 'doom-delete-backward-functions
             #'+org-delete-backward-char-and-realign-table-maybe-h)
@@ -593,6 +587,7 @@ between the two."
         ;; textmate-esque newline insertion
         [C-return]   #'+org/insert-item-below
         [C-S-return] #'+org/insert-item-above
+        [C-M-return] #'org-insert-subheading
         ;; Org-aware C-a/C-e
         [remap doom/backward-to-bol-or-indent]          #'org-beginning-of-line
         [remap doom/forward-to-last-non-comment-or-eol] #'org-end-of-line
@@ -791,6 +786,10 @@ compelling reason, so..."
   :config (setq toc-org-hrefify-default "gh"))
 
 
+(use-package! org-bookmark-heading ; add org heading support to bookmark.el
+  :after (:or bookmark org))
+
+
 (use-package! org-bullets ; "prettier" bullets
   :hook (org-mode . org-bullets-mode))
 
@@ -933,11 +932,7 @@ compelling reason, so..."
   (setq org-directory "~/org/"
         org-attach-id-dir ".attach/"
         org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/")
-        org-preview-latex-image-directory (concat doom-cache-dir "org-latex/")
-        org-id-locations-file (concat doom-etc-dir "org-id-locations")
-        ;; Global ID state means we can have ID links anywhere (required by
-        ;; `org-brain')
-        org-id-track-globally t)
+        org-preview-latex-image-directory (concat doom-cache-dir "org-latex/"))
 
   (defvar org-modules
     '(;; ol-w3m
@@ -1000,4 +995,10 @@ compelling reason, so..."
     (run-hooks 'org-load-hook))
 
   :config
+  ;; Global ID state means we can have ID links anywhere. This is required for
+  ;; `org-brain', however.
+  (setq org-id-track-globally t
+        org-id-locations-file (concat org-directory ".orgids")
+        org-id-locations-file-relative t)
+
   (add-hook 'org-open-at-point-functions #'doom-set-jump-h))

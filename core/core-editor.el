@@ -130,16 +130,14 @@ possible."
 ;;
 (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
 
-;; Save clipboard contents into kill-ring before replacing them
-(setq save-interprogram-paste-before-kill t)
-
 ;; Fixes the clipboard in tty Emacs by piping clipboard I/O through xclip, xsel,
 ;; pb{copy,paste}, wl-copy, termux-clipboard-get, or getclip (cygwin).
-(add-hook! 'tty-setup-hook
-  (defun doom-init-clipboard-in-tty-emacs-h ()
-    (and (not (getenv "SSH_CONNECTION"))
-         (require 'xclip nil t)
-         (xclip-mode +1))))
+(unless IS-WINDOWS
+  (add-hook! 'tty-setup-hook
+    (defun doom-init-clipboard-in-tty-emacs-h ()
+      (and (not (getenv "SSH_CONNECTION"))
+           (require 'xclip nil t)
+           (xclip-mode +1)))))
 
 
 ;;
@@ -431,19 +429,21 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   (setq sp-highlight-pair-overlay nil
         sp-highlight-wrap-overlay nil
         sp-highlight-wrap-tag-overlay nil)
-  ;; But if someone does want overlays enabled, evil users will be stricken with
-  ;; an off-by-one issue where smartparens assumes you're outside the pair when
-  ;; you're really at the last character in insert mode. We must correct this
-  ;; vile injustice.
-  (setq sp-show-pair-from-inside t)
-  ;; ...and stay highlighted until we've truly escaped the pair!
-  (setq sp-cancel-autoskip-on-backward-movement nil)
+  (with-eval-after-load 'evil
+    ;; But if someone does want overlays enabled, evil users will be stricken
+    ;; with an off-by-one issue where smartparens assumes you're outside the
+    ;; pair when you're really at the last character in insert mode. We must
+    ;; correct this vile injustice.
+    (setq sp-show-pair-from-inside t)
+    ;; ...and stay highlighted until we've truly escaped the pair!
+    (setq sp-cancel-autoskip-on-backward-movement nil))
+
   ;; The default is 100, because smartparen's scans are relatively expensive
-  ;; (especially with large pair lists for somoe modes), we halve it, as a
+  ;; (especially with large pair lists for some modes), we reduce it, as a
   ;; better compromise between performance and accuracy.
-  (setq sp-max-prefix-length 50)
-  ;; This speeds up smartparens. No pair has any business being longer than 4
-  ;; characters; if they must, the modes that need it set it buffer-locally.
+  (setq sp-max-prefix-length 25)
+  ;; No pair has any business being longer than 4 characters; if they must, set
+  ;; it buffer-locally. It's less work for smartparens.
   (setq sp-max-pair-length 4)
   ;; This isn't always smart enough to determine when we're in a string or not.
   ;; See https://github.com/Fuco1/smartparens/issues/783.
@@ -455,9 +455,9 @@ files, so we replace calls to `pp' with the much faster `prin1'."
 
   (add-hook! 'minibuffer-setup-hook
     (defun doom-init-smartparens-in-minibuffer-maybe-h ()
-      "Enable `smartparens-mode' in the minibuffer, during `eval-expression' or
-`evil-ex'."
-      (when (memq this-command '(eval-expression evil-ex))
+      "Enable `smartparens-mode' in the minibuffer, during `eval-expression',
+`pp-eval-expression' or `evil-ex'."
+      (when (memq this-command '(eval-expression pp-eval-expression evil-ex))
         (smartparens-mode))))
 
   ;; You're likely writing lisp in the minibuffer, therefore, disable these
@@ -526,7 +526,8 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   ;; Branching & persistent undo
   :after-call doom-switch-buffer-hook after-find-file
   :config
-  (setq undo-tree-auto-save-history t
+  (setq undo-tree-visualizer-diff t
+        undo-tree-auto-save-history t
         ;; Increase undo-limits by a factor of ten to avoid emacs prematurely
         ;; truncating the undo history and corrupting the tree. See
         ;; https://github.com/syl20bnr/spacemacs/issues/12110
@@ -563,10 +564,7 @@ files, so we replace calls to `pp' with the much faster `prin1'."
 (use-package! ws-butler
   ;; a less intrusive `delete-trailing-whitespaces' on save
   :after-call after-find-file
-  :config
-  (appendq! ws-butler-global-exempt-modes
-            '(special-mode comint-mode term-mode eshell-mode))
-  (ws-butler-global-mode +1))
+  :config (ws-butler-global-mode +1))
 
 (provide 'core-editor)
 ;;; core-editor.el ends here
