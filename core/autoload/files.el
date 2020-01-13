@@ -311,10 +311,11 @@ file if it exists, without confirmation."
                  (delete-file old-path))
                (mapc #'doom--update-file
                      (delq
-                      nil (list (or (ignore-errors
+                      nil (list (if (ignore-errors
                                       (file-equal-p (doom-project-root old-path)
                                                     (doom-project-root new-path)))
-                                    old-path)
+                                    nil
+                                  old-path)
                                 new-path)))
                (kill-current-buffer)
                (find-file new-path)
@@ -345,7 +346,10 @@ file if it exists, without confirmation."
 (defun doom/sudo-this-file ()
   "Open the current file as root."
   (interactive)
-  (find-alternate-file (doom--sudo-file buffer-file-name)))
+  (find-alternate-file (doom--sudo-file (or buffer-file-name
+                                            (when (or (derived-mode-p 'dired-mode)
+                                                      (derived-mode-p 'wdired-mode))
+                                              default-directory)))))
 
 ;;;###autoload
 (defun doom/sudo-save-buffer ()

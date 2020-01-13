@@ -1,7 +1,8 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; core/cli/packages.el
 
-(defcli! (update u) ()
+(defcli! (update u)
+  ((discard-p ["--discard"] "All local changes to packages are discarded"))
   "Updates packages.
 
 This works by fetching all installed package repos and checking the distance
@@ -10,10 +11,11 @@ between HEAD and FETCH_HEAD. This can take a while.
 This excludes packages whose `package!' declaration contains a non-nil :freeze
 or :ignore property."
   (straight-check-all)
-  (doom-cli-reload-core-autoloads)
-  (when (doom-cli-packages-update)
-    (doom-cli-reload-package-autoloads))
-  t)
+  (let ((doom-auto-discard discard-p))
+    (doom-cli-reload-core-autoloads)
+    (when (doom-cli-packages-update)
+      (doom-cli-reload-package-autoloads))
+    t))
 
 (defcli! (build b)
     ((rebuild-p ["-r"] "Only rebuild packages that need rebuilding"))
@@ -89,7 +91,7 @@ declaration) or dependency thereof that hasn't already been."
                     (cl-incf n))
              (error
               (signal 'doom-package-error
-                      (list e (straight--process-get-output))))))))
+                      (list package e (straight--process-get-output))))))))
      (if (= n 0)
          (ignore (print! (success "No packages need to be installed")))
        (print! (success "Installed & built %d packages") n)
@@ -105,7 +107,10 @@ declaration) or dependency thereof that hasn't already been."
           (straight-check-for-modifications
            (when (file-directory-p (straight--modified-dir))
              '(find-when-checking)))
-          (straight--allow-find (and straight-check-for-modifications t))
+          (straight--allow-find
+           (and straight-check-for-modifications
+                (executable-find straight-find-executable)
+                t))
           (straight--packages-not-to-rebuild
            (or straight--packages-not-to-rebuild (make-hash-table :test #'equal)))
           (straight--packages-to-rebuild

@@ -389,7 +389,7 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   (global-set-key [remap describe-command]  #'helpful-command)
   (global-set-key [remap describe-variable] #'helpful-variable)
   (global-set-key [remap describe-key]      #'helpful-key)
-  (global-set-key [remap describe-symbol]   #'doom/describe-symbol)
+  (global-set-key [remap describe-symbol]   #'helpful-symbol)
 
   (defun doom-use-helpful-a (orig-fn &rest args)
     "Force ORIG-FN to use helpful instead of the old describe-* commands."
@@ -527,7 +527,8 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   :after-call doom-switch-buffer-hook after-find-file
   :config
   (setq undo-tree-visualizer-diff t
-        undo-tree-auto-save-history nil
+        undo-tree-auto-save-history t
+        undo-tree-enable-undo-in-region t
         ;; Increase undo-limits by a factor of ten to avoid emacs prematurely
         ;; truncating the undo history and corrupting the tree. See
         ;; https://github.com/syl20bnr/spacemacs/issues/12110
@@ -558,7 +559,9 @@ files, so we replace calls to `pp' with the much faster `prin1'."
            (stringp (car item))
            (setcar item (substring-no-properties (car item))))))
 
-  ;; Undo-tree is too chatty about saving its history files.
+  ;; Undo-tree is too chatty about saving its history files. This doesn't
+  ;; totally suppress it logging to *Messages*, it only stops it from appearing
+  ;; in the echo-area.
   (advice-add #'undo-tree-save-history :around #'doom-shut-up-a)
 
   (global-undo-tree-mode +1))

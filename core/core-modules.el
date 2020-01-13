@@ -13,8 +13,8 @@
 
 (defconst doom-obsolete-modules
   '((:feature (version-control (:emacs vc) (:ui vc-gutter))
-              (spellcheck (:tools flyspell))
-              (syntax-checker (:tools flycheck))
+              (spellcheck (:checkers spell))
+              (syntax-checker (:checkers syntax))
               (evil (:editor evil))
               (snippets (:editor snippets))
               (file-templates (:editor file-templates))
@@ -24,7 +24,9 @@
               (debugger (:tools debugger)))
     (:tools (rotate-text (:editor rotate-text))
             (vterm (:term vterm))
-            (password-store (:tools pass)))
+            (password-store (:tools pass))
+            (flycheck (:checkers syntax))
+            (flyspell (:checkers spell)))
     (:emacs (electric-indent (:emacs electric))
             (hideshow (:editor fold))
             (eshell (:term eshell))
