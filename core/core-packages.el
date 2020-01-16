@@ -169,11 +169,6 @@ necessary package metadata is initialized and available for them."
         (with-plist! (cdr package) (recipe modules disable ignore pin)
           (if ignore
               (doom-log "Ignoring package %S" name)
-            (when pin
-              (doom-log "Pinning package %S to %S" name pin)
-              (setf (alist-get (symbol-name name) doom-pinned-packages
-                               nil nil #'equal)
-                    pin))
             (if (not disable)
                 (with-demoted-errors "Package error: %s"
                   (when recipe
@@ -186,7 +181,17 @@ necessary package metadata is initialized and available for them."
                 (print! (warn "%s\n%s")
                         (format "You've disabled %S" name)
                         (indent 2 (concat "This is a core package. Disabling it will cause errors, as Doom assumes\n"
-                                          "core packages are always available. Disable their minor-modes or hooks instead.")))))))))))
+                                          "core packages are always available. Disable their minor-modes or hooks instead.")))))
+            (when pin
+              (let ((realname
+                     (if-let* ((recipe (cdr (straight-recipes-retrieve name)))
+                               (repo (straight-vc-local-repo-name recipe)))
+                         repo
+                       (symbol-name name))))
+                (doom-log "Pinning package %S to %S" realname pin)
+                (setf (alist-get realname doom-pinned-packages
+                                 nil nil #'equal)
+                      pin)))))))))
 
 (defun doom-ensure-straight ()
   "Ensure `straight' is installed and was compiled with this version of Emacs."
@@ -274,7 +279,8 @@ elsewhere."
      (condition-case e
          (when-let (recipe (plist-get plist :recipe))
            (cl-destructuring-bind
-               (&key local-repo _files _flavor _no-build
+               (&key local-repo _files _flavor
+                     _no-build _no-byte-compile _no-autoloads
                      _type _repo _host _branch _remote _nonrecursive _fork _depth)
                recipe
              ;; Expand :local-repo from current directory
@@ -297,6 +303,37 @@ Only use this macro in a module's (or your private) packages.el file."
   (macroexp-progn
    (cl-loop for p in packages
             collect `(package! ,p :disable t))))
+
+(defmacro unpin! (&rest targets)
+  "Unpin packages in TARGETS.
+
+This unpins packages, so that 'doom upgrade' downloads their latest version. It
+can be used one of five ways:
+
++ To disable pinning wholesale: (unpin! t)
++ To unpin individual packages: (unpin! packageA packageB ...)
++ To unpin all packages in a group of modules: (unpin! :lang :tools ...)
++ To unpin packages in individual modules:
+    (unpin! (:lang python javascript) (:tools docker))
+
+Or any combination of the above."
+  `(dolist (target ',targets)
+     (cond
+      ((eq target t)
+       (setq doom-pinned-packages nil))
+      ((or (keywordp target)
+           (listp target))
+       (cl-destructuring-bind (category . modules) (doom-enlist target)
+         (dolist (pkg doom-packages)
+           (let ((pkg-modules (plist-get (cdr pkg) :modules)))
+             (and (assq category pkg-modules)
+                  (or (null modules)
+                      (cl-loop for module in modules
+                               if (member (cons category module) pkg-modules)
+                               return t))
+                  (assq-delete-all (car pkg) doom-pinned-packages))))))
+      ((symbolp target)
+       (assq-delete-all target doom-pinned-packages)))))
 
 (provide 'core-packages)
 ;;; core-packages.el ends here
