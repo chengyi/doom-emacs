@@ -34,8 +34,6 @@
 ;; Load the bare necessities
 (require 'core-lib)
 
-(autoload 'doom-initialize-packages "core-packages")
-
 
 ;;
 ;;; Global variables
@@ -275,7 +273,8 @@ users).")
   (add-transient-hook! 'pre-command-hook (gcmh-mode +1))
   (with-eval-after-load 'gcmh
     (setq gcmh-idle-delay 10
-          gcmh-verbose doom-debug-mode)
+          gcmh-verbose doom-debug-mode
+          gcmh-high-cons-threshold 16777216) ; 16mb
     (add-hook 'focus-out-hook #'gcmh-idle-garbage-collect)))
 
 ;; HACK `tty-run-terminal-initialization' is *tremendously* slow for some
@@ -456,8 +455,7 @@ unreadable. Returns the names of envvars that were changed."
                 exec-path)
               shell-file-name
               (if (member "SHELL" envvars)
-                  (setq shell-file-name
-                        (or (getenv "SHELL") shell-file-name))
+                  (or (getenv "SHELL") shell-file-name)
                 shell-file-name))
         envvars))))
 
@@ -531,11 +529,10 @@ to least)."
               (file-expand-wildcards (concat doom-core-dir "autoload/*.el")))
 
         ;; Create all our core directories to quell file errors
-        (dolist (dir (list doom-local-dir
-                           doom-etc-dir
-                           doom-cache-dir))
-          (unless (file-directory-p dir)
-            (make-directory dir 'parents)))
+        (mapc (doom-rpartial #'make-directory 'parents)
+              (list doom-local-dir
+                    doom-etc-dir
+                    doom-cache-dir))
 
         ;; Ensure the package management system (and straight) are ready for
         ;; action (and all core packages/repos are installed)

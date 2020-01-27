@@ -34,13 +34,9 @@ directives. By default, this only recognizes C directives.")
   :demand t
   :preface
   (setq evil-want-visual-char-semi-exclusive t
-        evil-magic t
-        evil-echo-state t
-        evil-indent-convert-tabs t
         evil-ex-search-vim-style-regexp t
         evil-ex-substitute-global t
         evil-ex-visual-char-range t  ; column range for ex commands
-        evil-insert-skip-empty-lines t
         evil-mode-line-format 'nil
         ;; more vim-like behavior
         evil-symbol-word-search t
@@ -54,9 +50,7 @@ directives. By default, this only recognizes C directives.")
         evil-want-keybinding (not (featurep! +everywhere))
         ;; Only do highlighting in selected window so that Emacs has less work
         ;; to do highlighting them all.
-        ;; TODO Revert this to `selected-windows' once emacs-evil/evil#1233 is
-        ;;      resolved, otherwise we get no highlights on */#
-        evil-ex-interactive-search-highlight 'all-windows)
+        evil-ex-interactive-search-highlight 'selected-window)
 
   ;; Slow this down from 0.02 to prevent blocking in large or folded buffers
   ;; like magit while incrementally highlighting matches.
