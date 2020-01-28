@@ -45,6 +45,7 @@ s= (or =C-h d s=).
 ** [[file:faq.org][Frequently Asked Questions]]
 - [[file:faq.org::*General][General]]
 - [[file:faq.org::*Configuration][Configuration]]
+- [[file:faq.org::*Package Management][Package Management]]
 - [[file:faq.org::*Defaults][Defaults]]
 - [[file:faq.org::Common Issues][Common Issues]]
 - [[file:faq.org::Contributing][Contributing]]
@@ -63,7 +64,7 @@ s= (or =C-h d s=).
 
 * Community Resources
 ** Asking for help
-- [[https://discord.gg/bcZ6P3y][Our Discord server]]
+- [[https://discord.gg/qvGgnVx][Our Discord server]]
 - [[https://github.com/hlissner/doom-emacs/issues][Our issue tracker]]
 
 ** Project roadmap
