@@ -27,7 +27,6 @@ directives. By default, this only recognizes C directives.")
 (defvar evil-want-C-w-delete t)
 (defvar evil-want-Y-yank-to-eol t)
 (defvar evil-want-abbrev-expand-on-insert-exit nil)
-(defvar evil-respect-visual-line-mode t)
 
 (use-package! evil
   :hook (doom-init-modules . evil-mode)
@@ -127,7 +126,7 @@ directives. By default, this only recognizes C directives.")
                  (count-lines (point-min) (point-max))
                  (buffer-size)))))
 
-  ;; 'gq' moves the cursor to the beginning of selection. Disable this, since
+  ;; '=' moves the cursor to the beginning of selection. Disable this, since
   ;; it's more disruptive than helpful.
   (defadvice! +evil--dont-move-cursor-a (orig-fn &rest args)
     :around #'evil-indent
