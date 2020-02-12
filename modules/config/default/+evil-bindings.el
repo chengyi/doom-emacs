@@ -400,6 +400,8 @@
         :desc "Git revert file"             "R"   #'vc-revert
         :desc "Copy link to remote"         "y"   #'+vc/browse-at-remote-kill-file-or-region
         :desc "Copy link to homepage"       "Y"   #'+vc/browse-at-remote-kill-homepage
+        (:when (featurep! :ui hydra)
+          :desc "SMerge"                    "m"   #'+vc/smerge-hydra/body)
         (:when (featurep! :ui vc-gutter)
           :desc "Git revert hunk"           "r"   #'git-gutter:revert-hunk
           :desc "Git stage hunk"            "s"   #'git-gutter:stage-hunk
@@ -425,7 +427,7 @@
             :desc "Find issue"                "i"   #'forge-visit-issue
             :desc "Find pull request"         "p"   #'forge-visit-pullreq)
           (:prefix ("o" . "open in browser")
-            :desc "Browse file or region"     "o"   #'+vc/browse-at-remote-file-or-region
+            :desc "Browse file or region"     "o"   #'browse-at-remote
             :desc "Browse homepage"           "h"   #'+vc/browse-at-remote-homepage
             :desc "Browse remote"             "r"   #'forge-browse-remote
             :desc "Browse commit"             "c"   #'forge-browse-commit
