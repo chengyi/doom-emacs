@@ -21,15 +21,13 @@
         ;;        buffers, so we disable it, but only for evil users, because it
         ;;        affects `forward-sexp' and its ilk. See
         ;;        https://github.com/rust-lang/rust-mode/issues/288.
-        rustic-match-angle-brackets (not (featurep! :editor evil))
-        ;; We use the superior default client provided by `lsp-mode', not the
-        ;; one rustic-mode sets up for us.
-        rustic-lsp-client nil)
+        rustic-match-angle-brackets (not (featurep! :editor evil)))
 
   (add-hook 'rustic-mode-hook #'rainbow-delimiters-mode)
 
   (if (featurep! +lsp)
       (add-hook 'rustic-mode-local-vars-hook #'lsp!)
+    (setq rustic-lsp-server nil)
     (after! rustic-flycheck
       (add-to-list 'flycheck-checkers 'rustic-clippy)))
 
@@ -50,9 +48,19 @@
           :desc "all"          "a" #'rustic-cargo-test
           :desc "current test" "t" #'rustic-cargo-current-test))
 
+  ;; HACK Fixes #2541: RLS doesn't appear to support documentSymbol, but
+  ;;      lsp-rust thinks it does, and so yields imenu population to the server.
+  ;;      The result is an empty imenu list. Until RLS supports documentSymbol,
+  ;;      we disable `lsp-enable-imenu' is rust+RLS buffers.
+  (defadvice! +rust--disable-imenu-for-lsp-mode-a (&rest _)
+    :before #'rustic-lsp-mode-setup
+    (when (eq rustic-lsp-server 'rls)
+      (setq-local lsp-enable-imenu nil)))
+
   ;; If lsp/elgot isn't available, it attempts to install lsp-mode via
-  ;; package.el. Doom manages its own dependencies so we disable that behavior.
-  (defadvice! +rust--dont-install-packages-p (&rest _)
+  ;; package.el. Doom manages its own dependencies through straight so disable
+  ;; this behavior to avoid package-not-initialized errors.
+  (defadvice! +rust--dont-install-packages-a (&rest _)
     :override #'rustic-install-lsp-client-p
     (message "No LSP server running")))
 
