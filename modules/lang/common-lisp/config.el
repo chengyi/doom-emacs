@@ -8,24 +8,34 @@
 ;;
 ;; packages
 
+;;;###package lisp-mode
 (defvar inferior-lisp-program "sbcl")
-
-(after! lisp-mode
-  (set-repl-handler! 'lisp-mode #'sly-mrepl)
-  (set-eval-handler! 'lisp-mode #'sly-eval-region)
-  (set-lookup-handlers! 'lisp-mode
-    :definition #'sly-edit-definition
-    :documentation #'sly-describe-symbol)
-
-  (add-hook 'lisp-mode-hook #'rainbow-delimiters-mode))
+(add-hook 'lisp-mode-hook #'rainbow-delimiters-mode)
 
 
-(after! sly
+(use-package! sly
+  :defer t
+  :init
+  (after! lisp-mode
+    (set-repl-handler! 'lisp-mode #'sly-mrepl)
+    (set-eval-handler! 'lisp-mode #'sly-eval-region)
+    (set-lookup-handlers! 'lisp-mode
+      :definition #'sly-edit-definition
+      :documentation #'sly-describe-symbol))
+
+  ;; HACK Ensures that sly's contrib modules are loaded as soon as possible, but
+  ;;      also as late as possible, so users have an opportunity to override
+  ;;      `sly-contrib' in an `after!' block.
+  (add-hook! 'doom-after-init-modules-hook
+    (after! sly (sly-setup)))
+
+  :config
   (setq sly-mrepl-history-file-name (concat doom-cache-dir "sly-mrepl-history")
         sly-kill-without-query-p t
         sly-net-coding-system 'utf-8-unix
-        ;; Doom defaults to non-fuzzy search, because it is slower and less
-        ;; precise. Change this to `sly-flex-completions' for fuzzy completion
+        ;; Doom defaults to non-fuzzy search, because it is faster and more
+        ;; precise (but requires more keystrokes). Change this to
+        ;; `sly-flex-completions' for fuzzy completion
         sly-complete-symbol-function 'sly-simple-completions)
 
   (set-popup-rules!
@@ -133,4 +143,4 @@
 (use-package! sly-repl-ansi-color
   :defer t
   :init
-  (add-to-list 'sly-contribs 'sly-repl-ansi-color nil #'eq))
+  (add-to-list 'sly-contribs 'sly-repl-ansi-color))

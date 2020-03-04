@@ -17,10 +17,11 @@ easier to scroll through.")
 
 (use-package! elfeed
   :commands elfeed
+  :init
+  (setq elfeed-db-directory (concat doom-local-dir "elfeed/db/")
+        elfeed-enclosure-default-dir (concat doom-local-dir "elfeed/enclosures/"))
   :config
   (setq elfeed-search-filter "@2-week-ago "
-        elfeed-db-directory (concat doom-local-dir "elfeed/db/")
-        elfeed-enclosure-default-dir (concat doom-local-dir "elfeed/enclosures/")
         elfeed-show-entry-switch #'pop-to-buffer
         elfeed-show-entry-delete #'+rss/delete-pane
         shr-max-image-proportion 0.8)
@@ -63,7 +64,7 @@ easier to scroll through.")
 (use-package! elfeed-org
   :when (featurep! +org)
   :after elfeed
-  :init
+  :preface
   (setq rmh-elfeed-org-files (list "elfeed.org"))
   :config
   (and (let ((default-directory org-directory))

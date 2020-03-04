@@ -526,9 +526,16 @@ This be hooked to `projectile-after-switch-project-hook'."
   (when dir
     (setq +workspaces--project-dir dir))
   (when (and persp-mode +workspaces--project-dir)
+    (with-temp-buffer
+      ;; Load the project dir-local variables into the switch buffer, so the
+      ;; action can make use of them
+      (setq default-directory +workspaces--project-dir)
+      (hack-dir-local-variables-non-file-buffer)
+      (run-hooks 'projectile-before-switch-project-hook))
     (unwind-protect
         (if (and (not (null +workspaces-on-switch-project-behavior))
                  (or (eq +workspaces-on-switch-project-behavior t)
+                     (equal (safe-persp-name (get-current-persp)) persp-nil-name)
                      (+workspace-buffer-list)))
             (let* ((persp
                     (let ((project-name (doom-project-name +workspaces--project-dir)))
@@ -550,6 +557,7 @@ This be hooked to `projectile-after-switch-project-hook'."
             (+workspace-rename (+workspace-current-name) (doom-project-name +workspaces--project-dir)))
           (unless current-prefix-arg
             (funcall +workspaces-switch-project-function +workspaces--project-dir)))
+      (run-hooks 'projectile-after-switch-project-hook)
       (setq +workspaces--project-dir nil))))
 
 

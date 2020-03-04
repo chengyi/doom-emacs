@@ -267,7 +267,7 @@ evil-ex-specific constructs, so we disable it solely in evil-ex."
         (cond ((executable-find doom-projectile-fd-binary)
                (cons doom-projectile-fd-binary (list "-t" "f" "-E" ".git")))
               ((executable-find "rg")
-               (cons "rg" (list "--files" "--hidden" "--no-messages")))
+               (split-string (format counsel-rg-base-command "--files --no-messages") " " t))
               ((cons find-program args)))
       (unless (listp args)
         (user-error "`counsel-file-jump-args' is a list now, please customize accordingly."))
@@ -303,7 +303,10 @@ evil-ex-specific constructs, so we disable it solely in evil-ex."
         #'+ivy/projectile-find-file)
 
   ;; no highlighting visited files; slows down the filtering
-  (ivy-set-display-transformer #'counsel-projectile-find-file nil))
+  (ivy-set-display-transformer #'counsel-projectile-find-file nil)
+
+  (if (featurep! +prescient)
+      (setq counsel-projectile-sort-files t)))
 
 
 (use-package! wgrep

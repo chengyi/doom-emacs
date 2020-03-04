@@ -1,8 +1,8 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; tools/lsp/packages.el
 
-(package! lsp-mode :pin "2fc0963a50")
-(package! lsp-ui :pin "e8200e3b72")
+(package! lsp-mode :pin "2e6b748183")
+(package! lsp-ui :pin "c99ba09c30")
 (when (featurep! :completion company)
   (package! company-lsp :pin "f921ffa0cd"))
 (when (featurep! :completion ivy)

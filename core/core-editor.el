@@ -91,10 +91,11 @@ possible."
 (add-hook! 'after-save-hook
   (defun doom-guess-mode-h ()
     "Guess mode when saving a file in `fundamental-mode'."
-    (and (eq major-mode 'fundamental-mode)
-         (buffer-file-name (buffer-base-buffer))
-         (eq (current-buffer) (window-buffer (selected-window))) ; only visible buffers
-         (set-auto-mode))))
+    (when (eq major-mode 'fundamental-mode)
+      (let ((buffer (or (buffer-base-buffer) (current-buffer))))
+        (and (buffer-file-name buffer)
+             (eq buffer (window-buffer (selected-window))) ; only visible buffers
+             (set-auto-mode))))))
 
 
 ;;
@@ -487,6 +488,7 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   :config
   (when doom-interactive-mode
     (global-so-long-mode +1))
+  (setq so-long-threshold 400) ; reduce false positives w/ larger threshold
   ;; Don't disable syntax highlighting and line numbers, or make the buffer
   ;; read-only, in `so-long-minor-mode', so we can have a basic editing
   ;; experience in them, at least. It will remain off in `so-long-mode',
@@ -516,13 +518,20 @@ files, so we replace calls to `pp' with the much faster `prin1'."
               hl-fill-column-mode))
   (defun doom-buffer-has-long-lines-p ()
     ;; HACK Fix #2183: `so-long-detected-long-line-p' tries to parse comment
-    ;;      syntax, but in some buffers comment state isn't initialized, leading
-    ;;      to a wrong-type-argument: stringp error.
-    (let ((so-long-skip-leading-comments (bound-and-true-p comment-use-syntax)))
-      ;; HACK If visual-line-mode is on in a text-mode, then long lines are
-      ;;      normal and can be ignored.
-      (unless (and visual-line-mode (derived-mode-p 'text-mode))
-        (so-long-detected-long-line-p))))
+    ;;      syntax, but in some buffers comment state isn't initialized,
+    ;;      leading to a wrong-type-argument: stringp error.
+    (let ((so-long-skip-leading-comments (bound-and-true-p comment-use-syntax))
+          ;; HACK If visual-line-mode is on, then false positives are more
+          ;;      likely, so up the threshold. More so in text-mode, since long
+          ;;      paragraphs are the norm.
+          (so-long-threshold
+           (if visual-line-mode
+               (* so-long-threshold
+                  (if (derived-mode-p 'text-mode)
+                      3
+                    2))
+             so-long-threshold)))
+      (so-long-detected-long-line-p)))
   (setq so-long-predicate #'doom-buffer-has-long-lines-p))
 
 

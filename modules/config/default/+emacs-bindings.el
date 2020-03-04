@@ -264,7 +264,7 @@
             :desc "Find issue"                "i"   #'forge-visit-issue
             :desc "Find pull request"         "p"   #'forge-visit-pullreq)
           (:prefix ("o" . "open in browser")
-            :desc "Browse file or region"     "."   #'+vc/browse-at-remote-file-or-region
+            :desc "Browse file or region"     "."   #'browse-at-remote
             :desc "Browse homepage"           "h"   #'+vc/browse-at-remote-homepage
             :desc "Browse remote"             "r"   #'forge-browse-remote
             :desc "Browse commit"             "c"   #'forge-browse-commit
@@ -411,7 +411,7 @@
         "C-S-h"      #'company-show-doc-buffer
         "C-s"        #'company-search-candidates
         "M-s"        #'company-filter-candidates
-        "<C-tab>"    #'company-complete-common-or-cycle
+        [C-tab]      #'company-complete-common-or-cycle
         [tab]        #'company-complete-common-or-cycle
         [backtab]    #'company-select-previous
         "C-RET"      #'counsel-company

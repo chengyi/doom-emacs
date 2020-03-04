@@ -52,10 +52,6 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
 (defvar +org-initial-fold-level 2
   "The initial fold level of org files when no #+STARTUP options for it.")
 
-(defvar +org-export-directory ".export/"
-  "Where to store exported files relative to `org-directory'. Can be an absolute
-path too.")
-
 (defvar +org-habit-graph-padding 2
   "The padding added to the end of the consistency graph")
 
@@ -182,6 +178,9 @@ path too.")
         ;; Our :lang common-lisp module uses sly, so...
         org-babel-lisp-eval-fn #'sly-eval)
 
+  ;; Add convenience lang alias for markdown blocks
+  (add-to-list 'org-src-lang-modes '("md" . markdown))
+
   ;; I prefer C-c C-c over C-c ' (more consistent)
   (define-key org-src-mode-map (kbd "C-c C-c") #'org-edit-src-exit)
 
@@ -238,8 +237,7 @@ path too.")
     :override #'org-babel-do-load-languages
     (message
      (concat "`org-babel-do-load-languages' is redundant with Doom's lazy loading mechanism for babel "
-             "packages. There is no need to use it, so it has been disabled")))
-  )
+             "packages. There is no need to use it, so it has been disabled"))))
 
 
 (defun +org-init-capture-defaults-h ()
@@ -305,6 +303,12 @@ I like:
   ;; Kill capture buffers by default (unless they've been visited)
   (after! org-capture
     (org-capture-put :kill-buffer t))
+
+  ;; HACK Doom doesn't support `customize'. Best not to advertise it as an
+  ;;      option in `org-capture's menu.
+  (defadvice! +org--remove-customize-option-a (orig-fn table title &optional prompt specials)
+    :around #'org-mks
+    (funcall orig-fn table title prompt (remove '("C" "Customize org-capture-templates") specials)))
 
   (defadvice! +org--capture-expand-variable-file-a (file)
     "If a variable is used for a file path in `org-capture-template', it is used
@@ -665,12 +669,12 @@ between the two."
 (defun +org-init-popup-rules-h ()
   (set-popup-rules!
     '(("^\\*Org Links" :slot -1 :vslot -1 :size 2 :ttl 0)
-      ("^\\*\\(?:Agenda Com\\|Calendar\\|Org Export Dispatcher\\)"
+      ("^ ?\\*\\(?:Agenda Com\\|Calendar\\|Org Export Dispatcher\\)"
        :slot -1 :vslot -1 :size #'+popup-shrink-to-fit :ttl 0)
-      ("^\\*Org Select" :slot -1 :vslot -2 :ttl 0 :size 0.25)
+      ("^\\*Org \\(?:Select\\|Attach\\)" :slot -1 :vslot -2 :ttl 0 :size 0.25)
       ("^\\*Org Agenda"    :ignore t)
       ("^\\*Org Src"       :size 0.4  :quit nil :select t :autosave t :modeline t :ttl nil)
-      ("^CAPTURE.*\\.org$" :size 0.25 :quit nil :select t :autosave t))))
+      ("^CAPTURE-.*\\.org$" :size 0.25 :quit nil :select t :autosave t))))
 
 
 (defun +org-init-protocol-lazy-loader-h ()
@@ -744,10 +748,6 @@ compelling reason, so..."
 (use-package! toc-org ; auto-table of contents
   :hook (org-mode . toc-org-enable)
   :config (setq toc-org-hrefify-default "gh"))
-
-
-(use-package! org-bookmark-heading ; add org heading support to bookmark.el
-  :after (:or bookmark org))
 
 
 (use-package! org-bullets ; "prettier" bullets
@@ -952,13 +952,13 @@ compelling reason, so..."
   ;; Global ID state means we can have ID links anywhere. This is required for
   ;; `org-brain', however.
   (setq org-id-track-globally t
-        org-id-locations-file (concat org-directory ".orgids")
+        org-id-locations-file (expand-file-name ".orgids" org-directory)
         org-id-locations-file-relative t)
 
   ;; HACK `org-id' doesn't check if `org-id-locations-file' exists or is
   ;;      writeable before trying to read/write to it.
   (defadvice! +org--fail-gracefully-a (&rest _)
     :before-while '(org-id-locations-save org-id-locations-load)
-    (file-exists-p org-id-locations-file))
+    (file-writable-p org-id-locations-file))
 
   (add-hook 'org-open-at-point-functions #'doom-set-jump-h))

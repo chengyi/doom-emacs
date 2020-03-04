@@ -126,16 +126,25 @@ directives. By default, this only recognizes C directives.")
                  (count-lines (point-min) (point-max))
                  (buffer-size)))))
 
-  ;; '=' moves the cursor to the beginning of selection. Disable this, since
-  ;; it's more disruptive than helpful.
+  ;; HACK '=' moves the cursor to the beginning of selection. Disable this,
+  ;;      since it's more disruptive than helpful.
   (defadvice! +evil--dont-move-cursor-a (orig-fn &rest args)
     :around #'evil-indent
     (save-excursion (apply orig-fn args)))
 
-  ;; In evil, registers 2-9 are buffer-local. In vim, they're global, so...
+  ;; REVIEW In evil, registers 2-9 are buffer-local. In vim, they're global,
+  ;;        so... Perhaps this should be PRed upstream?
   (defadvice! +evil--make-numbered-markers-global-a (char)
     :after-until #'evil-global-marker-p
     (and (>= char ?2) (<= char ?9)))
+
+  ;; REVIEW Fix #2493: dir-locals cannot target fundamental-mode when evil-mode
+  ;;        is active. See https://github.com/hlissner/doom-emacs/issues/2493.
+  ;;        Revert this if this is ever fixed upstream.
+  (defadvice! +evil--fix-local-vars-a (&rest _)
+    :before #'turn-on-evil-mode
+    (when (eq major-mode 'fundamental-mode)
+      (hack-local-variables)))
 
   ;; Make ESC (from normal mode) the universal escaper. See `doom-escape-hook'.
   (advice-add #'evil-force-normal-state :after #'+evil-escape-a)
@@ -152,17 +161,9 @@ directives. By default, this only recognizes C directives.")
   (advice-add #'evil-window-split  :override #'+evil-window-split-a)
   (advice-add #'evil-window-vsplit :override #'+evil-window-vsplit-a)
 
-  ;; Make o/O continue comments (see `+evil-want-o/O-to-continue-comments')
+  ;; Make o/O continue comments (see `+evil-want-o/O-to-continue-comments' to disable)
   (advice-add #'evil-open-above :around #'+evil--insert-newline-above-and-respect-comments-a)
   (advice-add #'evil-open-below :around #'+evil--insert-newline-below-and-respect-comments-a)
-
-  ;; REVIEW Fix #2493: dir-locals cannot target fundamental-mode when evil-mode
-  ;;        is active. See https://github.com/hlissner/doom-emacs/issues/2493.
-  ;;        Revert this if this is ever fixed upstream.
-  (defadvice! +evil--fix-local-vars-a (&rest _)
-    :before #'turn-on-evil-mode
-    (when (eq major-mode 'fundamental-mode)
-      (hack-local-variables)))
 
   ;; Recenter screen after most searches
   (dolist (fn '(evil-visualstar/begin-search-forward
@@ -233,7 +234,7 @@ directives. By default, this only recognizes C directives.")
   :hook (org-mode . embrace-org-mode-hook)
   :hook ((ruby-mode enh-ruby-mode) . embrace-ruby-mode-hook)
   :hook (emacs-lisp-mode . embrace-emacs-lisp-mode-hook)
-  :hook ((lisp-mode emacs-lisp-mode clojure-mode racket-mode)
+  :hook ((lisp-mode emacs-lisp-mode clojure-mode racket-mode hy-mode)
          . +evil-embrace-lisp-mode-hook-h)
   :hook ((org-mode LaTeX-mode) . +evil-embrace-latex-mode-hook-h)
   :hook ((c++-mode rustic-mode csharp-mode java-mode swift-mode typescript-mode)
@@ -404,10 +405,10 @@ To change these keys see `+evil-repeat-keys'."
 
 ;; `evil-collection'
 (when (featurep! +everywhere)
+  (setq evil-collection-company-use-tng (featurep! :completion company +tng))
+
   (unless doom-reloading-p
     (load! "+everywhere"))
-
-  (setq evil-collection-company-use-tng (featurep! :completion company +tng))
 
   ;; Don't let evil-collection interfere with certain keys
   (appendq! evil-collection-key-blacklist
@@ -587,6 +588,12 @@ To change these keys see `+evil-repeat-keys'."
       :v "S" #'evil-surround-region
       :o "s" #'evil-surround-edit
       :o "S" #'evil-Surround-edit
+
+      ;; evil-lion
+      :n "gl" #'evil-lion-left
+      :n "gL" #'evil-lion-right
+      :v "gl" #'evil-lion-left
+      :v "gL" #'evil-lion-right
 
       ;; Omni-completion
       (:when (featurep! :completion company)

@@ -4,16 +4,31 @@
   (setenv "GIT_ASKPASS" "git-gui--askpass"))
 
 
+(after! log-view
+  (set-evil-initial-state!
+    '(log-view-mode
+      vc-git-log-view-mode
+      vc-hg-log-view-mode
+      vc-bzr-log-view-mode
+      vc-svn-log-view-mode)
+    'emacs)
+  (map! :map log-view-mode-map
+        "j" #'log-view-msg-next
+        "k" #'log-view-msg-prev))
+
+
 (after! vc-annotate
   (set-popup-rules!
-    '(("^\\vc-d" :select nil) ; *vc-diff*
-      ("^\\vc-c" :select t))) ; *vc-change-log*
-  (set-evil-initial-state!
-    '(vc-annotate-mode vc-git-log-view-mode)
-    'normal)
+    '(("^\\*vc-diff" :select nil)   ; *vc-diff*
+      ("^\\*vc-change" :select t))) ; *vc-change-log*
+  (set-evil-initial-state! 'vc-annotate-mode 'normal)
 
   ;; Clean up after itself
   (define-key vc-annotate-mode-map [remap quit-window] #'kill-current-buffer))
+
+
+(after! vc-dir
+  (set-evil-initial-state! 'vc-dir-mode 'emacs))
 
 
 (after! git-timemachine
@@ -71,3 +86,12 @@ otherwise in default state."
       (when (and (bound-and-true-p evil-mode)
                  (bobp) (eolp))
         (evil-insert-state)))))
+
+
+;; HACK `browse-at-remote' produces urls with `nil' in them, when the repo
+;;      detached. This creates broken links. I think it is more sensible to at
+;;      least refer to master in those case.
+(defadvice! +vc--fallback-to-master-branch-a ()
+  "Return 'master' in detached state."
+  :after-until #'browse-at-remote--get-local-branch
+  "master")
