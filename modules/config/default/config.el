@@ -101,7 +101,7 @@
     (sp-local-pair sp-lisp-modes "(" ")" :unless '(:rem sp-point-before-same-p))
 
     ;; Major-mode specific fixes
-    (sp-local-pair '(ruby-mode enh-ruby-mode) "{" "}"
+    (sp-local-pair 'ruby-mode "{" "}"
                    :pre-handlers '(:rem sp-ruby-pre-handler)
                    :post-handlers '(:rem sp-ruby-post-handler))
 

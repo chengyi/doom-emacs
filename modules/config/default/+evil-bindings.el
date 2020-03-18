@@ -77,7 +77,7 @@
         :n "q"    #'kill-current-buffer)
 
       :m "gs"     #'+evil/easymotion  ; lazy-load `evil-easymotion'
-      (:after evil-org
+      (:after (evil-org evil-easymotion)
         :map evil-org-mode-map
         :m "gsh" #'+org/goto-visible)
 
@@ -398,7 +398,7 @@
       ;;; <leader> g --- git/version control
       (:prefix-map ("g" . "git")
         :desc "Revert file"                 "R"   #'vc-revert
-        :desc "Copy link to remote"         "y"   #'+vc/browse-at-remote-kill-file-or-region
+        :desc "Copy link to remote"         "y"   #'browse-at-remote-kill
         :desc "Copy link to homepage"       "Y"   #'+vc/browse-at-remote-kill-homepage
         (:when (featurep! :ui hydra)
           :desc "SMerge"                    "m"   #'+vc/smerge-hydra/body)

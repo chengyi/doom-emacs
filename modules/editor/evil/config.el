@@ -174,7 +174,7 @@ directives. By default, this only recognizes C directives.")
                 evil-ex-search-previous
                 evil-ex-search-forward
                 evil-ex-search-backward))
-    (advice-add fn :after #'doom-recenter-a))
+    (advice-add fn :around #'doom-preserve-window-position-a))
 
   ;; --- custom interactive codes -----------
   ;; These arg types will highlight matches in the current buffer
@@ -232,7 +232,7 @@ directives. By default, this only recognizes C directives.")
   :commands embrace-add-pair embrace-add-pair-regexp
   :hook (LaTeX-mode . embrace-LaTeX-mode-hook)
   :hook (org-mode . embrace-org-mode-hook)
-  :hook ((ruby-mode enh-ruby-mode) . embrace-ruby-mode-hook)
+  :hook (ruby-mode . embrace-ruby-mode-hook)
   :hook (emacs-lisp-mode . embrace-emacs-lisp-mode-hook)
   :hook ((lisp-mode emacs-lisp-mode clojure-mode racket-mode hy-mode)
          . +evil-embrace-lisp-mode-hook-h)
