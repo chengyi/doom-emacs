@@ -16,6 +16,14 @@ excluded servers' identifiers to `+lsp-capf-blacklist'.")
   "Language servers listed here will always use the `company-lsp' backend,
 irrespective of what `+lsp-company-backend' is set to.")
 
+(defvar +lsp-defer-shutdown 3
+  "If non-nil, defer shutdown of LSP servers for this many seconds after last
+workspace buffer is closed.
+
+This delay prevents premature server shutdown when a user still intends on
+working on that project after closing the last buffer.")
+
+
 ;;
 ;;; Packages
 
@@ -36,12 +44,26 @@ irrespective of what `+lsp-company-backend' is set to.")
         lsp-groovy-server-install-dir (concat lsp-server-install-dir "lsp-groovy/")
         lsp-intelephense-storage-path (concat doom-cache-dir "lsp-intelephense/"))
 
+  ;; Disable LSP's superfluous, expensive and/or debatably unnecessary features.
+  ;; Some servers implement these poorly. Better to just rely on Emacs' native
+  ;; mechanisms and make these opt-in.
+  (setq lsp-enable-folding nil
+        ;; Potentially slow
+        lsp-enable-file-watchers nil
+        lsp-enable-text-document-color nil
+        lsp-enable-semantic-highlighting nil
+        ;; Don't modify our code without our permission
+        lsp-enable-indentation nil
+        lsp-enable-on-type-formatting nil)
+
   :config
   (set-lookup-handlers! 'lsp-mode :async t
     :documentation #'lsp-describe-thing-at-point
     :definition #'lsp-find-definition
     :references #'lsp-find-references)
 
+  ;; TODO Lazy load these. They don't need to be loaded all at once unless the
+  ;;      user uses `lsp-install-server'.
   (when lsp-auto-configure
     (mapc (lambda (package) (require package nil t))
           lsp-client-packages))
@@ -135,16 +157,19 @@ This gives the user a chance to open other project files before the server is
 auto-killed (which is a potentially expensive process)."
     :around #'lsp--shutdown-workspace
     (if (or lsp-keep-workspace-alive
-            restart)
+            restart
+            (null +lsp-defer-shutdown)
+            (= +lsp-defer-shutdown 0))
         (funcall orig-fn)
       (when (timerp +lsp--deferred-shutdown-timer)
         (cancel-timer +lsp--deferred-shutdown-timer))
       (setq +lsp--deferred-shutdown-timer
             (run-at-time
-             3 nil (lambda (workspace)
-                     (let ((lsp--cur-workspace workspace))
-                       (unless (lsp--workspace-buffers lsp--cur-workspace)
-                         (funcall orig-fn))))
+             (if (numberp +lsp-defer-shutdown) +lsp-defer-shutdown 3)
+             nil (lambda (workspace)
+                   (let ((lsp--cur-workspace workspace))
+                     (unless (lsp--workspace-buffers lsp--cur-workspace)
+                       (funcall orig-fn))))
              lsp--cur-workspace))))
 
   (defadvice! +lsp-prompt-if-no-project-a (session file-name)
