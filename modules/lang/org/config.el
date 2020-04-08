@@ -163,8 +163,15 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
 
   (set-pretty-symbols! 'org-mode
     :name "#+NAME:"
+    :name "#+name:"
     :src_block "#+BEGIN_SRC"
-    :src_block_end "#+END_SRC"))
+    :src_block "#+begin_src"
+    :src_block_end "#+END_SRC"
+    :src_block_end "#+end_src"
+    :quote "#+BEGIN_QUOTE"
+    :quote "#+begin_quote"
+    :quote_end "#+END_QUOTE"
+    :quote_end "#+end_quote"))
 
 
 (defun +org-init-babel-h ()
@@ -515,7 +522,14 @@ current workspace (and clean them up)."
                 (lambda (file-or-data &optional type data-p &rest props)
                   (let ((type (if (plist-get props :width) type)))
                     (apply old-create-image file-or-data type data-p props)))))
-      (apply orig-fn args))))
+      (apply orig-fn args)))
+
+  (defadvice! +org--fix-inconsistent-uuidgen-case-a (uuid)
+    "Ensure uuidgen always produces lowercase output regardless of system."
+    :filter-return #'org-id-new
+    (if (eq org-id-method 'uuid)
+        (downcase uuid)
+      uuid)))
 
 
 (defun +org-init-keybinds-h ()
@@ -715,38 +729,23 @@ compelling reason, so..."
   )
 
 
-(defun +org-init-smartparens-h ()
-  "TODO"
-  (after! smartparens
-    (defun +org-sp-point-in-checkbox-p (_id action _context)
-      (and (eq action 'insert)
-           (sp--looking-at-p "\\s-*]")))
-
-    (defun +org-sp-point-at-bol-p (_id action _context)
-      (and (eq action 'insert)
-           (save-excursion
-             (skip-chars-backward "*")
-             (bolp))))
-
-    (defun +org-sp-in-src-block-p (_id action _context)
-      (and (eq action 'insert)
-           (org-in-src-block-p)))
-
-    ;; make delimiter auto-closing a little more conservative
-    (sp-with-modes 'org-mode
-      (sp-local-pair "*" "*" :unless '(:add sp-point-before-word-p sp-in-math-p +org-sp-point-at-bol-p +org-sp-in-src-block-p))
-      (sp-local-pair "_" "_" :unless '(:add sp-point-before-word-p sp-in-math-p +org-sp-in-src-block-p))
-      (sp-local-pair "/" "/" :unless '(:add sp-point-before-word-p sp-in-math-p +org-sp-point-in-checkbox-p +org-sp-in-src-block-p))
-      (sp-local-pair "~" "~" :unless '(:add sp-point-before-word-p +org-sp-in-src-block-p))
-      (sp-local-pair "=" "=" :unless '(:add sp-point-before-word-p sp-in-math-p +org-sp-in-src-block-p)))))
-
-
 ;;
 ;;; Packages
 
 (use-package! toc-org ; auto-table of contents
   :hook (org-mode . toc-org-enable)
-  :config (setq toc-org-hrefify-default "gh"))
+  :config
+  (setq toc-org-hrefify-default "gh")
+
+  (defadvice! +org-inhibit-scrolling-a (orig-fn &rest args)
+    "Prevent the jarring scrolling that occurs when the-ToC is regenerated."
+    :around #'toc-org-insert-toc
+    (let ((p (set-marker (make-marker) (point)))
+          (s (window-start)))
+      (prog1 (apply orig-fn args)
+        (goto-char p)
+        (set-window-start nil s t)
+        (set-marker p nil)))))
 
 
 (use-package! org-bullets ; "prettier" bullets
@@ -928,8 +927,7 @@ compelling reason, so..."
              #'+org-init-keybinds-h
              #'+org-init-popup-rules-h
              #'+org-init-protocol-h
-             #'+org-init-protocol-lazy-loader-h
-             #'+org-init-smartparens-h)
+             #'+org-init-protocol-lazy-loader-h)
 
   ;;; Custom org modules
   (if (featurep! +brain)     (load! "contrib/brain"))

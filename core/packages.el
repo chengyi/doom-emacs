@@ -27,14 +27,18 @@
   ;;        on a potato.
   :recipe (:host github :repo "hlissner/emacs-so-long")
   :pin "ed666b0716")
-(package! undo-tree :pin "5b6df03781")
+(package! undo-fu :pin "8c461a00a0")
+(package! undo-fu-session :pin "35d4cf3771")
 (package! ws-butler
   ;; Use my fork of ws-butler, which has a few choice improvements and
   ;; optimizations (the original has been abandoned).
   :recipe (:host github :repo "hlissner/ws-butler")
   :pin "2bb49d3ee7")
 (unless IS-WINDOWS
-  (package! xclip :pin "d022cf947d"))
+  (package! xclip :pin "d022cf947d")
+  (package! clipetty
+    :recipe (:host github :repo "spudlyo/clipetty")
+    :pin "fda5a80cf4"))
 
 ;; core-projects.el
 (package! projectile :pin "588692ad56")
