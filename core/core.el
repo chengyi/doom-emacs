@@ -191,9 +191,12 @@ users).")
 ;; least a little more discerning.
 (setq gnutls-verify-error (not (getenv "INSECURE"))
       gnutls-algorithm-priority
-      (concat "SECURE128:+SECURE192:-VERS-ALL:+VERS-TLS1.2"
-              (if (ignore-errors (>= libgnutls-version 30605))
-                ":+VERS-TLS1.3"))
+      (when (boundp 'libgnutls-version)
+        (concat "SECURE128:+SECURE192:-VERS-ALL:+VERS-TLS1.2"
+                (if (and (not IS-WINDOWS)
+                         (not (version< emacs-version "26.3"))
+                         (>= libgnutls-version 30605))
+                    ":+VERS-TLS1.3")))
       ;; `gnutls-min-prime-bits' is set based on recommendations from
       ;; https://www.keylength.com/en/4/
       gnutls-min-prime-bits 3072
@@ -307,11 +310,12 @@ users).")
 ;; HACK `tty-run-terminal-initialization' is *tremendously* slow for some
 ;;      reason. Disabling it completely could have many side-effects, so we
 ;;      defer it until later, at which time it (somehow) runs very quickly.
-(advice-add #'tty-run-terminal-initialization :override #'ignore)
-(add-hook! 'window-setup-hook
-  (defun doom-init-tty-h ()
-    (advice-remove #'tty-run-terminal-initialization #'ignore)
-    (tty-run-terminal-initialization (selected-frame) nil t)))
+(unless (daemonp)
+  (advice-add #'tty-run-terminal-initialization :override #'ignore)
+  (add-hook! 'window-setup-hook
+    (defun doom-init-tty-h ()
+      (advice-remove #'tty-run-terminal-initialization #'ignore)
+      (tty-run-terminal-initialization (selected-frame) nil t))))
 
 
 ;;

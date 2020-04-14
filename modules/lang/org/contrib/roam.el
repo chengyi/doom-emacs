@@ -3,6 +3,7 @@
 
 (use-package! org-roam
   :hook (org-load . org-roam-mode)
+  :hook (org-roam-backlinks-mode . turn-on-visual-line-mode)
   :commands (org-roam
              org-roam-capture
              org-roam-date
@@ -33,8 +34,14 @@
           :desc "Tomorrow"       "m" #'org-roam-tomorrow
           :desc "Yesterday"      "y" #'org-roam-yesterday))
   :config
-  (unless org-roam-directory
-    (setq org-roam-directory org-directory)))
+  (setq org-roam-directory (expand-file-name (or org-roam-directory "")
+                                             org-directory)
+        org-roam-verbose nil  ; https://youtu.be/fn4jIlFwuLU
+        org-roam-completion-system
+        (cond ((featurep! :completion helm) 'helm)
+              ((featurep! :completion ivy) 'ivy)
+              ((featurep! :completion ido) 'ido)
+              ('default))))
 
 
 ;; Since the org module lazy loads org-protocol (waits until an org URL is
