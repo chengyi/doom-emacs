@@ -393,11 +393,6 @@ Made for `org-tab-first-hook' in evil-mode."
           ;; Smart indentation doesn't work with yasnippet, and painfully slow
           ;; in the few cases where it does.
           (yas-indent-line 'fixed))
-      ;; HACK Yasnippet field overlays break org-bullet-mode. Don't ask me why.
-      (add-hook! 'yas-after-exit-snippet-hook :local
-        (when (bound-and-true-p org-bullets-mode)
-          (org-bullets-mode -1)
-          (org-bullets-mode +1)))
       (cond ((and (or (not (bound-and-true-p evil-local-mode))
                       (evil-insert-state-p))
                   (yas--templates-for-key-at-point))
@@ -436,12 +431,14 @@ with `org-cycle')."
 
 ;;;###autoload
 (defun +org-unfold-to-2nd-level-or-point-h ()
-  "My version of the 'overview' #+STARTUP option: expand first-level headings.
-Expands the first level, but no further. If point was left somewhere deeper,
-unfold to point on startup."
+  "Alters '#+STARTUP overview' to only expand first-level headings.
+Expands the first level, but no further. If a different startup option was
+provided, do that instead."
   (unless org-agenda-inhibit-startup
+    ;; TODO Implement a custom #+STARTUP option?
     (when (eq org-startup-folded t)
       (outline-hide-sublevels +org-initial-fold-level))
+    ;; If point was left somewhere deeper, unfold to point on startup.
     (when (outline-invisible-p)
       (ignore-errors
         (save-excursion

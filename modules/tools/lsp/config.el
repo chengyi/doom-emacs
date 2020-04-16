@@ -56,7 +56,7 @@ working on that project after closing the last buffer.")
         lsp-enable-on-type-formatting nil)
 
   :config
-  (set-popup-rule! "^\\*lsp-help" :size 0.35 :quit t)
+  (set-popup-rule! "^\\*lsp-help" :size 0.35 :quit t :select t)
   (set-lookup-handlers! 'lsp-mode :async t
     :documentation #'lsp-describe-thing-at-point
     :definition #'lsp-find-definition
@@ -160,7 +160,7 @@ auto-killed (which is a potentially expensive process)."
             restart
             (null +lsp-defer-shutdown)
             (= +lsp-defer-shutdown 0))
-        (funcall orig-fn)
+        (funcall orig-fn restart)
       (when (timerp +lsp--deferred-shutdown-timer)
         (cancel-timer +lsp--deferred-shutdown-timer))
       (setq +lsp--deferred-shutdown-timer

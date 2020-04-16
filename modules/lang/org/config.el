@@ -116,10 +116,20 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
 
   ;; Fontify latex blocks and entities, but not natively -- that's too slow
   (setq org-highlight-latex-and-related '(latex script entities))
-  (plist-put! org-format-latex-options
-              :scale 1.5         ; larger previews
-              :foreground 'auto  ; match the theme foreground
-              :background 'auto) ; ... and its background
+
+  (plist-put org-format-latex-options :scale 1.5) ; larger previews
+  (add-hook! 'doom-load-theme-hook
+    (defun +org-refresh-latex-background-h ()
+      "Previews are rendered with the incorrect background.
+This forces it to read the background before rendering."
+      (plist-put! org-format-latex-options
+                  :background
+                  (face-attribute (if-let (remap (cadr (assq 'default face-remapping-alist)))
+                                      (if (keywordp (car-safe remap))
+                                          (plist-get remap :background)
+                                        remap)
+                                      'default)
+                                  :background nil t))))
 
   ;; HACK Face specs fed directly to `org-todo-keyword-faces' don't respect
   ;;      underlying faces like the `org-todo' face does, so we define our own
@@ -220,11 +230,10 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
                  (require lang nil t))
         (add-to-list 'org-babel-load-languages (cons lang t)))))
 
-  ;; Lazy load babel packages for exporting
-  (add-hook! 'org-export-filter-src-block-functions
-    (defun lazy-load-library-h (data lang plist)
-      (+org--babel-lazy-load lang)
-      data))
+  (defadvice! +org--export-lazy-load-library-h ()
+    "Lazy load a babel package when a block is executed during exporting."
+    :before #'org-babel-exp-src-block
+    (+org--babel-lazy-load-library-a (org-babel-get-src-block-info)))
 
   (defadvice! +org--src-lazy-load-library-a (lang)
     "Lazy load a babel package to ensure syntax highlighting."
@@ -750,8 +759,22 @@ compelling reason, so..."
         (set-marker p nil)))))
 
 
-(use-package! org-bullets ; "prettier" bullets
-  :hook (org-mode . org-bullets-mode))
+(use-package! org-superstar ; "prettier" bullets
+  :hook (org-mode . org-superstar-mode)
+  :config
+  ;; Make leading stars truly invisible, by rendering them as spaces!
+  (setq org-superstar-leading-bullet ?\s
+        org-hide-leading-stars nil)
+  ;; Don't do anything special for item bullets or TODOs by default; these slow
+  ;; down larger org buffers.
+  (setq org-superstar-prettify-item-bullets nil
+        org-superstar-special-todo-items nil
+        ;; ...but configure it in case the user wants it later
+        org-superstar-todo-bullet-alist
+        '(("TODO" . 9744)
+          ("[ ]"  . 9744)
+          ("DONE" . 9745)
+          ("[X]"  . 9745))))
 
 
 (use-package! org-crypt ; built-in
@@ -783,16 +806,43 @@ compelling reason, so..."
   (add-hook 'kill-emacs-hook #'org-clock-save))
 
 
-(use-package! org-pdfview
+(use-package! org-pdftools
   :when (featurep! :tools pdf)
-  :commands org-pdfview-open
+  :commands org-pdftools-export
   :init
   (after! org
-    (delete '("\\.pdf\\'" . default) org-file-apps)
-    ;; org links to pdf files are opened in pdf-view-mode
-    (add-to-list 'org-file-apps '("\\.pdf\\'" . (lambda (_file link) (org-pdfview-open link))))
-    ;; support for links to specific pages
-    (add-to-list 'org-file-apps '("\\.pdf::\\([[:digit:]]+\\)\\'" . (lambda (_file link) (org-pdfview-open link))))))
+    (add-hook 'org-store-link-functions #'org-pdftools-store-link)
+
+    ;; HACK `org-pdftools' hard-codes "pdftools:" for its links. We want to use
+    ;;      a generic link so that the backend doesn't matter. These hacks are
+    ;;      in place so that the old pdf(view|tools) links still work, but that
+    ;;      org-pdftools will only generate pdf: links.
+    (org-link-set-parameters "pdf"
+                             :follow #'org-pdftools-open
+                             :complete #'org-pdftools-complete-link
+                             :store #'org-pdftools-store-link
+                             :export #'org-pdftools-export)
+
+    (add-hook! 'org-open-link-functions
+      (defun +org-open-old-pdf-links-fn (path)
+        (let ((regexp "^pdf\\(?:tools\\|view\\):"))
+          (when (string-match-p regexp)
+            (org-link-open (replace-regexp-in-string regexp "pdf:" link))
+            t))))
+
+    ;; TODO Perhaps PR a variable for changing the link upstream?
+    (defadvice! +org--use-generic-link-a (link)
+      :filter-return '(org-pdftools-complete-link
+                       org-pdftools-get-link)
+      (replace-regexp-in-string "^pdftools:" "pdf:" link))
+
+    (defadvice! +org--store-generic-link-a (orig-fn &rest args)
+      :around #'org-pdftools-store-link
+      (cl-letf* ((old-store-props (symbol-function #'org-link-store-props))
+                 ((symbol-function #'org-link-store-props)
+                  (lambda (&rest plist)
+                    (apply old-store-props (plist-put plist :type "pdf")))))
+        (apply orig-fn args)))))
 
 
 (use-package! evil-org
