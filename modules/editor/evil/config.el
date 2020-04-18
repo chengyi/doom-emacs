@@ -144,6 +144,15 @@ directives. By default, this only recognizes C directives.")
     (when (eq major-mode 'fundamental-mode)
       (hack-local-variables)))
 
+  ;; HACK Invoking helpful from evil-ex throws a "No recursive edit is in
+  ;;      progress" error because, between evil-ex and helpful,
+  ;;      `abort-recursive-edit' gets called one time too many.
+  (defadvice! +evil--fix-helpful-key-in-evil-ex-a (key-sequence)
+    :before #'helpful-key
+    (when (evil-ex-p)
+      (run-at-time 0.1 nil #'helpful-key key-sequence)
+      (abort-recursive-edit)))
+
   ;; Make ESC (from normal mode) the universal escaper. See `doom-escape-hook'.
   (advice-add #'evil-force-normal-state :after #'+evil-escape-a)
 
@@ -201,6 +210,7 @@ directives. By default, this only recognizes C directives.")
 ;;; Packages
 
 (use-package! evil-easymotion
+  :after-call pre-command-hook
   :commands evilem-create evilem-default-keybindings
   :config
   ;; Use evil-search backend, instead of isearch
@@ -533,6 +543,7 @@ To change these keys see `+evil-repeat-keys'."
 
       ;; evil-easymotion (see `+evil/easymotion')
       (:after evil-easymotion
+        :m "gs" evilem-map
         (:map evilem-map
           "a" (evilem-create #'evil-forward-arg)
           "A" (evilem-create #'evil-backward-arg)

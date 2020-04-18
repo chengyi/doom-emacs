@@ -116,10 +116,20 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
 
   ;; Fontify latex blocks and entities, but not natively -- that's too slow
   (setq org-highlight-latex-and-related '(latex script entities))
-  (plist-put! org-format-latex-options
-              :scale 1.5         ; larger previews
-              :foreground 'auto  ; match the theme foreground
-              :background 'auto) ; ... and its background
+
+  (plist-put org-format-latex-options :scale 1.5) ; larger previews
+  (add-hook! 'doom-load-theme-hook
+    (defun +org-refresh-latex-background-h ()
+      "Previews are rendered with the incorrect background.
+This forces it to read the background before rendering."
+      (plist-put! org-format-latex-options
+                  :background
+                  (face-attribute (if-let (remap (cadr (assq 'default face-remapping-alist)))
+                                      (if (keywordp (car-safe remap))
+                                          (plist-get remap :background)
+                                        remap)
+                                      'default)
+                                  :background nil t))))
 
   ;; HACK Face specs fed directly to `org-todo-keyword-faces' don't respect
   ;;      underlying faces like the `org-todo' face does, so we define our own
@@ -131,9 +141,10 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
   (setq org-todo-keywords
         '((sequence
            "TODO(t)"  ; A task that needs doing & is ready to do
-           "PROJ(p)"  ; An ongoing project that cannot be completed in one step
+           "PROJ(p)"  ; A project, which usually contains other tasks
            "STRT(s)"  ; A task that is in progress
-           "WAIT(w)"  ; Something is holding up this task; or it is paused
+           "WAIT(w)"  ; Something external is holding up this task
+           "HOLD(h)"  ; This task is paused/on hold because of me
            "|"
            "DONE(d)"  ; Task successfully completed
            "KILL(k)") ; Task was cancelled, aborted or is no longer applicable
@@ -148,6 +159,7 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
           ("STRT" . +org-todo-active)
           ("[?]"  . +org-todo-onhold)
           ("WAIT" . +org-todo-onhold)
+          ("HOLD" . +org-todo-onhold)
           ("PROJ" . +org-todo-project)))
 
   (defadvice! +org-display-link-in-eldoc-a (orig-fn &rest args)
@@ -220,11 +232,10 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
                  (require lang nil t))
         (add-to-list 'org-babel-load-languages (cons lang t)))))
 
-  ;; Lazy load babel packages for exporting
-  (add-hook! 'org-export-filter-src-block-functions
-    (defun lazy-load-library-h (data lang plist)
-      (+org--babel-lazy-load lang)
-      data))
+  (defadvice! +org--export-lazy-load-library-h ()
+    "Lazy load a babel package when a block is executed during exporting."
+    :before #'org-babel-exp-src-block
+    (+org--babel-lazy-load-library-a (org-babel-get-src-block-info)))
 
   (defadvice! +org--src-lazy-load-library-a (lang)
     "Lazy load a babel package to ensure syntax highlighting."
@@ -750,12 +761,26 @@ compelling reason, so..."
         (set-marker p nil)))))
 
 
-(use-package! org-bullets ; "prettier" bullets
-  :hook (org-mode . org-bullets-mode))
+(use-package! org-superstar ; "prettier" bullets
+  :hook (org-mode . org-superstar-mode)
+  :config
+  ;; Make leading stars truly invisible, by rendering them as spaces!
+  (setq org-superstar-leading-bullet ?\s
+        org-hide-leading-stars nil)
+  ;; Don't do anything special for item bullets or TODOs by default; these slow
+  ;; down larger org buffers.
+  (setq org-superstar-prettify-item-bullets nil
+        org-superstar-special-todo-items nil
+        ;; ...but configure it in case the user wants it later
+        org-superstar-todo-bullet-alist
+        '(("TODO" . 9744)
+          ("[ ]"  . 9744)
+          ("DONE" . 9745)
+          ("[X]"  . 9745))))
 
 
 (use-package! org-crypt ; built-in
-  :commands org-encrypt-entries
+  :commands org-encrypt-entries org-encrypt-entry org-decrypt-entries org-decrypt-entry
   :hook (org-reveal-start . org-decrypt-entry)
   :config
   (add-hook! 'org-mode-hook
@@ -783,16 +808,23 @@ compelling reason, so..."
   (add-hook 'kill-emacs-hook #'org-clock-save))
 
 
-(use-package! org-pdfview
+(use-package! org-pdftools
   :when (featurep! :tools pdf)
-  :commands org-pdfview-open
+  :commands org-pdftools-export
   :init
   (after! org
-    (delete '("\\.pdf\\'" . default) org-file-apps)
-    ;; org links to pdf files are opened in pdf-view-mode
-    (add-to-list 'org-file-apps '("\\.pdf\\'" . (lambda (_file link) (org-pdfview-open link))))
-    ;; support for links to specific pages
-    (add-to-list 'org-file-apps '("\\.pdf::\\([[:digit:]]+\\)\\'" . (lambda (_file link) (org-pdfview-open link))))))
+    (org-link-set-parameters (or (bound-and-true-p org-pdftools-link-prefix) "pdf")
+                             :follow #'org-pdftools-open
+                             :complete #'org-pdftools-complete-link
+                             :store #'org-pdftools-store-link
+                             :export #'org-pdftools-export)
+    (add-hook! 'org-open-link-functions
+      (defun +org-open-legacy-pdf-links-fn (link)
+        "Open pdftools:* and pdfviews:* links as if they were pdf:* links."
+        (let ((regexp "^pdf\\(?:tools\\|view\\):"))
+          (when (string-match-p regexp link)
+            (org-pdftools-open (replace-regexp-in-string regexp "" link))
+            t))))))
 
 
 (use-package! evil-org
@@ -913,6 +945,7 @@ compelling reason, so..."
   (if (featurep! +pomodoro)  (load! "contrib/pomodoro"))
   (if (featurep! +present)   (load! "contrib/present"))
   (if (featurep! +roam)      (load! "contrib/roam"))
+  (if (featurep! +noter)     (load! "contrib/noter"))
 
   ;; Add our general hooks after the submodules, so that any hooks the
   ;; submodules add run after them, and can overwrite any defaults if necessary.
