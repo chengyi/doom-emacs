@@ -62,7 +62,7 @@
 (when (featurep! +ipython) ; DEPRECATED
   (package! ob-ipython :pin "7147455230"))
 (when (featurep! +jupyter)
-  (package! jupyter :pin "3322ce7b31"))
+  (package! jupyter :pin "587ed4e029"))
 (when (featurep! +journal)
   (package! org-journal :pin "664c08e12c"))
 (when (featurep! +pomodoro)
@@ -74,9 +74,9 @@
   (package! org-tree-slide :pin "7bf09a02bd")
   (package! org-re-reveal :pin "e4460a98b6"))
 (when (featurep! +roam)
-  (package! org-roam :pin "dfb8449680")
+  (package! org-roam :pin "6e97003967")
   (when (featurep! :completion company)
-    (package! company-org-roam :pin "063581df54")))
+    (package! company-org-roam :pin "0913d86f16")))
 
 ;;; Babel
 (package! ob-async :pin "80a30b96a0")

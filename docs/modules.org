@@ -76,6 +76,7 @@ Modules that reconfigure or augment packages or features built into Emacs.
 + [[file:../modules/emacs/dired/README.org][dired]] =+ranger +icons= - TODO
 + electric - TODO
 + [[file:../modules/emacs/ibuffer/README.org][ibuffer]] =+icons= - TODO
++ [[file:../modules/emacs/undo/README.org][undo]] =+tree= - A smarter, more intuitive & persistent undo history
 + vc - TODO
 
 * :email
@@ -113,7 +114,7 @@ Modules that bring support for a language or group of languages to Emacs.
 + [[file:../modules/lang/idris/README.org][idris]] - TODO
 + java =+meghanada +lsp= - TODO
 + [[file:../modules/lang/javascript/README.org][javascript]] =+lsp= - JavaScript, TypeScript, and CoffeeScript support
-+ julia - TODO
++ julia =+lsp= - TODO
 + kotlin =+lsp+= - TODO
 + [[file:../modules/lang/latex/README.org][latex]] =+latexmk +cdlatex +fold= - TODO
 + lean - TODO

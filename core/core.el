@@ -191,9 +191,12 @@ users).")
 ;; least a little more discerning.
 (setq gnutls-verify-error (not (getenv "INSECURE"))
       gnutls-algorithm-priority
-      (concat "SECURE128:+SECURE192:-VERS-ALL:+VERS-TLS1.2"
-              (if (ignore-errors (>= libgnutls-version 30605))
-                ":+VERS-TLS1.3"))
+      (when (boundp 'libgnutls-version)
+        (concat "SECURE128:+SECURE192:-VERS-ALL:+VERS-TLS1.2"
+                (if (and (not IS-WINDOWS)
+                         (not (version< emacs-version "26.3"))
+                         (>= libgnutls-version 30605))
+                    ":+VERS-TLS1.3")))
       ;; `gnutls-min-prime-bits' is set based on recommendations from
       ;; https://www.keylength.com/en/4/
       gnutls-min-prime-bits 3072
@@ -250,8 +253,8 @@ users).")
 ;;; Optimizations
 
 ;; Disable bidirectional text rendering for a modest performance boost. I've set
-;; this to `nil' in the past, but the `bidi-display-reordering's docs say this
-;; isn't a good idea, and suggests this is just as good:
+;; this to `nil' in the past, but the `bidi-display-reordering's docs say that
+;; is an undefined state and suggest this to be just as good:
 (setq-default bidi-display-reordering 'left-to-right
               bidi-paragraph-direction 'left-to-right)
 
@@ -261,7 +264,8 @@ users).")
 (setq highlight-nonselected-windows nil)
 
 ;; More performant rapid scrolling over unfontified regions. May cause brief
-;; spells of inaccurate fontification immediately after scrolling.
+;; spells of inaccurate syntax highlighting right after scrolling, which should
+;; quickly self-correct.
 (setq fast-but-imprecise-scrolling t)
 
 ;; Resizing the Emacs frame can be a terribly expensive part of changing the
@@ -280,8 +284,7 @@ users).")
 ;; Performance on Windows is considerably worse than elsewhere, especially if
 ;; WSL is involved. We'll need everything we can get.
 (when IS-WINDOWS
-  ;; Reduce the workload when doing file IO
-  (setq w32-get-true-file-attributes nil))
+  (setq w32-get-true-file-attributes nil)) ; slightly faster IO
 
 ;; Remove command line options that aren't relevant to our current OS; means
 ;; slightly less to process at startup.
@@ -307,11 +310,12 @@ users).")
 ;; HACK `tty-run-terminal-initialization' is *tremendously* slow for some
 ;;      reason. Disabling it completely could have many side-effects, so we
 ;;      defer it until later, at which time it (somehow) runs very quickly.
-(advice-add #'tty-run-terminal-initialization :override #'ignore)
-(add-hook! 'window-setup-hook
-  (defun doom-init-tty-h ()
-    (advice-remove #'tty-run-terminal-initialization #'ignore)
-    (tty-run-terminal-initialization (selected-frame) nil t)))
+(unless (daemonp)
+  (advice-add #'tty-run-terminal-initialization :override #'ignore)
+  (add-hook! 'window-setup-hook
+    (defun doom-init-tty-h ()
+      (advice-remove #'tty-run-terminal-initialization #'ignore)
+      (tty-run-terminal-initialization (selected-frame) nil t))))
 
 
 ;;

@@ -150,15 +150,18 @@
 
       (:when (featurep! :completion helm)
         (:after helm :map helm-map
+          [remap next-line]     #'helm-next-line
+          [remap previous-line] #'helm-previous-line
           [left]     #'left-char
           [right]    #'right-char
           "C-S-f"    #'helm-previous-page
           "C-S-n"    #'helm-next-source
           "C-S-p"    #'helm-previous-source
-          "C-S-j"    #'helm-next-source
-          "C-S-k"    #'helm-previous-source
-          "C-j"      #'helm-next-line
-          "C-k"      #'helm-previous-line
+          (:when (featurep! :editor evil +everywhere)
+            "C-j"    #'helm-next-line
+            "C-k"    #'helm-previous-line
+            "C-S-j"  #'helm-next-source
+            "C-S-k"  #'helm-previous-source)
           "C-u"      #'helm-delete-minibuffer-contents
           "C-s"      #'helm-minibuffer-history
           ;; Swap TAB and C-z
@@ -255,7 +258,6 @@
       :desc "M-x"                   ":"    #'execute-extended-command
       :desc "Pop up scratch buffer" "x"    #'doom/open-scratch-buffer
       :desc "Org Capture"           "X"    #'org-capture
-
       ;; C-u is used by evil
       :desc "Universal argument"    "u"    #'universal-argument
       :desc "window"                "w"    evil-window-map
@@ -264,12 +266,10 @@
       (:when (featurep! :ui popup)
         :desc "Toggle last popup"     "~"    #'+popup/toggle)
       :desc "Find file"             "."    #'find-file
-
       :desc "Switch buffer"         ","    #'switch-to-buffer
       (:when (featurep! :ui workspaces)
         :desc "Switch workspace buffer" "," #'persp-switch-to-buffer
         :desc "Switch buffer"           "<" #'switch-to-buffer)
-
       :desc "Switch to last buffer" "`"    #'evil-switch-to-windows-last-buffer
       :desc "Resume last search"    "'"
       (cond ((featurep! :completion ivy)   #'ivy-resume)
