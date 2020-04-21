@@ -141,9 +141,10 @@ This forces it to read the background before rendering."
   (setq org-todo-keywords
         '((sequence
            "TODO(t)"  ; A task that needs doing & is ready to do
-           "PROJ(p)"  ; An ongoing project that cannot be completed in one step
+           "PROJ(p)"  ; A project, which usually contains other tasks
            "STRT(s)"  ; A task that is in progress
-           "WAIT(w)"  ; Something is holding up this task; or it is paused
+           "WAIT(w)"  ; Something external is holding up this task
+           "HOLD(h)"  ; This task is paused/on hold because of me
            "|"
            "DONE(d)"  ; Task successfully completed
            "KILL(k)") ; Task was cancelled, aborted or is no longer applicable
@@ -158,6 +159,7 @@ This forces it to read the background before rendering."
           ("STRT" . +org-todo-active)
           ("[?]"  . +org-todo-onhold)
           ("WAIT" . +org-todo-onhold)
+          ("HOLD" . +org-todo-onhold)
           ("PROJ" . +org-todo-project)))
 
   (defadvice! +org-display-link-in-eldoc-a (orig-fn &rest args)
@@ -778,7 +780,7 @@ compelling reason, so..."
 
 
 (use-package! org-crypt ; built-in
-  :commands org-encrypt-entries
+  :commands org-encrypt-entries org-encrypt-entry org-decrypt-entries org-decrypt-entry
   :hook (org-reveal-start . org-decrypt-entry)
   :config
   (add-hook! 'org-mode-hook
@@ -811,38 +813,18 @@ compelling reason, so..."
   :commands org-pdftools-export
   :init
   (after! org
-    (add-hook 'org-store-link-functions #'org-pdftools-store-link)
-
-    ;; HACK `org-pdftools' hard-codes "pdftools:" for its links. We want to use
-    ;;      a generic link so that the backend doesn't matter. These hacks are
-    ;;      in place so that the old pdf(view|tools) links still work, but that
-    ;;      org-pdftools will only generate pdf: links.
-    (org-link-set-parameters "pdf"
+    (org-link-set-parameters (or (bound-and-true-p org-pdftools-link-prefix) "pdf")
                              :follow #'org-pdftools-open
                              :complete #'org-pdftools-complete-link
                              :store #'org-pdftools-store-link
                              :export #'org-pdftools-export)
-
     (add-hook! 'org-open-link-functions
-      (defun +org-open-old-pdf-links-fn (path)
+      (defun +org-open-legacy-pdf-links-fn (link)
+        "Open pdftools:* and pdfviews:* links as if they were pdf:* links."
         (let ((regexp "^pdf\\(?:tools\\|view\\):"))
-          (when (string-match-p regexp)
-            (org-link-open (replace-regexp-in-string regexp "pdf:" link))
-            t))))
-
-    ;; TODO Perhaps PR a variable for changing the link upstream?
-    (defadvice! +org--use-generic-link-a (link)
-      :filter-return '(org-pdftools-complete-link
-                       org-pdftools-get-link)
-      (replace-regexp-in-string "^pdftools:" "pdf:" link))
-
-    (defadvice! +org--store-generic-link-a (orig-fn &rest args)
-      :around #'org-pdftools-store-link
-      (cl-letf* ((old-store-props (symbol-function #'org-link-store-props))
-                 ((symbol-function #'org-link-store-props)
-                  (lambda (&rest plist)
-                    (apply old-store-props (plist-put plist :type "pdf")))))
-        (apply orig-fn args)))))
+          (when (string-match-p regexp link)
+            (org-pdftools-open (replace-regexp-in-string regexp "" link))
+            t))))))
 
 
 (use-package! evil-org
@@ -963,6 +945,7 @@ compelling reason, so..."
   (if (featurep! +pomodoro)  (load! "contrib/pomodoro"))
   (if (featurep! +present)   (load! "contrib/present"))
   (if (featurep! +roam)      (load! "contrib/roam"))
+  (if (featurep! +noter)     (load! "contrib/noter"))
 
   ;; Add our general hooks after the submodules, so that any hooks the
   ;; submodules add run after them, and can overwrite any defaults if necessary.
