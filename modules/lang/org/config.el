@@ -65,6 +65,12 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
 ;;
 ;;; `org-load' hooks
 
+(defun +org-init-org-directory-h ()
+  (unless org-directory
+    (setq org-directory "~/org"))
+  (setq org-id-locations-file (expand-file-name ".orgids" org-directory)))
+
+
 (defun +org-init-agenda-h ()
   (unless org-agenda-files
     (setq org-agenda-files (list org-directory)))
@@ -340,7 +346,7 @@ relative to `org-directory', unless it is an absolute path."
   (defadvice! +org--prevent-save-prompts-when-refiling-a (&rest _)
     "Fix #462: when refiling from org-capture, Emacs prompts to kill the
 underlying, modified buffer. This fixes that."
-    :after 'org-refile
+    :after #'org-refile
     (when (bound-and-true-p org-capture-is-refiling)
       (org-save-all-org-buffers)))
 
@@ -366,14 +372,15 @@ underlying, modified buffer. This fixes that."
 
 (defun +org-init-attachments-h ()
   "Sets up org's attachment system."
+  (setq org-attach-store-link-p t     ; store link after attaching files
+        org-attach-use-inheritance t) ; inherit properties from parent nodes
+
   ;; Centralized attachments directory
-  (setq org-attach-id-dir (doom-path org-directory org-attach-id-dir)
-        ;; Store a link to attachments when they are attached
-        org-attach-store-link-p t
-        ;; Inherit attachment properties from parent nodes
-        org-attach-use-inheritance t)
-  (after! projectile
-    (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir)))
+  (after! org-attach
+    (unless org-attach-id-dir
+      (setq org-attach-id-dir (expand-file-name ".attach/" org-directory)))
+    (after! projectile
+      (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir))))
 
 
 (defun +org-init-custom-links-h ()
@@ -397,15 +404,15 @@ underlying, modified buffer. This fixes that."
             '("wolfram"     . "https://wolframalpha.com/input/?i=%s")
             '("doom-repo"   . "https://github.com/hlissner/doom-emacs/%s"))
 
-  (+org-def-link "org" org-directory)
-  (+org-def-link "doom" doom-emacs-dir)
-  (+org-def-link "doom-docs" doom-docs-dir)
-  (+org-def-link "doom-modules" doom-modules-dir)
+  (+org-define-basic-link "org" 'org-directory)
+  (+org-define-basic-link "doom" 'doom-emacs-dir)
+  (+org-define-basic-link "doom-docs" 'doom-docs-dir)
+  (+org-define-basic-link "doom-modules" 'doom-modules-dir)
 
   ;; Allow inline image previews of http(s)? urls or data uris
-  (org-link-set-parameters "http"  :image-data-fun #'+org-image-link)
-  (org-link-set-parameters "https" :image-data-fun #'+org-image-link)
-  (org-link-set-parameters "img"   :image-data-fun #'+org-inline-data-image)
+  (org-link-set-parameters "http"  :image-data-fun #'+org-http-image-data-fn)
+  (org-link-set-parameters "https" :image-data-fun #'+org-http-image-data-fn)
+  (org-link-set-parameters "img"   :image-data-fun #'+org-inline-image-data-fn)
 
   ;; Add support for youtube links + previews
   (require 'org-yt nil t))
@@ -458,9 +465,9 @@ underlying, modified buffer. This fixes that."
 
 (defun +org-init-hacks-h ()
   "Getting org to behave."
-  ;; Don't open separate windows
+  ;; Open file links in current window, rather than new ones
   (setf (alist-get 'file org-link-frame-setup) #'find-file)
-  ;; Open directory links in Emacs
+  ;; Open directory links in dired
   (add-to-list 'org-file-apps '(directory . emacs))
 
   ;; When you create a sparse tree and `org-indent-mode' is enabled, the
@@ -580,7 +587,10 @@ between the two."
         [remap doom/forward-to-last-non-comment-or-eol] #'org-end-of-line
 
         :localleader
+        "#" #'org-update-statistics-cookies
         "'" #'org-edit-special
+        "*" #'org-ctrl-c-star
+        "+" #'org-ctrl-c-minus
         "," #'org-switchb
         "." #'org-goto
         (:when (featurep! :completion ivy)
@@ -590,7 +600,6 @@ between the two."
           "." #'helm-org-in-buffer-headings
           "/" #'helm-org-agenda-files-headings)
         "A" #'org-archive-subtree
-        "d" #'org-deadline
         "e" #'org-export-dispatch
         "f" #'org-footnote-new
         "h" #'org-toggle-heading
@@ -600,7 +609,6 @@ between the two."
         "o" #'org-set-property
         "p" #'org-priority
         "q" #'org-set-tags-command
-        "s" #'org-schedule
         "t" #'org-todo
         "T" #'org-todo-list
         (:prefix ("a" . "attachments")
@@ -623,24 +631,38 @@ between the two."
         (:prefix ("b" . "tables")
           "-" #'org-table-insert-hline
           "a" #'org-table-align
+          "b" #'org-table-blank-field
           "c" #'org-table-create-or-convert-from-region
+          "dc" #'org-table-delete-column
+          "dr" #'org-table-kill-row
           "e" #'org-table-edit-field
+          "f" #'org-table-edit-formulas
           "h" #'org-table-field-info
+          "s" #'org-table-sort-lines
+          "r" #'org-table-recalculate
+          "R" #'org-table-recalculate-buffer-tables
           (:when (featurep! +gnuplot)
             "p" #'org-plot/gnuplot))
         (:prefix ("c" . "clock")
-          "c" #'org-clock-in
-          "C" #'org-clock-out
+          "c" #'org-clock-cancel
           "d" #'org-clock-mark-default-task
           "e" #'org-clock-modify-effort-estimate
           "E" #'org-set-effort
-          "l" #'org-clock-in-last
           "g" #'org-clock-goto
           "G" (λ! (org-clock-goto 'select))
-          "r" #'org-clock-report
-          "x" #'org-clock-cancel
+          "i" #'org-clock-in
+          "I" #'org-clock-in-last
+          "o" #'org-clock-out
+          "r" #'org-resolve-clocks
+          "R" #'org-clock-report
+          "t" #'org-evaluate-time-range
           "=" #'org-clock-timestamps-up
           "-" #'org-clock-timestamps-down)
+        (:prefix ("d" . "date/deadline")
+          "d" #'org-deadline
+          "s" #'org-schedule
+          "t" #'org-time-stamp
+          "T" #'org-time-stamp-inactive)
         (:prefix ("g" . "goto")
           "g" #'org-goto
           (:when (featurep! :completion ivy)
@@ -657,12 +679,13 @@ between the two."
           "x" #'org-capture-goto-last-stored)
         (:prefix ("l" . "links")
           "c" #'org-cliplink
+          "d" #'+org/remove-link
+          "i" #'org-id-store-link
           "l" #'org-insert-link
           "L" #'org-insert-all-links
           "s" #'org-store-link
           "S" #'org-insert-last-stored-link
-          "i" #'org-id-store-link
-          "d" #'+org/remove-link)
+          "t" #'org-toggle-link-display)
         (:prefix ("r" . "refile")
           "." #'+org/refile-to-current-file
           "c" #'+org/refile-to-running-clock
@@ -915,10 +938,12 @@ compelling reason, so..."
   org-list org-pcomplete org-src org-footnote org-macro ob org org-agenda
   org-capture
   :preface
-  ;; Change org defaults (should be set before org loads)
-  (setq org-directory "~/org/"
-        org-attach-id-dir ".attach/"
-        org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/")
+  ;; Set these to nil now so we can detect user changes to them later (and fall
+  ;; back on defaults otherwise)
+  (defvar org-directory nil)
+  (defvar org-attach-id-dir nil)
+
+  (setq org-publish-timestamp-directory (concat doom-cache-dir "org-timestamps/")
         org-preview-latex-image-directory (concat doom-cache-dir "org-latex/"))
 
   ;; Make most of the default modules opt-in, because I sincerely doubt most
@@ -960,6 +985,7 @@ compelling reason, so..."
              #'+org-unfold-to-2nd-level-or-point-h)
 
   (add-hook! 'org-load-hook
+             #'+org-init-org-directory-h
              #'+org-init-appearance-h
              #'+org-init-agenda-h
              #'+org-init-attachments-h
@@ -993,7 +1019,6 @@ compelling reason, so..."
   ;; Global ID state means we can have ID links anywhere. This is required for
   ;; `org-brain', however.
   (setq org-id-track-globally t
-        org-id-locations-file (expand-file-name ".orgids" org-directory)
         org-id-locations-file-relative t)
 
   ;; HACK `org-id' doesn't check if `org-id-locations-file' exists or is
