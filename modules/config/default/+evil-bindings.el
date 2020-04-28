@@ -4,7 +4,7 @@
   ;; NOTE SPC u replaces C-u as the universal argument.
 
   ;; Minibuffer
-  (define-key! evil-ex-completion-map
+  (define-key! :keymaps '(evil-ex-completion-map evil-ex-search-keymap)
     "C-a" #'evil-beginning-of-line
     "C-b" #'evil-backward-char
     "C-f" #'evil-forward-char
@@ -22,10 +22,6 @@
 
   (when (featurep! :editor evil +everywhere)
     (define-key! :keymaps +default-minibuffer-maps
-      "C-f"    #'forward-word
-      "C-b"    #'backward-word
-      "M-f"    #'forward-char
-      "M-b"    #'backward-char
       "C-j"    #'next-line
       "C-k"    #'previous-line
       "C-S-j"  #'scroll-up-command
@@ -494,7 +490,7 @@
             :desc "Switch to buffer" "b" #'org-roam-switch-to-buffer
             :desc "Org Roam Capture" "c" #'org-roam-capture
             :desc "Find file"        "f" #'org-roam-find-file
-            :desc "Show graph"       "g" #'org-roam-graph-show
+            :desc "Show graph"       "g" #'org-roam-graph
             :desc "Insert"           "i" #'org-roam-insert
             :desc "Org Roam"         "r" #'org-roam
             (:prefix ("d" . "by date")
