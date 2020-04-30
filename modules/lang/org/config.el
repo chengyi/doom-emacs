@@ -120,9 +120,6 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
         org-refile-use-outline-path 'file
         org-outline-path-complete-in-steps nil)
 
-  ;; Fontify latex blocks and entities, but not natively -- that's too slow
-  (setq org-highlight-latex-and-related '(latex script entities))
-
   (plist-put org-format-latex-options :scale 1.5) ; larger previews
   (add-hook! 'doom-load-theme-hook
     (defun +org-refresh-latex-background-h ()
@@ -167,12 +164,6 @@ This forces it to read the background before rendering."
           ("WAIT" . +org-todo-onhold)
           ("HOLD" . +org-todo-onhold)
           ("PROJ" . +org-todo-project)))
-
-  (after! org-eldoc
-    ;; HACK Fix #2972: infinite recursion when eldoc kicks in in an 'org' src
-    ;;      block.
-    ;; TODO Should be reported upstream!
-    (puthash "org" "ignore" org-eldoc-local-functions-cache))
 
   (defadvice! +org-display-link-in-eldoc-a (&rest args)
     "Display full link in minibuffer when cursor/mouse is over it."
@@ -500,6 +491,13 @@ eldoc string."
                       (org-add-props fixedpart
                           nil 'face `(:foreground ,(face-foreground face nil t) :weight bold)))
              width prefix separator))
+
+  (after! org-eldoc
+    ;; HACK Fix #2972: infinite recursion when eldoc kicks in in 'org' or
+    ;;      'python' src blocks.
+    ;; TODO Should be reported upstream!
+    (puthash "org" #'ignore org-eldoc-local-functions-cache)
+    (puthash "python" #'python-eldoc-function org-eldoc-local-functions-cache))
 
   (defun +org--restart-mode-h ()
     "Restart `org-mode', but only once."

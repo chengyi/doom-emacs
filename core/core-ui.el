@@ -105,7 +105,9 @@ size.")
 (defun doom-run-switch-buffer-hooks-a (orig-fn buffer-or-name &rest args)
   (let ((gc-cons-threshold most-positive-fixnum))
     (if (or doom-inhibit-switch-buffer-hooks
-            (eq (current-buffer) (get-buffer buffer-or-name))
+            (and buffer-or-name
+                 (eq (current-buffer)
+                     (get-buffer buffer-or-name)))
             (and (eq orig-fn #'switch-to-buffer) (car args)))
         (apply orig-fn buffer-or-name args)
       (let ((doom-inhibit-switch-buffer-hooks t)
@@ -408,13 +410,6 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
     (defun doom-ediff-restore-wconf-h ()
       (when (window-configuration-p doom--ediff-saved-wconf)
         (set-window-configuration doom--ediff-saved-wconf)))))
-
-
-(use-package! goto-addr
-  :hook (text-mode . goto-address-mode)
-  :hook (prog-mode . goto-address-prog-mode)
-  :config
-  (define-key goto-address-highlight-keymap (kbd "RET") #'goto-address-at-point))
 
 
 (use-package! hl-line
