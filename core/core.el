@@ -229,11 +229,6 @@ users).")
 (setq auth-sources (list (concat doom-etc-dir "authinfo.gpg")
                          "~/.authinfo.gpg"))
 
-;; Emacs on Windows frequently confuses HOME (C:\Users\<NAME>) and %APPDATA%,
-;; causing `abbreviate-home-dir' to produce incorrect paths.
-(when IS-WINDOWS
-  (setq abbreviated-home-dir "\\`'"))
-
 ;; Don't litter `doom-emacs-dir'. We don't use `no-littering' because it's a
 ;; mote too opinionated for our needs.
 (setq abbrev-file-name             (concat doom-local-dir "abbrev.el")
@@ -384,13 +379,16 @@ Set this to nil to disable incremental loading.")
 (defvar doom-incremental-idle-timer 0.75
   "How long (in idle seconds) in between incrementally loading packages.")
 
+(defvar doom-incremental-load-immediately (daemonp)
+  "If non-nil, load all incrementally deferred packages immediately at startup.")
+
 (defun doom-load-packages-incrementally (packages &optional now)
   "Registers PACKAGES to be loaded incrementally.
 
 If NOW is non-nil, load PACKAGES incrementally, in `doom-incremental-idle-timer'
 intervals."
   (if (not now)
-      (nconc doom-incremental-packages packages)
+      (appendq! doom-incremental-packages packages)
     (while packages
       (let ((req (pop packages)))
         (unless (featurep req)
@@ -420,7 +418,7 @@ intervals."
   "Begin incrementally loading packages in `doom-incremental-packages'.
 
 If this is a daemon session, load them all immediately instead."
-  (if (daemonp)
+  (if doom-incremental-load-immediately
       (mapc #'require (cdr doom-incremental-packages))
     (when (numberp doom-incremental-first-idle-timer)
       (run-with-idle-timer doom-incremental-first-idle-timer

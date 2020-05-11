@@ -4,6 +4,7 @@
   '((cpp . C)
     (C++ . C)
     (D . C)
+    (elisp . emacs-lisp)
     (sh . shell)
     (bash . shell)
     (matlab . octave)
@@ -373,7 +374,10 @@ underlying, modified buffer. This fixes that."
     (unless org-attach-id-dir
       (setq org-attach-id-dir (expand-file-name ".attach/" org-directory)))
     (after! projectile
-      (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir))))
+      (add-to-list 'projectile-globally-ignored-directories org-attach-id-dir)))
+
+  ;; Add inline image previews for attachment links
+  (org-link-set-parameters "attachment" :image-data-fun #'+org-inline-image-data-fn))
 
 
 (defun +org-init-custom-links-h ()
@@ -703,12 +707,12 @@ between the two."
         :localleader
         "d" #'org-agenda-deadline
         (:prefix ("c" . "clock")
-          "c" #'org-agenda-clock-in
-          "C" #'org-agenda-clock-out
+          "c" #'org-agenda-clock-cancel
           "g" #'org-agenda-clock-goto
+          "i" #'org-agenda-clock-in
+          "o" #'org-agenda-clock-out
           "r" #'org-agenda-clockreport-mode
-          "s" #'org-agenda-show-clocking-issues
-          "x" #'org-agenda-clock-cancel)
+          "s" #'org-agenda-show-clocking-issues)
         "q" #'org-agenda-set-tags
         "r" #'org-agenda-refile
         "s" #'org-agenda-schedule
@@ -790,6 +794,7 @@ compelling reason, so..."
   :config
   ;; Make leading stars truly invisible, by rendering them as spaces!
   (setq org-superstar-leading-bullet ?\s
+        org-superstar-leading-fallback ?\s
         org-hide-leading-stars nil)
   ;; Don't do anything special for item bullets or TODOs by default; these slow
   ;; down larger org buffers.
@@ -1019,6 +1024,16 @@ compelling reason, so..."
 
   :config
   (setq org-archive-subtree-save-file-p t) ; save target buffer after archiving
+
+  ;; Autoload all these commands that org-attach doesn't autoload itself
+  (use-package! org-attach
+    :commands (org-attach-new
+               org-attach-open
+               org-attach-open-in-emacs
+               org-attach-reveal-in-emacs
+               org-attach-url
+               org-attach-set-directory
+               org-attach-sync))
 
   ;; Global ID state means we can have ID links anywhere. This is required for
   ;; `org-brain', however.
