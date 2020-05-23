@@ -2,7 +2,7 @@
 
 (use-package! company
   :commands company-complete-common company-manual-begin company-grab-line
-  :after-call pre-command-hook after-find-file
+  :hook (doom-first-input . global-company-mode)
   :init
   (setq company-idle-delay 0.25
         company-minimum-prefix-length 2
@@ -37,7 +37,14 @@
     (unless (featurep! +childframe)
       ;; Don't persist company popups when switching back to normal mode.
       ;; `company-box' aborts on mode switch so it doesn't need this.
-      (add-hook 'evil-normal-state-entry-hook #'company-abort))
+      (add-hook! 'evil-normal-state-entry-hook
+        (defun +company-abort-h ()
+          ;; HACK `company-abort' doesn't no-op if company isn't active; causing
+          ;;      unwanted side-effects, like the suppression of messages in the
+          ;;      echo-area.
+          ;; REVIEW Revisit this to refactor; shouldn't be necessary!
+          (when company-candidates
+            (company-abort)))))
     ;; Allow users to switch between backends on the fly. E.g. C-x C-s followed
     ;; by C-x C-n, will switch from `company-yasnippet' to
     ;; `company-dabbrev-code'.
@@ -45,8 +52,7 @@
       :before #'company-begin-backend
       (company-abort)))
 
-  (add-hook 'after-change-major-mode-hook #'+company-init-backends-h 'append)
-  (global-company-mode +1))
+  (add-hook 'after-change-major-mode-hook #'+company-init-backends-h 'append))
 
 
 (use-package! company-tng

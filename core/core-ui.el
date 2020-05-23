@@ -306,6 +306,13 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
   (add-to-list 'default-frame-alist '(tool-bar-lines . 0))
   (add-to-list 'default-frame-alist '(vertical-scroll-bars)))
 
+;; These are disabled directly through their frame parameters, to avoid the
+;; extra work their minor modes do, but we have to unset these variables
+;; ourselves, otherwise users will have to cycle them twice to re-enable them.
+(setq menu-bar-mode nil
+      tool-bar-mode nil
+      scroll-bar-mode nil)
+
 (when! IS-MAC
   ;; Curse Lion and its sudden but inevitable fullscreen mode!
   ;; NOTE Meaningless to railwaycat's emacs-mac build
@@ -627,6 +634,15 @@ behavior). Do not set this directly, this is let-bound in `doom-init-theme-h'.")
       result)))
 
 (when! (not EMACS27+)
+  ;; DEPRECATED `doom--load-theme-a' handles this for us after the theme is
+  ;;            loaded, but this only works on Emacs 27+. Disabling old themes
+  ;;            must be done *before* the theme is loaded in Emacs 26.
+  (defadvice! doom--disable-previous-themes-a (theme &rest no-confirm no-enable)
+    "Disable other themes when loading a new one."
+    :before #'load-theme
+    (unless no-enable
+      (mapc #'disable-theme (remq theme custom-enabled-themes))))
+
   ;; DEPRECATED Not needed in Emacs 27
   (defadvice! doom--prefer-compiled-theme-a (orig-fn &rest args)
     "Have `load-theme' prioritize the byte-compiled theme.

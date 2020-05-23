@@ -102,7 +102,11 @@ Stolen shamelessly from go-mode"
 (defun +format-probe-a (orig-fn)
   "Use `+format-with' instead, if it is set.
 Prompts for a formatter if universal arg is set."
-  (cond (current-prefix-arg
+  (cond ((or (eq +format-with :none)
+             (doom-temp-buffer-p (current-buffer))
+             (doom-special-buffer-p (current-buffer)))
+         nil)
+        (current-prefix-arg
          (list (or (+format-completing-read)
                    (user-error "Aborted"))
                t))
@@ -202,7 +206,8 @@ See `+format/buffer' for the interactive version of this function, and
   "Reformat the current buffer using LSP or `format-all-buffer'."
   (interactive)
   (call-interactively
-   (if (and (bound-and-true-p lsp-mode)
+   (if (and +format-with-lsp
+            (bound-and-true-p lsp-mode)
             (lsp-feature? "textDocument/formatting"))
        #'lsp-format-buffer
      #'format-all-buffer)))
@@ -215,7 +220,8 @@ WARNING: this may not work everywhere. It will throw errors if the region
 contains a syntax error in isolation. It is mostly useful for formatting
 snippets or single lines."
   (interactive "rP")
-  (if (and (bound-and-true-p lsp-mode)
+  (if (and +format-with-lsp
+           (bound-and-true-p lsp-mode)
            (lsp-feature? "textDocument/rangeFormatting"))
       #'lsp-format-region
     (save-restriction

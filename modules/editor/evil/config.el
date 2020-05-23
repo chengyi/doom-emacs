@@ -17,6 +17,7 @@ directives. By default, this only recognizes C directives.")
 
 ;; Set these defaults before `evil'; use `defvar' so they can be changed prior
 ;; to loading.
+(defvar evil-want-C-g-bindings t)
 (defvar evil-want-C-i-jump (or (daemonp) (display-graphic-p)))
 (defvar evil-want-C-u-scroll t)  ; moved the universal arg to <leader> u
 (defvar evil-want-C-u-delete t)
@@ -492,7 +493,6 @@ To change these keys see `+evil-repeat-keys'."
         :n "gr" #'elfeed-search-update--force
         :n "gR" #'elfeed-search-fetch))
 
-      :nv "z="    #'flyspell-correct-at-point
       ;; custom evil keybinds
       :nv "zn"    #'+evil:narrow-buffer
       :n  "zN"    #'doom/widen-indirectly-narrowed-buffer
