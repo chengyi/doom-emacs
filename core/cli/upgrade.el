@@ -15,16 +15,18 @@ following shell commands:
     bin/doom update"
   :bare t
   (let ((doom-auto-discard force-p))
-    (if (delq
-         nil (list
-              (unless packages-only-p
-                (doom-cli-upgrade doom-auto-accept doom-auto-discard))
-              (doom-cli-execute "sync")
-              (when (doom-cli-packages-update)
-                (doom-cli-reload-package-autoloads)
-                t)))
-        (print! (success "Done! Restart Emacs for changes to take effect."))
-      (print! "Nothing to do. Doom is up-to-date!"))))
+    (cond
+     (packages-only-p
+      (doom-cli-execute "sync" '("-u"))
+      (print! (success "Finished upgrading Doom Emacs")))
+
+     ((doom-cli-upgrade doom-auto-accept doom-auto-discard)
+      ;; Reload Doom's CLI & libraries, in case there were any upstream changes.
+      ;; Major changes will still break, however
+      (print! (info "Reloading Doom Emacs"))
+      (doom-cli-execute-after "doom" "upgrade" "-p" (if force-p "-f")))
+
+     ((print! "Nothing to do. Doom is up-to-date!")))))
 
 
 ;;
@@ -50,7 +52,10 @@ following shell commands:
         process-file-side-effects)
     (print! (start "Preparing to upgrade Doom Emacs and its packages..."))
 
-    (let* ((branch (vc-git--symbolic-ref doom-emacs-dir))
+    (let* ((branch
+            (string-trim-right
+             (cdr (doom-call-process "git" "name-rev" "--name-only" "HEAD"))
+             "~[0-9]$"))
            (target-remote (format "%s/%s" doom-repo-remote branch)))
       (unless branch
         (error! (if (file-exists-p! ".git" doom-emacs-dir)
@@ -110,22 +115,6 @@ following shell commands:
                                 (equal (vc-git--rev-parse "HEAD") new-rev))
                      (error "Failed to check out %s" (substring new-rev 0 10)))
                    (print! (info "%s") (cdr result))
-
-                   ;; Reload Doom's CLI & libraries, in case there were any
-                   ;; upstream changes. Major changes will still break, however
-                   (condition-case-unless-debug e
-                       (progn
-                         (mapc (lambda (f) (load (symbol-name f)))
-                               '(core core-lib
-                                      core-cli
-                                      core-modules
-                                      core-packages))
-                         (doom-initialize 'force))
-                     (error
-                      (signal 'doom-error (list "Could not upgrade Doom without issues"
-                                                e))))
-
-                   (print! (success "Finished upgrading Doom Emacs")))
-                  t)))))
+                   t))))))
         (ignore-errors
           (doom-call-process "git" "remote" "remove" doom-repo-remote))))))

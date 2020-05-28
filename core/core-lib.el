@@ -66,10 +66,10 @@ list is returned as-is."
   (substring (symbol-name keyword) 1))
 
 (defmacro doom-log (format-string &rest args)
-  "Log to *Messages* if `doom-debug-mode' is on.
+  "Log to *Messages* if `doom-debug-p' is on.
 Does not interrupt the minibuffer if it is in use, but still logs to *Messages*.
 Accepts the same arguments as `message'."
-  `(when doom-debug-mode
+  `(when doom-debug-p
      (let ((inhibit-message (active-minibuffer-window)))
        (message
         ,(concat (propertize "DOOM " 'face 'font-lock-comment-face)
@@ -92,20 +92,6 @@ Meant to be used with `run-hook-wrapped'."
      (signal 'doom-hook-error (list hook e))))
   ;; return nil so `run-hook-wrapped' won't short circuit
   nil)
-
-(defun doom-load-autoloads-file (file &optional noerror)
-  "Tries to load FILE (an autoloads file).
-Return t on success, nil otherwise (but logs a warning)."
-  (condition-case e
-      ;; Avoid `file-name-sans-extension' for premature optimization reasons.
-      ;; `string-remove-suffix' is much cheaper (because it does no file sanity
-      ;; checks during or after; just plain ol' string manipulation).
-      (load (string-remove-suffix ".el" file) noerror 'nomessage)
-    (doom-error
-     (signal (car e) (cdr e)))
-    ((debug error)
-     (message "Autoload file error: %s -> %s" (file-name-nondirectory file) e)
-     nil)))
 
 (defun doom-load-envvars-file (file &optional noerror)
   "Read and set envvars from FILE.
@@ -231,9 +217,9 @@ the same name, for use with `funcall' or `apply'. ARGLIST and BODY are as in
 
 This silences calls to `message', `load', `write-region' and anything that
 writes to `standard-output'."
-  `(if doom-debug-mode
+  `(if doom-debug-p
        (progn ,@forms)
-     ,(if doom-interactive-mode
+     ,(if doom-interactive-p
           `(let ((inhibit-message t)
                  (save-silently t))
              (prog1 ,@forms (message "")))
@@ -620,6 +606,42 @@ testing advice (when combined with `rotate-text').
     `(dolist (targets (list ,@(nreverse where-alist)))
        (dolist (target (cdr targets))
          (advice-remove target #',symbol)))))
+
+
+;;
+;;; Backports
+
+(when! (not EMACS27+)
+  ;; DEPRECATED Backported from Emacs 27
+  (defmacro setq-local (&rest pairs)
+    "Make variables in PAIRS buffer-local and assign them the corresponding values.
+
+PAIRS is a list of variable/value pairs.  For each variable, make
+it buffer-local and assign it the corresponding value.  The
+variables are literal symbols and should not be quoted.
+
+The second VALUE is not computed until after the first VARIABLE
+is set, and so on; each VALUE can use the new value of variables
+set earlier in the ‘setq-local’.  The return value of the
+‘setq-local’ form is the value of the last VALUE.
+
+\(fn [VARIABLE VALUE]...)"
+    (declare (debug setq))
+    (unless (zerop (mod (length pairs) 2))
+      (error "PAIRS must have an even number of variable/value members"))
+    (let ((expr nil))
+      (while pairs
+        (unless (symbolp (car pairs))
+          (error "Attempting to set a non-symbol: %s" (car pairs)))
+        ;; Can't use backquote here, it's too early in the bootstrap.
+        (setq expr
+              (cons
+               (list 'set
+                     (list 'make-local-variable (list 'quote (car pairs)))
+                     (car (cdr pairs)))
+               expr))
+        (setq pairs (cdr (cdr pairs))))
+      (macroexp-progn (nreverse expr)))))
 
 (provide 'core-lib)
 ;;; core-lib.el ends here

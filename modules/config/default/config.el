@@ -111,6 +111,9 @@
                    :pre-handlers '(:rem sp-ruby-pre-handler)
                    :post-handlers '(:rem sp-ruby-post-handler))
 
+    ;; Don't eagerly escape Swift style string interpolation
+    (sp-local-pair 'swift-mode "\\(" ")" :when '(sp-in-string-p))
+
     ;; Don't do square-bracket space-expansion where it doesn't make sense to
     (sp-local-pair '(emacs-lisp-mode org-mode markdown-mode gfm-mode)
                    "[" nil :post-handlers '(:rem ("| " "SPC")))
@@ -346,7 +349,7 @@ Continues comments if executed from a commented line. Consults
   "db"   #'doom/report-bug
   "dc"   #'doom/goto-private-config-file
   "dC"   #'doom/goto-private-init-file
-  "dd"   #'doom/toggle-debug-mode
+  "dd"   #'doom-debug-mode
   "df"   #'doom/help-faq
   "dh"   #'doom/help
   "dl"   #'doom/help-search-load-path
