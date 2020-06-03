@@ -41,7 +41,7 @@
        :desc "List errors"                           "x"   #'flymake-show-diagnostics-buffer
        (:when (featurep! :checkers syntax)
         :desc "List errors"                         "x"   #'flycheck-list-errors)
-       (:when (featurep! :tools lsp)
+       (:when (and (featurep! :tools lsp) (not (featurep! :tools lsp +eglot)))
         :desc "LSP Code actions"                      "a"   #'lsp-execute-code-action
         :desc "LSP Organize imports"                  "i"   #'lsp-organize-imports
         :desc "LSP Rename"                            "r"   #'lsp-rename
@@ -52,7 +52,13 @@
          :desc "Jump to symbol in any workspace"     "J"   #'lsp-ivy-global-workspace-symbol)
         (:when (featurep! :completion helm)
          :desc "Jump to symbol in current workspace" "j"   #'helm-lsp-workspace-symbol
-         :desc "Jump to symbol in any workspace"     "J"   #'helm-lsp-global-workspace-symbol)))
+         :desc "Jump to symbol in any workspace"     "J"   #'helm-lsp-global-workspace-symbol))
+       (:when (featurep! :tools lsp +eglot)
+        :desc "LSP Execute code action"              "a" #'eglot-code-actions
+        :desc "LSP Format buffer/region"             "F" #'eglot-format
+        :desc "LSP Rename"                           "r" #'eglot-rename
+        :desc "LSP Find declaration"                 "j" #'eglot-find-declaration
+        :desc "LSP Find implementation"              "J" #'eglot-find-implementation))
 
       ;;; <leader> f --- file
       (:prefix-map ("f" . "file")
@@ -120,7 +126,7 @@
       ;;; <leader> i --- insert
       (:prefix-map ("i" . "insert")
        :desc "Current file name"             "f"   #'+default/insert-file-path
-       :desc "Current file path"             "F"   (λ!! #'+default/insert-file-path t)
+       :desc "Current file path"             "F"   (cmd!! #'+default/insert-file-path t)
        :desc "Snippet"                       "s"   #'yas-insert-snippet
        :desc "Unicode"                       "u"   #'unicode-chars-list-chars
        :desc "From clipboard"                "y"   #'+default/yank-pop)
@@ -412,7 +418,7 @@
       ;;; Text scaling
       [C-mouse-4] #'text-scale-increase
       [C-mouse-5] #'text-scale-decrease
-      [C-down-mouse-2] (λ! (text-scale-set 0))
+      [C-down-mouse-2] (cmd! (text-scale-set 0))
       "M-+" #'doom/reset-font-size
       "M-=" #'doom/increase-font-size
       "M--" #'doom/decrease-font-size
@@ -442,7 +448,7 @@
         "C-x 4 B"     #'switch-to-buffer-other-window
         (:when (featurep! :completion ivy)
           "C-x 4 b"   #'+ivy/switch-workspace-buffer-other-window))
-      "C-x C-b"     #'ibuffer-list-buffers
+      "C-x C-b"     #'ibuffer
       "C-x K"       #'doom/kill-this-buffer-in-all-windows
 
       ;;; company-mode
@@ -463,7 +469,7 @@
         :map company-search-map
         "C-n"        #'company-search-repeat-forward
         "C-p"        #'company-search-repeat-backward
-        "C-s"        (λ! (company-search-abort) (company-filter-candidates)))
+        "C-s"        (cmd! (company-search-abort) (company-filter-candidates)))
 
       ;;; ein notebooks
       (:after ein:notebook-multilang
