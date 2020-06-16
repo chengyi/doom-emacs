@@ -210,7 +210,8 @@
         :desc "Send to Transmit"           "u" #'+macos/send-to-transmit
         :desc "Send project to Transmit"   "U" #'+macos/send-project-to-transmit
         :desc "Send to Launchbar"          "l" #'+macos/send-to-launchbar
-        :desc "Send project to Launchbar"  "L" #'+macos/send-project-to-launchbar)
+        :desc "Send project to Launchbar"  "L" #'+macos/send-project-to-launchbar
+        :desc "Open in iTerm"              "i" #'+macos/open-in-iterm)
        (:when (featurep! :tools docker)
         :desc "Docker" "D" #'docker)
        (:when (featurep! :email mu4e)
@@ -325,7 +326,7 @@
          :desc "Browse pull requests"      "P"   #'forge-browse-pullreqs)
         (:prefix ("l" . "list")
          (:when (featurep! :tools gist)
-          :desc "List gists"               "g"   #'+gist:list)
+          :desc "List gists"               "g"   #'gist-list)
          :desc "List repositories"         "r"   #'magit-list-repositories
          :desc "List submodules"           "s"   #'magit-list-submodules
          :desc "List issues"               "i"   #'forge-list-issues
@@ -369,7 +370,7 @@
 
       ;;; <leader> m --- multiple cursors
       (:when (featurep! :editor multiple-cursors)
-       (:prefix-map ("m" . "multiple cursors")
+       (:prefix-map ("m" . "multiple-cursors")
         :desc "Edit lines"         "l"         #'mc/edit-lines
         :desc "Mark next"          "n"         #'mc/mark-next-like-this
         :desc "Unmark next"        "N"         #'mc/unmark-next-like-this
@@ -399,7 +400,7 @@
         :desc "Reconnect all"      "r" #'circe-reconnect-all
         :desc "Send message"       "s" #'+irc/send-message
         (:when (featurep! :completion ivy)
-         :desc "Jump to channel"  "j" #'irc/ivy-jump-to-channel)))
+         :desc "Jump to channel"  "j" #'+irc/ivy-jump-to-channel)))
 
       ;;; <leader> T --- twitter
       (:when (featurep! :app twitter)

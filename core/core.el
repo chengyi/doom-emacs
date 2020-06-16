@@ -233,14 +233,13 @@ users).")
 (setq abbrev-file-name             (concat doom-local-dir "abbrev.el")
       async-byte-compile-log-file  (concat doom-etc-dir "async-bytecomp.log")
       bookmark-default-file        (concat doom-etc-dir "bookmarks")
-      custom-file                  (concat doom-local-dir "custom.el")
+      custom-file                  (concat doom-private-dir "config.el")
       custom-theme-directory       (concat doom-private-dir "themes/")
       desktop-dirname              (concat doom-etc-dir "desktop")
       desktop-base-file-name       "autosave"
       desktop-base-lock-name       "autosave-lock"
       pcache-directory             (concat doom-cache-dir "pcache/")
       request-storage-directory    (concat doom-cache-dir "request")
-      server-auth-dir              (concat doom-cache-dir "server/")
       shared-game-score-directory  (concat doom-etc-dir "shared-game-score/")
       tramp-auto-save-directory    (concat doom-cache-dir "tramp-auto-save/")
       tramp-backup-directory-alist backup-directory-alist
@@ -253,6 +252,14 @@ users).")
 (defadvice! doom--use-cache-dir-a (session-id)
   :override #'emacs-session-filename
   (concat doom-cache-dir "emacs-session." session-id))
+
+(defadvice! doom--save-enabled-commands-to-doomdir-a (orig-fn &rest args)
+  "When enabling a disabled command, the `put' call is written to
+~/.emacs.d/init.el, which causes issues for Doom, so write it to the user's
+config.el instead."
+  :around #'en/disable-command
+  (let ((user-init-file custom-file))
+    (apply orig-fn args)))
 
 
 ;;

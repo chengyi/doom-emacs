@@ -208,10 +208,6 @@ This forces it to read the background before rendering."
   ;; ipython, where the result could be an image)
   (add-hook 'org-babel-after-execute-hook #'org-redisplay-inline-images)
 
-  ;; Fix 'require(...).print is not a function' error from `ob-js' when
-  ;; executing JS src blocks
-  (setq org-babel-js-function-wrapper "console.log(require('util').inspect(function(){\n%s\n}()));")
-
   (after! python
     (setq org-babel-python-command python-shell-interpreter)))
 
@@ -357,6 +353,10 @@ relative to `org-directory', unless it is an absolute path."
 (defun +org-init-capture-frame-h ()
   (add-hook 'org-capture-after-finalize-hook #'+org-capture-cleanup-frame-h)
 
+  (defadvice! +org-capture-refile-cleanup-frame-a (&rest _)
+    :after #'org-capture-refile
+    (+org-capture-cleanup-frame-h))
+
   (when (featurep! :ui doom-dashboard)
     (add-hook '+doom-dashboard-inhibit-functions #'+org-capture-frame-p)))
 
@@ -404,6 +404,7 @@ relative to `org-directory', unless it is an absolute path."
             '("gimages"     . "https://google.com/images?q=%s")
             '("gmap"        . "https://maps.google.com/maps?q=%s")
             '("duckduckgo"  . "https://duckduckgo.com/?q=%s")
+            '("wikipedia"   . "https://en.wikipedia.org/wiki/%s")
             '("wolfram"     . "https://wolframalpha.com/input/?i=%s")
             '("doom-repo"   . "https://github.com/hlissner/doom-emacs/%s"))
 
@@ -443,6 +444,13 @@ relative to `org-directory', unless it is an absolute path."
           '((standalone . t)
             (mathjax . t)
             (variable . "revealjs-url=https://revealjs.com"))))
+
+  (defadvice! +org--dont-trigger-save-hooks-on-export-a (orig-fn &rest args)
+    "`org-export-to-file' triggers save hooks, which may inadvertantly change
+the exported output (i.e. formatters)."
+    :around #'org-export-to-file
+    (let (before-save-hook after-save-hook)
+      (apply orig-fn args)))
 
   (defadvice! +org--fix-async-export-a (orig-fn &rest args)
     :around #'org-export-to-file
@@ -490,11 +498,14 @@ relative to `org-directory', unless it is an absolute path."
   ;;      to be performant.
   (setq-hook! 'org-mode-hook gcmh-high-cons-threshold (* 2 gcmh-high-cons-threshold))
 
-  (add-hook! 'org-follow-link-hook
-    (defun +org-delayed-recenter-h ()
-      "`recenter', but after a tiny delay. Necessary to prevent certain race
-conditions where a window's buffer hasn't changed at the time this hook is run."
-      (run-at-time 0.1 nil #'recenter)))
+  (defadvice! +org--recenter-after-follow-link-a (&rest _args)
+    "Recenter after following a link, but only internal or file links."
+    :after '(org-footnote-action
+             org-follow-timestamp-link
+             org-link-open-as-file
+             org-link-search)
+    (when (get-buffer-window)
+      (recenter)))
 
   (defadvice! +org--strip-properties-from-outline-a (orig-fn path &optional width prefix separator)
     "Remove link syntax and fix variable height text (e.g. org headings) in the
@@ -972,14 +983,14 @@ compelling reason, so..."
         :n "zi"  #'org-toggle-inline-images
 
         :map org-read-date-minibuffer-local-map
-        "C-h"   (λ! (org-eval-in-calendar '(calendar-backward-day 1)))
-        "C-l"   (λ! (org-eval-in-calendar '(calendar-forward-day 1)))
-        "C-k"   (λ! (org-eval-in-calendar '(calendar-backward-week 1)))
-        "C-j"   (λ! (org-eval-in-calendar '(calendar-forward-week 1)))
-        "C-S-h" (λ! (org-eval-in-calendar '(calendar-backward-month 1)))
-        "C-S-l" (λ! (org-eval-in-calendar '(calendar-forward-month 1)))
-        "C-S-k" (λ! (org-eval-in-calendar '(calendar-backward-year 1)))
-        "C-S-j" (λ! (org-eval-in-calendar '(calendar-forward-year 1)))))
+        "C-h"   (cmd! (org-eval-in-calendar '(calendar-backward-day 1)))
+        "C-l"   (cmd! (org-eval-in-calendar '(calendar-forward-day 1)))
+        "C-k"   (cmd! (org-eval-in-calendar '(calendar-backward-week 1)))
+        "C-j"   (cmd! (org-eval-in-calendar '(calendar-forward-week 1)))
+        "C-S-h" (cmd! (org-eval-in-calendar '(calendar-backward-month 1)))
+        "C-S-l" (cmd! (org-eval-in-calendar '(calendar-forward-month 1)))
+        "C-S-k" (cmd! (org-eval-in-calendar '(calendar-backward-year 1)))
+        "C-S-j" (cmd! (org-eval-in-calendar '(calendar-forward-year 1)))))
 
 
 (use-package! evil-org-agenda

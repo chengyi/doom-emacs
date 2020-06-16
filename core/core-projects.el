@@ -39,23 +39,6 @@ Emacs.")
   :config
   (projectile-mode +1)
 
-  ;; REVIEW Resolve the project root once, when the file/buffer is opened. This
-  ;;        speeds up projectile's project root resolution by leaps, but does
-  ;;        put you at risk of having a stale project root.
-  (setq-hook! '(change-major-mode-after-body-hook
-                ;; In case the user saves the file to a new location
-                after-save-hook
-                ;; ...or makes external changes then returns to Emacs
-                focus-in-hook
-                ;; ...or when we change the current project!
-                projectile-after-switch-project-hook)
-    projectile-project-root (if default-directory (doom-project-root)))
-
-  ;; However, it may become a problem when switching projects, so remove the
-  ;; cached value when switching projects.
-  (setq-hook! 'projectile-before-switch-project-hook
-    projectile-project-root nil)
-
   ;; Projectile runs four functions to determine the root (in this order):
   ;;
   ;; + `projectile-root-local' -> checks the `projectile-project-root' variable
@@ -147,16 +130,34 @@ c) are not valid projectile projects."
                     projectile-project-root-files)
             projectile-project-root-files-bottom-up nil)))
 
+  ;; HACK Don't rely on VCS-specific commands to generate our file lists. That's
+  ;;      7 commands to maintain, versus the more generic, reliable and
+  ;;      performant `fd' or `ripgrep'.
+  (defadvice! doom--only-use-generic-command-a (orig-fn vcs)
+    "Only use `projectile-generic-command' for indexing project files.
+And if it's a function, evaluate it."
+    :around #'projectile-get-ext-command
+    (if (functionp projectile-generic-command)
+        (funcall projectile-generic-command vcs)
+      projectile-generic-command))
+
   (cond
    ;; If fd exists, use it for git and generic projects. fd is a rust program
    ;; that is significantly faster than git ls-files or find, and it respects
    ;; .gitignore. This is recommended in the projectile docs.
    ((executable-find doom-projectile-fd-binary)
     (setq projectile-generic-command
-          (concat (format "%s . -0 -H -E .git --color=never --type file --type symlink --follow"
-                          doom-projectile-fd-binary)
-                  (if IS-WINDOWS " --path-separator=/"))
-          projectile-git-command projectile-generic-command
+          ;; `projectile-generic-command' doesn't typically support a function.
+          ;; My `doom--only-use-generic-command-a' advice allows this. I do it
+          ;; this way so that future changes to
+          ;; `projectile-globally-ignored-directories' are respected.
+          (lambda (_)
+            (concat (format "%s . -0 -H -E .git --color=never --type file --type symlink --follow"
+                            doom-projectile-fd-binary)
+                    (cl-loop for dir in projectile-globally-ignored-directories
+                             concat " -E "
+                             concat (shell-quote-argument dir))
+                    (if IS-WINDOWS " --path-separator=//")))
           projectile-git-submodule-command nil
           ;; ensure Windows users get fd's benefits
           projectile-indexing-method 'alien))
@@ -164,12 +165,12 @@ c) are not valid projectile projects."
    ;; Otherwise, resort to ripgrep, which is also faster than find
    ((executable-find "rg")
     (setq projectile-generic-command
-          (concat "rg -0 --files --follow --color=never --hidden"
-                  (cl-loop for dir in projectile-globally-ignored-directories
-                           concat " --glob "
-                           concat (shell-quote-argument (concat "!" dir)))
-                  (if IS-WINDOWS " --path-separator /"))
-          projectile-git-command projectile-generic-command
+          (lambda (_)
+            (concat "rg -0 --files --follow --color=never --hidden"
+                    (cl-loop for dir in projectile-globally-ignored-directories
+                             concat " --glob "
+                             concat (shell-quote-argument (concat "!" dir)))
+                    (if IS-WINDOWS " --path-separator //")))
           projectile-git-submodule-command nil
           ;; ensure Windows users get rg's benefits
           projectile-indexing-method 'alien))

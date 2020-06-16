@@ -20,19 +20,18 @@
     "C-w"    #'doom/delete-backward-word
     "C-z"    (cmd! (ignore-errors (call-interactively #'undo))))
 
-  (when (featurep! :editor evil +everywhere)
-    (define-key! :keymaps +default-minibuffer-maps
-      "C-j"    #'next-line
-      "C-k"    #'previous-line
-      "C-S-j"  #'scroll-up-command
-      "C-S-k"  #'scroll-down-command)
-    ;; For folks with `evil-collection-setup-minibuffer' enabled
-    (define-key! :states 'insert :keymaps +default-minibuffer-maps
-      "C-j"    #'next-line
-      "C-k"    #'previous-line)
-    (define-key! read-expression-map
-      "C-j" #'next-line-or-history-element
-      "C-k" #'previous-line-or-history-element)))
+  (define-key! :keymaps +default-minibuffer-maps
+    "C-j"    #'next-line
+    "C-k"    #'previous-line
+    "C-S-j"  #'scroll-up-command
+    "C-S-k"  #'scroll-down-command)
+  ;; For folks with `evil-collection-setup-minibuffer' enabled
+  (define-key! :states 'insert :keymaps +default-minibuffer-maps
+    "C-j"    #'next-line
+    "C-k"    #'previous-line)
+  (define-key! read-expression-map
+    "C-j" #'next-line-or-history-element
+    "C-k" #'previous-line-or-history-element))
 
 
 ;;
@@ -88,8 +87,8 @@
        :nv "P" #'evil-mc-make-and-goto-first-cursor
        :nv "q" #'evil-mc-undo-all-cursors
        :nv "t" #'+multiple-cursors/evil-mc-toggle-cursors
-       :nv "u" #'evil-mc-undo-last-added-cursor
-       :nv "z" #'+multiple-cursors/evil-mc-make-cursor-here
+       :nv "u" #'+multiple-cursors/evil-mc-undo-cursor
+       :nv "z" #'+multiple-cursors/evil-mc-toggle-cursor-here
        :v  "I" #'evil-mc-make-cursor-in-visual-selection-beg
        :v  "A" #'evil-mc-make-cursor-in-visual-selection-end)
 
@@ -553,7 +552,8 @@
         :desc "Send to Transmit"           "u" #'+macos/send-to-transmit
         :desc "Send project to Transmit"   "U" #'+macos/send-project-to-transmit
         :desc "Send to Launchbar"          "l" #'+macos/send-to-launchbar
-        :desc "Send project to Launchbar"  "L" #'+macos/send-project-to-launchbar)
+        :desc "Send project to Launchbar"  "L" #'+macos/send-project-to-launchbar
+        :desc "Open in iTerm"              "i" #'+macos/open-in-iterm)
        (:when (featurep! :tools docker)
         :desc "Docker" "D" #'docker)
        (:when (featurep! :email mu4e)

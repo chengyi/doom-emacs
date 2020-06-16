@@ -49,7 +49,8 @@ run before `doom-init-modules-hook'. Relevant to `doom-module-init-file'.")
               (evil-goggles     (:ui ophints))
               (tabbar           (:ui tabs)))
     (:app     (email            (:email mu4e))
-              (notmuch          (:email notmuch))))
+              (notmuch          (:email notmuch)))
+    (:lang    (perl             (:lang raku))))
   "A tree alist that maps deprecated modules to their replacement(s).
 
 Each entry is a three-level tree. For example:
@@ -118,8 +119,7 @@ non-nil."
       (unless no-config-p
         (maphash (doom-module-loader doom-module-config-file) doom-modules)
         (run-hook-wrapped 'doom-init-modules-hook #'doom-try-run-hook)
-        (load! "config" doom-private-dir t)
-        (load custom-file 'noerror (not doom-debug-mode))))))
+        (load! "config" doom-private-dir t)))))
 
 
 ;;
@@ -238,13 +238,14 @@ those directories. The first returned path is always `doom-private-dir'."
   (append (list doom-private-dir)
           (if module-dirs
               (mapcar (lambda (m) (doom-module-locate-path (car m) (cdr m)))
-                      (doom-files-in (if (listp module-dirs)
-                                         module-dirs
-                                       doom-modules-dirs)
-                                     :map #'doom-module-from-path
-                                     :type 'dirs
-                                     :mindepth 1
-                                     :depth 1))
+                      (delete-dups
+                       (doom-files-in (if (listp module-dirs)
+                                          module-dirs
+                                        doom-modules-dirs)
+                                      :map #'doom-module-from-path
+                                      :type 'dirs
+                                      :mindepth 1
+                                      :depth 1)))
             (cl-loop for plist being the hash-values of doom-modules
                      collect (plist-get plist :path)))
           nil))
@@ -357,16 +358,13 @@ This value is cached. If REFRESH-P, then don't use the cached value."
   ;; HACK Fix `:load-path' so it resolves relative paths to the containing file,
   ;;      rather than `user-emacs-directory'. This is a done as a convenience
   ;;      for users, wanting to specify a local directory.
-  (defadvice! doom--resolve-load-path-from-containg-file-a (orig-fn &rest args)
+  (defadvice! doom--resolve-load-path-from-containg-file-a (orig-fn label arg &optional recursed)
     "Resolve :load-path from the current directory."
     :around #'use-package-normalize-paths
-    (let ((arg (cadr args)))
-      (if (and (stringp arg) (not (file-name-absolute-p arg)))
-          ;; `use-package-normalize-paths' resolves relative paths from
-          ;; `user-emacs-directory', so just change that.
-          (let ((user-emacs-directory (dir!)))
-            (apply orig-fn args))
-        (apply orig-fn args))))
+    ;; `use-package-normalize-paths' resolves paths relative to
+    ;; `user-emacs-directory', so we change that.
+    (let ((user-emacs-directory (if (stringp arg) (dir!))))
+      (funcall orig-fn label arg recursed)))
 
   ;; Adds two keywords to `use-package' to expand its lazy-loading capabilities:
   ;;
