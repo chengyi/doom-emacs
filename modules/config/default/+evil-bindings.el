@@ -69,6 +69,8 @@
        [escape]  #'View-quit-all)
       (:after man :map Man-mode-map
        :n "q"    #'kill-current-buffer)
+      (:after geiser-doc :map geiser-doc-mode-map
+       :n "o"    #'link-hint-open-link)
 
       (:after (evil-org evil-easymotion)
        :map evil-org-mode-map
@@ -497,12 +499,13 @@
 
        (:when (featurep! :lang org +roam)
         (:prefix ("r" . "roam")
-         :desc "Switch to buffer" "b" #'org-roam-switch-to-buffer
-         :desc "Org Roam Capture" "c" #'org-roam-capture
-         :desc "Find file"        "f" #'org-roam-find-file
-         :desc "Show graph"       "g" #'org-roam-graph
-         :desc "Insert"           "i" #'org-roam-insert
-         :desc "Org Roam"         "r" #'org-roam
+         :desc "Switch to buffer"              "b" #'org-roam-switch-to-buffer
+         :desc "Org Roam Capture"              "c" #'org-roam-capture
+         :desc "Find file"                     "f" #'org-roam-find-file
+         :desc "Show graph"                    "g" #'org-roam-graph
+         :desc "Insert"                        "i" #'org-roam-insert
+         :desc "Insert (skipping org-capture)" "I" #'org-roam-insert-immediate
+         :desc "Org Roam"                      "r" #'org-roam
          (:prefix ("d" . "by date")
           :desc "Arbitrary date" "d" #'org-roam-dailies-date
           :desc "Today"          "t" #'org-roam-dailies-today
