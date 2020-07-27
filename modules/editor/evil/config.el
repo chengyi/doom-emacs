@@ -325,7 +325,7 @@ directives. By default, this only recognizes C directives.")
         evil-snipe-repeat-scope 'visible
         evil-snipe-char-fold t)
   :config
-  (pushnew! evil-snipe-disabled-modes 'Info-mode 'calc-mode)
+  (pushnew! evil-snipe-disabled-modes 'Info-mode 'calc-mode 'treemacs-mode)
   (evil-snipe-mode +1)
   (evil-snipe-override-mode +1))
 
@@ -552,7 +552,7 @@ To change these keys see `+evil-repeat-keys'."
         "a" (evilem-create #'evil-forward-arg)
         "A" (evilem-create #'evil-backward-arg)
         "s" #'evil-avy-goto-char-2
-        "SPC" (cmd!! #'evil-avy-goto-char-timer t)
+        "SPC" (cmd! (let ((current-prefix-arg t)) (evil-avy-goto-char-timer)))
         "/" #'evil-avy-goto-char-timer))
 
       ;; evil-snipe
