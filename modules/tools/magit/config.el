@@ -1,5 +1,13 @@
 ;;; tools/magit/config.el -*- lexical-binding: t; -*-
 
+(defvar +magit-open-windows-in-direction 'right
+  "What direction to open new windows from the status buffer.
+For example, diffs and log buffers. Accepts `left', `right', `up', and `down'.")
+
+
+;;
+;;; Packages
+
 (use-package! magit
   :commands magit-file-delete
   :defer-incrementally (dash f s with-editor git-commit package eieio lv transient)
@@ -174,7 +182,9 @@ ensure it is built when we actually use Forge."
     "zt" #'evil-scroll-line-to-top
     "zz" #'evil-scroll-line-to-center
     "zb" #'evil-scroll-line-to-bottom
-    "g=" #'magit-diff-default-context)
+    "g=" #'magit-diff-default-context
+    "gi" #'forge-jump-to-issues
+    "gm" #'forge-jump-to-pullreqs)
   (define-key! 'normal
     (magit-status-mode-map
      magit-stash-mode-map

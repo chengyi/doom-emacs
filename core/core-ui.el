@@ -133,22 +133,23 @@ An omitted font size means to inherit `doom-font''s size.")
 
 (defun doom-highlight-non-default-indentation-h ()
   "Highlight whitespace at odds with `indent-tabs-mode'.
-That is, highlight tabs if the usual indentation is with spaces, and highlight
-spaces at the beginnings of lines if the usual indentation is with tabs.
+That is, highlight tabs if `indent-tabs-mode' is `nil', and highlight spaces at
+the beginnings of lines if `indent-tabs-mode' is `t'. The purpose is to make
+incorrect indentation in the current buffer obvious to you.
 
 Does nothing if `whitespace-mode' or `global-whitespace-mode' is already active
 or if the current buffer is read-only or not file-visiting."
   (unless (or (eq major-mode 'fundamental-mode)
-              buffer-read-only
               (bound-and-true-p global-whitespace-mode)
               (null buffer-file-name))
     (require 'whitespace)
     (set (make-local-variable 'whitespace-style)
-         (let ((style (if indent-tabs-mode '(indentation) '(tabs tab-mark))))
-           (if whitespace-mode
-               (cl-union style whitespace-active-style)
-             style)))
-    (cl-pushnew 'face whitespace-style)
+         (cl-union (if indent-tabs-mode
+                       '(indentation)
+                     '(tabs tab-mark))
+                   (when whitespace-mode
+                     (remq 'face whitespace-active-style))))
+    (cl-pushnew 'face whitespace-style) ; must be first
     (whitespace-mode +1)))
 
 
@@ -170,8 +171,10 @@ or if the current buffer is read-only or not file-visiting."
 ;; middle-click paste at point, not at click
 (setq mouse-yank-at-point t)
 
-;; Enable mouse in terminal Emacs
-(add-hook 'tty-setup-hook #'xterm-mouse-mode)
+;; Larger column width for function name in profiler reports
+(after! profiler
+  (setf (caar profiler-report-cpu-line-format) 80
+        (caar profiler-report-memory-line-format) 80))
 
 
 ;;
@@ -214,12 +217,6 @@ or if the current buffer is read-only or not file-visiting."
 ;; Don't blink the paren matching the one at point, it's too distracting.
 (setq blink-matching-paren nil)
 
-;; Some terminals offer two different cursors: a “visible” static cursor and a
-;; “very visible” blinking one. By default, Emacs uses the very visible cursor
-;; and switches to it when you start or resume Emacs. If `visible-cursor' is nil
-;; when Emacs starts or resumes, it uses the normal cursor.
-(setq visible-cursor nil)
-
 ;; Don't stretch the cursor to fit wide characters, it is disorienting,
 ;; especially for tabs.
 (setq x-stretch-cursor nil)
@@ -247,25 +244,30 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
            (message "Can't kill the fallback buffer.")
            t)
           ((doom-real-buffer-p buf)
-           (if (and buffer-file-name
-                    (buffer-modified-p buf)
-                    (not (y-or-n-p
-                          (format "Buffer %s is modified; kill anyway?" buf))))
-               (message "Aborted")
-             (set-buffer-modified-p nil)
-             (let (buffer-list-update-hook)
-               (when (or ;; if there aren't more real buffers than visible buffers,
-                      ;; then there are no real, non-visible buffers left.
-                      (not (cl-set-difference (doom-real-buffer-list)
-                                              (doom-visible-buffers)))
-                      ;; if we end up back where we start (or previous-buffer
-                      ;; returns nil), we have nowhere left to go
-                      (memq (switch-to-prev-buffer nil t) (list buf 'nil)))
-                 (switch-to-buffer (doom-fallback-buffer)))
-               (unless (delq (selected-window) (get-buffer-window-list buf nil t))
-                 (kill-buffer buf)))
-             (run-hooks 'buffer-list-update-hook))
-           t))))
+           (let ((visible-p (delq (selected-window) (get-buffer-window-list buf nil t)))
+                 (doom-inhibit-switch-buffer-hooks t)
+                 (inhibit-redisplay t)
+                 buffer-list-update-hook)
+             (unless visible-p
+               (when (and (buffer-modified-p buf)
+                          (not (y-or-n-p
+                                (format "Buffer %s is modified; kill anyway?"
+                                        buf))))
+                 (user-error "Aborted")))
+             (when (or ;; if there aren't more real buffers than visible buffers,
+                    ;; then there are no real, non-visible buffers left.
+                    (not (cl-set-difference (doom-real-buffer-list)
+                                            (doom-visible-buffers)))
+                    ;; if we end up back where we start (or previous-buffer
+                    ;; returns nil), we have nowhere left to go
+                    (memq (switch-to-prev-buffer nil t) (list buf 'nil)))
+               (switch-to-buffer (doom-fallback-buffer)))
+             (unless visible-p
+               (with-current-buffer buf
+                 (restore-buffer-modified-p nil))
+               (kill-buffer buf))
+             (run-hooks 'buffer-list-update-hook)
+             t)))))
 
 
 ;;
@@ -389,6 +391,10 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
 
 ;;;###package ansi-color
 (setq ansi-color-for-comint-mode t)
+
+
+(after! comint
+  (setq comint-prompt-read-only t))
 
 
 (after! compile

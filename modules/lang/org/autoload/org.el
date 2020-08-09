@@ -34,10 +34,16 @@
        ;; insert the new list item.
        (if (eq direction 'above)
            (org-beginning-of-item)
-         (org-end-of-item))
-       (if (org-element-property :checkbox context)
-           (org-insert-todo-heading nil)
-         (org-insert-item)))
+         (org-end-of-item)
+         (backward-char))
+       (org-insert-item (org-element-property :checkbox context))
+       ;; Handle edge case where current item is empty and bottom of list is
+       ;; flush against a new heading.
+       (when (and (eq direction 'below)
+                  (eq (org-element-property :contents-begin context)
+                      (org-element-property :contents-end context)))
+         (org-end-of-item)
+         (org-end-of-line)))
 
       ;; Add a new table row
       ((or `table `table-row)
@@ -265,6 +271,15 @@ If on a:
           (org-element-property :begin context)
           (org-element-property :end context)))))))
 
+;;;###autoload
+(defun +org/shift-return (&optional arg)
+  "Insert a literal newline, or dwim in tables.
+Executes `org-table-copy-down' if in table."
+  (interactive "p")
+  (if (org-at-table-p)
+      (org-table-copy-down arg)
+    (org-return nil arg)))
+
 
 ;; I use these instead of `org-insert-item' or `org-insert-heading' because they
 ;; impose bizarre whitespace rules depending on cursor location and many
@@ -454,18 +469,13 @@ All my (performant) foldings needs are met between this and `org-show-subtree'
           t)))))
 
 ;;;###autoload
-(defun +org-clear-babel-results-h ()
-  "Remove the results block for the org babel block at point."
-  (when (and (org-in-src-block-p t)
-             (org-babel-where-is-src-block-result))
-    (org-babel-remove-result)
-    t))
-
-;;;###autoload
 (defun +org-make-last-point-visible-h ()
   "Unfold subtree around point if saveplace places us in a folded region."
-  (and (not org-agenda-inhibit-startup)
-       (outline-invisible-p)
+  (and (not org-inhibit-startup)
+       (not org-inhibit-startup-visibility-stuff)
+       (org-invisible-p nil 'folding-only)
+       (or (not (org-on-heading-p))
+           (not (member "ARCHIVE" (org-get-tags))))
        (ignore-errors
          (save-excursion
            (outline-previous-visible-heading 1)

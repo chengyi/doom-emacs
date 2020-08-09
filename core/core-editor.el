@@ -91,6 +91,8 @@ possible."
       backup-directory-alist `((".*" . ,(concat doom-cache-dir "backup/"))))
 
 (after! tramp
+  ;; Backing up files on remotes can be incredibly slow and prone to a variety
+  ;; of IO errors. Better to disable it altogether in tramp buffers:
   (add-to-list 'backup-directory-alist (cons tramp-file-name-regexp nil)))
 
 (add-hook! 'after-save-hook
@@ -158,15 +160,6 @@ possible."
 ;; Allow UTF or composed text from the clipboard, even in the terminal or on
 ;; non-X systems (like Windows or macOS), where only `STRING' is used.
 (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
-
-;; Fixes the clipboard in tty Emacs by piping clipboard I/O through xclip, xsel,
-;; pb{copy,paste}, wl-copy, termux-clipboard-get, or getclip (cygwin); depending
-;; on what is available.
-(unless IS-WINDOWS
-  (add-hook! 'tty-setup-hook
-    (defun doom-init-clipboard-in-tty-emacs-h ()
-      (and (require 'clipetty nil t)
-           (global-clipetty-mode +1)))))
 
 
 ;;
@@ -260,9 +253,12 @@ possible."
   (setq savehist-file (concat doom-cache-dir "savehist"))
   :config
   (setq savehist-save-minibuffer-history t
-        savehist-autosave-interval nil ; save on kill only
-        savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
-  (add-hook! 'kill-emacs-hook
+        savehist-autosave-interval nil     ; save on kill only
+        savehist-additional-variables
+        '(kill-ring                        ; persist clipboard
+          mark-ring global-mark-ring       ; persist marks
+          search-ring regexp-search-ring)) ; persist searches
+  (add-hook! 'savehist-save-hook
     (defun doom-unpropertize-kill-ring-h ()
       "Remove text properties from `kill-ring' for a smaller savehist file."
       (setq kill-ring (cl-loop for item in kill-ring

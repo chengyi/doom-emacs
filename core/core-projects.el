@@ -1,6 +1,6 @@
 ;;; core-projects.el -*- lexical-binding: t; -*-
 
-(defvar doom-projectile-cache-limit 25000
+(defvar doom-projectile-cache-limit 10000
   "If any project cache surpasses this many files it is purged when quitting
 Emacs.")
 
@@ -30,7 +30,7 @@ debian, and derivatives). On most it's 'fd'.")
         ;; when you need to (`projectile-discover-projects-in-search-path').
         projectile-auto-discover nil
         projectile-enable-caching doom-interactive-p
-        projectile-globally-ignored-files '(".DS_Store" "Icon" "TAGS")
+        projectile-globally-ignored-files '(".DS_Store" "TAGS")
         projectile-globally-ignored-file-suffixes '(".elc" ".pyc" ".o")
         projectile-kill-buffers-filter 'kill-only-files
         projectile-known-projects-file (concat doom-cache-dir "projectile.projects")
@@ -41,6 +41,12 @@ debian, and derivatives). On most it's 'fd'.")
 
   :config
   (projectile-mode +1)
+
+  ;; Auto-discovery on `projectile-mode' is slow and premature. Let's defer it
+  ;; until it's actually needed. Also clean up non-existing projects too!
+  (add-transient-hook! 'projectile-relevant-known-projects
+    (projectile-cleanup-known-projects)
+    (projectile-discover-projects-in-search-path))
 
   ;; Projectile runs four functions to determine the root (in this order):
   ;;
@@ -105,7 +111,9 @@ b) represent blacklisted directories that are too big, change too often or are
    private. (see `doom-projectile-cache-blacklist'),
 c) are not valid projectile projects."
       (when (and (bound-and-true-p projectile-projects-cache)
+                 projectile-enable-caching
                  doom-interactive-p)
+        (projectile-cleanup-known-projects)
         (cl-loop with blacklist = (mapcar #'file-truename doom-projectile-cache-blacklist)
                  for proot in (hash-table-keys projectile-projects-cache)
                  if (or (not (stringp proot))

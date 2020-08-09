@@ -50,10 +50,6 @@
                                (not (memq (char-after) (list ?\( ?\[ ?\{ ?\} ?\] ?\))))))
                       #'yas-insert-snippet)
 
-      ;; Smarter newlines
-      :i [remap newline] #'newline-and-indent  ; auto-indent on newline
-      :i "C-j"           #'+default/newline    ; default behavior
-
       (:after help :map help-mode-map
        :n "o"       #'link-hint-open-link)
       (:after helpful :map helpful-mode-map
@@ -110,8 +106,8 @@
 
 ;;; :completion
 (map! (:when (featurep! :completion company)
-       :i "C-@"      #'+company/complete
-       :i "C-SPC"    #'+company/complete
+       :i "C-@"      (cmds! (not (minibufferp)) #'+company/complete)
+       :i "C-SPC"    (cmds! (not (minibufferp)) #'+company/complete)
        (:after company
         (:map company-active-map
          "C-w"     nil  ; don't interfere with `evil-delete-backward-word'
@@ -648,8 +644,7 @@
        :desc "Search project"               "p" #'+default/search-project
        :desc "Search other project"         "P" #'+default/search-other-project
        :desc "Jump to mark"                 "r" #'evil-show-marks
-       :desc "Search buffer"                "s" #'swiper-isearch
-       :desc "Search buffer for thing at point" "S" #'swiper-isearch-thing-at-point
+       :desc "Search buffer"                "s" #'+default/search-buffer
        :desc "Dictionary"                   "t" #'+lookup/dictionary-definition
        :desc "Thesaurus"                    "T" #'+lookup/synonyms)
 

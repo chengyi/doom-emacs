@@ -328,7 +328,7 @@ The current file is the file from which `add-to-load-path!' is used."
   `(let ((default-directory ,(dir!))
          file-name-handler-alist)
      (dolist (dir (list ,@dirs))
-       (cl-pushnew (expand-file-name dir) load-path))))
+       (cl-pushnew (expand-file-name dir) load-path :test #'string=))))
 
 (defmacro after! (package &rest body)
   "Evaluate BODY after PACKAGE have loaded.
@@ -490,7 +490,10 @@ advised)."
 (defmacro add-hook-trigger! (hook-var &rest targets)
   "TODO"
   `(let ((fn (intern (format "%s-h" ,hook-var))))
-     (fset fn (lambda (&rest _) (run-hooks ,hook-var) (set ,hook-var nil)))
+     (fset
+      fn (lambda (&rest _)
+           (run-hook-wrapped ,hook-var #'doom-try-run-hook)
+           (set ,hook-var nil)))
      (put ,hook-var 'permanent-local t)
      (dolist (on (list ,@targets))
        (if (functionp on)
