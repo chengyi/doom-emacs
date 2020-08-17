@@ -109,6 +109,8 @@ Is relative to `org-directory', unless it is absolute. Is used in Doom's default
         org-hide-leading-stars t
         org-image-actual-width nil
         org-imenu-depth 8
+        ;; Sub-lists should have different bullets
+        org-list-demote-modify-bullet '(("+" . "-") ("-" . "+") ("*" . "+") ("1." . "a."))
         org-priority-faces
         '((?A . error)
           (?B . warning)
@@ -953,6 +955,7 @@ compelling reason, so..."
   (defvar evil-org-special-o/O '(table-row))
   (defvar evil-org-use-additional-insert t)
   :config
+  (add-hook 'evil-org-mode-hook #'evil-normalize-keymaps)
   (evil-org-set-key-theme)
   (add-hook! 'org-tab-first-hook :append
              ;; Only fold the current tree, rather than recursively

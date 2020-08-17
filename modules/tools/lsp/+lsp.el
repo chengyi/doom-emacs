@@ -37,11 +37,6 @@ should be a deliberate act (as is flipping this variable).")
   ;; Disable features that have great potential to be slow.
   (setq lsp-enable-file-watchers nil
         lsp-enable-folding nil
-        ;; HACK Fix #2911, until it is resolved upstream. Links come in
-        ;;      asynchronously from the server, but lsp makes no effort to
-        ;;      "select" the original buffer before laying them down, so they
-        ;;      could be rendered in the wrong buffer (like the minibuffer).
-        lsp-enable-links t
         lsp-enable-text-document-color nil)
 
   ;; Disable features that modify our code without our permission.
@@ -98,26 +93,25 @@ should be a deliberate act (as is flipping this variable).")
         (catch 'not-installed
           (apply orig-fn args)))))
 
+  (defadvice! +lsp--respect-user-defined-checkers-a (orig-fn &rest args)
+    "Set up flycheck-mode or flymake-mode, depending on `lsp-diagnostic-package'."
+    :around #'lsp-diagnostics--flycheck-enable
+    (if flycheck-checker
+        ;; Respect file/dir/explicit user-defined `flycheck-checker'.
+        (let ((old-checker flycheck-checker))
+          (apply orig-fn args)
+          (setq-local flycheck-checker old-checker))
+      (apply orig-fn args)))
+
   (add-hook! 'lsp-mode-hook
-    (defun +lsp-init-optimizations-h ()
-      "Increase `read-process-output-max' and `gcmh-high-cons-threshold'."
-      ;; `read-process-output-max' is only available on recent development
-      ;; builds of Emacs 27 and above.
-      (unless (boundp 'read-process-output-max)
-        (setq-local read-process-output-max (* 1024 1024)))
-      ;; REVIEW LSP causes a lot of allocations, with or without Emacs 27+'s
-      ;;        native JSON library, so we up the GC threshold to stave off
-      ;;        GC-induced slowdowns/freezes. Doom uses `gcmh' to enforce its GC
-      ;;        strategy, so we modify its variables rather than
-      ;;        `gc-cons-threshold' directly.
-      (setq-local gcmh-high-cons-threshold (* 2 (default-value 'gcmh-high-cons-threshold))))
     (defun +lsp-display-guessed-project-root-h ()
       "Log what LSP things is the root of the current project."
       ;; Makes it easier to detect root resolution issues.
       (when-let (path (buffer-file-name (buffer-base-buffer)))
         (if-let (root (lsp--calculate-root (lsp-session) path))
             (lsp--info "Guessed project root is %s" (abbreviate-file-name root))
-          (lsp--info "Could not guess project root.")))))
+          (lsp--info "Could not guess project root."))))
+    #'+lsp-init-optimizations-h)
 
   (add-hook! 'lsp-completion-mode-hook
     (defun +lsp-init-company-backends-h ()

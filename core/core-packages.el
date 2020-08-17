@@ -101,6 +101,10 @@ uses a straight or package.el command directly).")
       ;; HACK Disable native-compilation for some troublesome files
       comp-deferred-compilation-black-list '("/evil-collection-vterm\\.el$"))
 
+(with-eval-after-load 'straight
+  ;; `let-alist' is built into Emacs 26 and onwards
+  (add-to-list 'straight-built-in-pseudo-packages 'let-alist))
+
 (defadvice! doom--read-pinned-packages-a (orig-fn &rest args)
   "Read `:pin's in `doom-packages' on top of straight's lockfiles."
   :around #'straight--lockfile-read-all
@@ -126,7 +130,8 @@ uses a straight or package.el command directly).")
        ((null pin)
         (funcall call "git" "clone" "--origin" "origin" repo-url repo-dir
                  "--depth" (number-to-string straight-vc-git-default-clone-depth)
-                 "--branch" straight-repository-branch))
+                 "--branch" straight-repository-branch
+                 "--single-branch" "--no-tags"))
        ((integerp straight-vc-git-default-clone-depth)
         (make-directory repo-dir t)
         (let ((default-directory repo-dir))
@@ -134,7 +139,8 @@ uses a straight or package.el command directly).")
           (funcall call "git" "checkout" "-b" straight-repository-branch)
           (funcall call "git" "remote" "add" "origin" repo-url)
           (funcall call "git" "fetch" "origin" pin
-                   "--depth" (number-to-string straight-vc-git-default-clone-depth))
+                   "--depth" (number-to-string straight-vc-git-default-clone-depth)
+                   "--no-tags")
           (funcall call "git" "checkout" "--detach" pin)))))
     (require 'straight (concat repo-dir "/straight.el"))
     (doom-log "Initializing recipes")
