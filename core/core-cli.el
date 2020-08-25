@@ -171,18 +171,12 @@ COMMAND, and passes ARGS to it."
 
 (defun doom-cli--execute-after (lines)
   (let ((post-script (concat doom-local-dir ".doom.sh"))
-        (coding-system-for-write 'utf-8)
-        (coding-system-for-read  'utf-8))
+        (coding-system-for-write 'utf-8-unix)
+        (coding-system-for-read  'utf-8-unix))
     (with-temp-file post-script
       (insert "#!/usr/bin/env sh\n"
-              (save-match-data
-                (cl-loop for env in process-environment
-                         if (string-match "^\\([a-zA-Z0-9_]+\\)=\\(.+\\)$" env)
-                         concat (format "export %s=%s;\n"
-                                        (match-string 1 env)
-                                        (shell-quote-argument (match-string 2 env)))))
-              (format "\nexport PATH=\"%s:$PATH\"\n" (concat doom-emacs-dir "bin/"))
-              "\n[ -x \"$0\" ] && rm -f \"$0\"\n"
+              "_postscript() {\n"
+              "rm -f " (shell-quote-argument post-script) "\n"
               (if (stringp lines)
                   lines
                 (string-join
@@ -191,7 +185,15 @@ COMMAND, and passes ARGS to it."
                               collect (mapconcat #'shell-quote-argument (remq nil line) " "))
                    (list (mapconcat #'shell-quote-argument (remq nil lines) " ")))
                  "\n"))
-              "\n"))
+              "\n}\n"
+              (save-match-data
+                (cl-loop for env in process-environment
+                         if (string-match "^\\([a-zA-Z0-9_]+\\)=\\(.+\\)$" env)
+                         concat (format "%s=%s \\\n"
+                                        (match-string 1 env)
+                                        (shell-quote-argument (match-string 2 env)))))
+              (format "PATH=\"%s%s$PATH\" \\\n" (concat doom-emacs-dir "bin/") path-separator)
+              "_postscript $@\n"))
     (set-file-modes post-script #o700)))
 
 (defun doom-cli-execute-lines-after (&rest lines)

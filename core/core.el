@@ -271,6 +271,26 @@ config.el instead."
 
 
 ;;
+;;; Native Compilation support (http://akrl.sdf.org/gccemacs.html)
+
+;; Don't store eln files in ~/.emacs.d/eln-cache (they are likely to be purged
+;; when upgrading Doom).
+(when (boundp 'comp-eln-load-path)
+  (add-to-list 'comp-eln-load-path (concat doom-cache-dir "eln/")))
+
+(after! comp
+  ;; HACK `comp-eln-load-path' isn't fully respected yet, because native
+  ;;      compilation occurs in another emacs process that isn't seeded with our
+  ;;      value for `comp-eln-load-path', so we inject it ourselves:
+  (setq comp-async-env-modifier-form
+        `(progn
+           ,comp-async-env-modifier-form
+           (setq comp-eln-load-path ',(bound-and-true-p comp-eln-load-path))))
+  ;; HACK Disable native-compilation for some troublesome packages
+  (add-to-list 'comp-deferred-compilation-black-list "/evil-collection-vterm\\.el\\'"))
+
+
+;;
 ;;; Optimizations
 
 ;; Disable bidirectional text rendering for a modest performance boost. I've set
@@ -303,8 +323,9 @@ config.el instead."
 (setq ffap-machine-p-known 'reject)
 
 ;; Font compacting can be terribly expensive, especially for rendering icon
-;; fonts on Windows. Whether it has a notable affect on Linux and Mac hasn't
-;; been determined, but we inhibit it there anyway.
+;; fonts on Windows. Whether disabling it has a notable affect on Linux and Mac
+;; hasn't been determined, but we inhibit it there anyway. This increases memory
+;; usage, however!
 (setq inhibit-compacting-font-caches t)
 
 ;; Performance on Windows is considerably worse than elsewhere. We'll need
@@ -319,10 +340,6 @@ config.el instead."
 (unless IS-MAC   (setq command-line-ns-option-alist nil))
 (unless IS-LINUX (setq command-line-x-option-alist nil))
 
-;; Delete files to trash on macOS, as an extra layer of precaution against
-;; accidentally deleting wanted files.
-(setq delete-by-moving-to-trash IS-MAC)
-
 ;; Adopt a sneaky garbage collection strategy of waiting until idle time to
 ;; collect; staving off the collector while the user is working.
 (setq gcmh-idle-delay 5
@@ -330,8 +347,10 @@ config.el instead."
       gcmh-verbose doom-debug-p)
 
 ;; HACK `tty-run-terminal-initialization' is *tremendously* slow for some
-;;      reason. Disabling it completely could have many side-effects, so we
-;;      defer it until later, at which time it (somehow) runs very quickly.
+;;      reason; inexplicably doubling startup time for terminal Emacs. Keeping
+;;      it disabled will have nasty side-effects, so we simply delay it until
+;;      later in the startup process and, for some reason, it runs much faster
+;;      when it does.
 (unless (daemonp)
   (advice-add #'tty-run-terminal-initialization :override #'ignore)
   (add-hook! 'window-setup-hook
@@ -346,12 +365,12 @@ config.el instead."
 ;; File+dir local variables are initialized after the major mode and its hooks
 ;; have run. If you want hook functions to be aware of these customizations, add
 ;; them to MODE-local-vars-hook instead.
-(defvar doom--inhibit-local-var-hooks nil)
+(defvar doom-inhibit-local-var-hooks nil)
 
 (defun doom-run-local-var-hooks-h ()
   "Run MODE-local-vars-hook after local variables are initialized."
-  (unless doom--inhibit-local-var-hooks
-    (set (make-local-variable 'doom--inhibit-local-var-hooks) t)
+  (unless (or doom-inhibit-local-var-hooks revert-buffer-in-progress-p)
+    (set (make-local-variable 'doom-inhibit-local-var-hooks) t)
     (run-hook-wrapped (intern-soft (format "%s-local-vars-hook" major-mode))
                       #'doom-try-run-hook)))
 
