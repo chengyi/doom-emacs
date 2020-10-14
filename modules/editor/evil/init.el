@@ -221,6 +221,7 @@ variable for an explanation of the defaults (in comments). See
       which-key
       woman
       xref
+      xwidget
       youtube-dl
       (ztree ztree-diff)))
 
@@ -277,11 +278,7 @@ and complains if a module is loaded too early (during startup)."
         (evil-collection-minibuffer-insert)))
     (add-transient-hook! 'process-menu-mode
       (+evil-collection-init '(process-menu simple)))
-    (add-transient-hook! 'xwidget-webkit-mode
-      (+evil-collection-init 'xwidget))
     (add-transient-hook! 'tabulated-list-mode
-      (+evil-collection-init 'tabulated-list))
-    (add-transient-hook! 'tab-bar-mode
       (+evil-collection-init 'tabulated-list))
     (when EMACS27+
       (add-transient-hook! 'tab-bar-mode
