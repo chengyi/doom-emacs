@@ -12,7 +12,8 @@
     init-file-debug
     jka-compr-verbose
     url-debug
-    use-package-verbose)
+    use-package-verbose
+    (message-log-max . 16384))
   "A list of variable to toggle on `doom-debug-mode'.
 
 Each entry can be a variable symbol or a cons cell whose CAR is the variable
@@ -316,6 +317,7 @@ Some items are not supported by the `nsm.el' module."
                       process-environment ',doom--initial-process-environment
                       exec-path ',doom--initial-exec-path
                       init-file-debug t
+                      doom--initial-load-path load-path
                       load-path ',load-path
                       package--init-file-ensured t
                       package-user-dir ,package-user-dir
