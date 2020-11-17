@@ -281,10 +281,13 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
 (setq frame-title-format '("%b – Doom Emacs")
       icon-title-format frame-title-format)
 
-;; Don't resize windows & frames in steps; it's prohibitive to prevent the user
-;; from resizing it to exact dimensions, and looks weird.
-(setq window-resize-pixelwise t
-      frame-resize-pixelwise t)
+;; Don't resize the frames in steps; it looks weird, especially in tiling window
+;; managers, where it can leave unseemly gaps.
+(setq frame-resize-pixelwise t)
+
+;; But do not resize windows pixelwise, this can cause crashes in some cases
+;; where we resize windows too quickly.
+(setq window-resize-pixelwise nil)
 
 (unless (assq 'menu-bar-lines default-frame-alist)
   ;; We do this in early-init.el too, but in case the user is on Emacs 26 we do
@@ -346,7 +349,7 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
       max-mini-window-height 0.15)
 
 ;; Typing yes/no is obnoxious when y/n will do
-(advice-add #'yes-or-no-p :override #'y-or-n-p)
+(fset #'yes-or-no-p #'y-or-n-p)
 
 ;; Try really hard to keep the cursor from getting stuck in the read-only prompt
 ;; portion of the minibuffer.
@@ -391,8 +394,24 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
 
 (use-package! hl-line
   ;; Highlights the current line
-  :hook ((prog-mode text-mode conf-mode special-mode) . hl-line-mode)
+  :hook (doom-first-buffer . global-hl-line-mode)
+  :init
+  (defvar global-hl-line-modes '(prog-mode text-mode conf-mode special-mode)
+    "What modes to enable `hl-line-mode' in.")
   :config
+  ;; HACK I reimplement `global-hl-line-mode' so we can white/blacklist modes in
+  ;;      `global-hl-line-modes' _and_ so we can use `global-hl-line-mode',
+  ;;      which users expect to control hl-line in Emacs.
+  (define-globalized-minor-mode global-hl-line-mode hl-line-mode
+    (lambda ()
+      (and (not hl-line-mode)
+           (cond ((null global-hl-line-modes) nil)
+                 ((eq global-hl-line-modes t))
+                 ((eq (car global-hl-line-modes) 'not)
+                  (not (derived-mode-p global-hl-line-modes)))
+                 ((apply #'derived-mode-p global-hl-line-modes)))
+           (hl-line-mode +1))))
+
   ;; Not having to render the hl-line overlay in multiple buffers offers a tiny
   ;; performance boost. I also don't need to see it in other buffers.
   (setq hl-line-sticky-flag nil
