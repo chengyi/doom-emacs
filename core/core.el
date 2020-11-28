@@ -292,7 +292,7 @@ config.el instead."
                        (concat "\\`" (regexp-quote doom-local-dir) ".*/jupyter-channel\\.el\\'")
                        (concat "\\`" (regexp-quote doom-local-dir) ".*/with-editor\\.el\\'")
                        (concat "\\`" (regexp-quote doom-autoloads-file) "'")))
-    (add-to-list 'comp-deferred-compilation-black-list entry)))
+    (add-to-list 'comp-deferred-compilation-deny-list entry)))
 
 
 ;;

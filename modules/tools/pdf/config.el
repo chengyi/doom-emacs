@@ -25,7 +25,18 @@
   (setq pdf-view-use-scaling t
         pdf-view-use-imagemagick nil)
 
-  ;; Persist current page for PDF files viewed in Emacs
+  ;; Handle PDF-tools related popups better
+  (set-popup-rules!
+    '(("^\\*Outline*" :side right :size 40 :select nil)
+      ("\\(?:^\\*Contents\\|'s annots\\*$\\)" :ignore t)))
+
+  ;; The mode-line does serve any useful purpose is annotation windows
+  (add-hook 'pdf-annot-list-mode-hook #'hide-mode-line-mode)
+
+  ;; HACK Fix #1107: flickering pdfs when evil-mode is enabled
+  (setq-hook! 'pdf-view-mode-hook evil-normal-state-cursor (list nil))
+
+  ;; Persist current page for PDFs opened in Emacs
   (defvar +pdf--page-restored-p nil)
   (add-hook! 'pdf-view-change-page-hook
     (defun +pdf-remember-page-number-h ()
@@ -38,31 +49,6 @@
              (<= page (or (pdf-cache-number-of-pages) 1))
              (pdf-view-goto-page page)
              (setq-local +pdf--page-restored-p t)))))
-
-  ;; Add retina support for MacOS users
-  (when IS-MAC
-    (advice-add #'pdf-util-frame-scale-factor :around #'+pdf--util-frame-scale-factor-a)
-    (advice-add #'pdf-view-use-scaling-p :before-until #'+pdf--view-use-scaling-p-a)
-    (defadvice! +pdf--supply-width-to-create-image-calls-a (orig-fn &rest args)
-      :around '(pdf-annot-show-annotation
-                pdf-isearch-hl-matches
-                pdf-view-display-region)
-      (letf! (defun create-image (file-or-data &optional type data-p &rest props)
-               (apply create-image file-or-data type data-p
-                      :width (car (pdf-view-image-size))
-                      props))
-        (apply orig-fn args))))
-
-  ;; Handle PDF-tools related popups better
-  (set-popup-rules!
-    '(("^\\*Outline*" :side right :size 40 :select nil)
-      ("\\(?:^\\*Contents\\|'s annots\\*$\\)" :ignore t)))
-
-  ;; The mode-line does serve any useful purpose is annotation windows
-  (add-hook 'pdf-annot-list-mode-hook #'hide-mode-line-mode)
-
-  ;; HACK Fix #1107: flickering pdfs when evil-mode is enabled
-  (setq-hook! 'pdf-view-mode-hook evil-normal-state-cursor (list nil))
 
   ;; Install epdfinfo binary if needed, blocking until it is finished
   (when doom-interactive-p
@@ -91,4 +77,39 @@
 
     ;; Sets up `pdf-tools-enable-minor-modes', `pdf-occur-global-minor-mode' and
     ;; `pdf-virtual-global-minor-mode'.
-    (pdf-tools-install-noverify)))
+    (pdf-tools-install-noverify))
+
+  ;; Add retina support for MacOS users
+  (eval-when! IS-MAC
+    (defvar +pdf--scaled-p nil)
+
+    (defadvice! +pdf--scale-up-on-retina-display-a (orig-fn &rest args)
+      "Scale up the PDF on retina displays."
+      :around #'pdf-util-frame-scale-factor
+      (cond ((not pdf-view-use-scaling) 1)
+            ((and (memq (pdf-view-image-type) '(imagemagick image-io))
+                  (fboundp 'frame-monitor-attributes))
+             (funcall orig-fn))
+            ;; Add special support for retina displays on MacOS
+            ((and (eq (framep-on-display) 'ns)
+                  (not +pdf--scaled-p)
+                  EMACS27+)
+             (setq-local +pdf--scaled-p t)
+             2)
+            (1)))
+
+    (defadvice! +pdf--use-scaling-on-ns-a ()
+      :before-until #'pdf-view-use-scaling-p
+      (and (eq (framep-on-display) 'ns)
+           EMACS27+
+           pdf-view-use-scaling))
+
+    (defadvice! +pdf--supply-width-to-create-image-calls-a (orig-fn &rest args)
+      :around '(pdf-annot-show-annotation
+                pdf-isearch-hl-matches
+                pdf-view-display-region)
+      (letf! (defun create-image (file-or-data &optional type data-p &rest props)
+               (apply create-image file-or-data type data-p
+                      :width (car (pdf-view-image-size))
+                      props))
+        (apply orig-fn args)))))
