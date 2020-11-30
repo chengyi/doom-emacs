@@ -53,12 +53,6 @@
     (setq file-name-handler-alist doom--initial-file-name-handler-alist))
   (add-hook 'emacs-startup-hook #'doom-reset-file-handler-alist-h))
 
-;; REVIEW Fixes 'void-variable tab-prefix-map' errors caused by packages that
-;;        prematurely use this variable before it was introduced. Remove this in
-;;        a year.
-(unless (boundp 'tab-prefix-map)
-  (defvar tab-prefix-map (make-sparse-keymap)))
-
 ;; Just the bare necessities
 (require 'subr-x)
 (require 'cl-lib)
@@ -285,14 +279,22 @@ config.el instead."
 (when (boundp 'comp-eln-load-path)
   (add-to-list 'comp-eln-load-path (concat doom-cache-dir "eln/")))
 
-(after! comp
+(with-eval-after-load 'comp
   ;; HACK Disable native-compilation for some troublesome packages
   (dolist (entry (list (concat "\\`" (regexp-quote doom-local-dir) ".*/evil-collection-vterm\\.el\\'")
                        ;; https://github.com/nnicandro/emacs-jupyter/issues/297
                        (concat "\\`" (regexp-quote doom-local-dir) ".*/jupyter-channel\\.el\\'")
                        (concat "\\`" (regexp-quote doom-local-dir) ".*/with-editor\\.el\\'")
                        (concat "\\`" (regexp-quote doom-autoloads-file) "'")))
-    (add-to-list 'comp-deferred-compilation-deny-list entry)))
+    (add-to-list 'comp-deferred-compilation-deny-list entry))
+
+  ;; Default to using all cores, rather than half of them, since we compile
+  ;; things ahead-of-time in a non-interactive session.
+  (defadvice! doom--comp-use-all-cores-a ()
+    :override #'comp-effective-async-max-jobs
+    (if (zerop comp-async-jobs-number)
+        (setq comp-num-cpus (doom-num-cpus))
+      comp-async-jobs-number)))
 
 
 ;;
