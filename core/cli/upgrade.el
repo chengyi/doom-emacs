@@ -80,7 +80,7 @@ following shell commands:
           (let (result)
             (or (zerop (car (doom-call-process "git" "remote" "add" doom-repo-remote doom-repo-url)))
                 (error "Failed to add %s to remotes" doom-repo-remote))
-            (or (zerop (car (setq result (doom-call-process "git" "fetch" "--tags" doom-repo-remote (format "%s:%s" branch target-remote)))))
+            (or (zerop (car (setq result (doom-call-process "git" "fetch" "--force" "--tags" doom-repo-remote (format "%s:%s" branch target-remote)))))
                 (error "Failed to fetch from upstream"))
 
             (let ((this-rev (cdr (doom-call-process "git" "rev-parse" "HEAD")))
@@ -122,4 +122,5 @@ following shell commands:
                    (print! (info "%s") (cdr result))
                    t))))))
         (ignore-errors
+          (doom-call-process "git" "branch" "-D" target-remote)
           (doom-call-process "git" "remote" "remove" doom-repo-remote))))))
