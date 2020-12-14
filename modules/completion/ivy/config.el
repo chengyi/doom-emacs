@@ -59,6 +59,7 @@ results buffer.")
   (setq ivy-height 17
         ivy-wrap t
         ivy-fixed-height-minibuffer t
+        ivy-read-action-format-function #'ivy-read-action-format-columns
         projectile-completion-system 'ivy
         ;; don't show recent files in switch-buffer
         ivy-use-virtual-buffers nil
@@ -88,17 +89,11 @@ results buffer.")
                        +ivy--origin))
            (with-current-buffer (marker-buffer +ivy--origin)
              (better-jumper-set-jump +ivy--origin)))
+      (set-marker +ivy--origin nil)
       (setq +ivy--origin nil)))
 
   (after! yasnippet
     (add-hook 'yas-prompt-functions #'+ivy-yas-prompt-fn))
-
-  (defadvice! +ivy--inhibit-completion-in-region-a (orig-fn &rest args)
-    "`ivy-completion-in-region' struggles with completing certain
-evil-ex-specific constructs, so we disable it solely in evil-ex."
-    :around #'evil-ex
-    (let ((completion-in-region-function #'completion--in-region))
-      (apply orig-fn args)))
 
   (define-key! ivy-minibuffer-map
     [remap doom/delete-backward-word] #'ivy-backward-kill-word

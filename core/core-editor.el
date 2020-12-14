@@ -487,7 +487,12 @@ files, so we replace calls to `pp' with the much faster `prin1'."
     ;; correct this vile injustice.
     (setq sp-show-pair-from-inside t)
     ;; ...and stay highlighted until we've truly escaped the pair!
-    (setq sp-cancel-autoskip-on-backward-movement nil))
+    (setq sp-cancel-autoskip-on-backward-movement nil)
+    ;; Smartparens conditional binds a key to C-g when sp overlays are active
+    ;; (even if they're invisible). This disruptively changes the behavior of
+    ;; C-g in insert mode, requiring two presses of the key to exit insert mode.
+    ;; I don't see the point of this keybind, so...
+    (setq sp-pair-overlay-keymap (make-sparse-keymap)))
 
   ;; The default is 100, because smartparen's scans are relatively expensive
   ;; (especially with large pair lists for some modes), we reduce it, as a
@@ -504,13 +509,20 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   (dolist (key '(:unmatched-expression :no-matching-tag))
     (setf (alist-get key sp-message-alist) nil))
 
+  (add-hook! 'eval-expression-minibuffer-setup-hook
+    (defun doom-init-smartparens-in-eval-expression-h ()
+      "Enable `smartparens-mode' in the minibuffer for `eval-expression'.
+This includes everything that calls `read--expression', e.g.
+`edebug-eval-expression' Only enable it if
+`smartparens-global-mode' is on."
+      (when smartparens-global-mode (smartparens-mode +1))))
   (add-hook! 'minibuffer-setup-hook
     (defun doom-init-smartparens-in-minibuffer-maybe-h ()
-      "Enable `smartparens-mode' in the minibuffer, during `eval-expression',
-`pp-eval-expression' or `evil-ex'."
-      (and (memq this-command '(eval-expression pp-eval-expression evil-ex))
-           smartparens-global-mode
-           (smartparens-mode))))
+      "Enable `smartparens' for non-`eval-expression' commands.
+Only enable `smartparens-mode' if `smartparens-global-mode' is
+on."
+      (when (and smartparens-global-mode (memq this-command '(evil-ex)))
+        (smartparens-mode +1))))
 
   ;; You're likely writing lisp in the minibuffer, therefore, disable these
   ;; quote pairs, which lisps doesn't use for strings:
