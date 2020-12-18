@@ -501,9 +501,6 @@ files, so we replace calls to `pp' with the much faster `prin1'."
   ;; No pair has any business being longer than 4 characters; if they must, set
   ;; it buffer-locally. It's less work for smartparens.
   (setq sp-max-pair-length 4)
-  ;; This isn't always smart enough to determine when we're in a string or not.
-  ;; See https://github.com/Fuco1/smartparens/issues/783.
-  (setq sp-escape-quotes-after-insert nil)
 
   ;; Silence some harmless but annoying echo-area spam
   (dolist (key '(:unmatched-expression :no-matching-tag))
@@ -576,11 +573,11 @@ on."
               highlight-indent-guides-mode
               hl-fill-column-mode))
   (defun doom-buffer-has-long-lines-p ()
-    ;; HACK Fix #2183: `so-long-detected-long-line-p' tries to parse comment
-    ;;      syntax, but in some buffers comment state isn't initialized, leading
-    ;;      to a wrong-type-argument: stringp error.
     (unless (bound-and-true-p visual-line-mode)
       (let ((so-long-skip-leading-comments
+             ;; HACK Fix #2183: `so-long-detected-long-line-p' tries to parse
+             ;;      comment syntax, but comment state may not be initialized,
+             ;;      leading to a wrong-type-argument: stringp error.
              (bound-and-true-p comment-use-syntax)))
         (so-long-detected-long-line-p))))
   (setq so-long-predicate #'doom-buffer-has-long-lines-p))
