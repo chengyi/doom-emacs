@@ -94,10 +94,10 @@ at the values with which this function was called."
   (lambda (&rest pre-args)
     (apply fn (append pre-args args))))
 
-(defun doom-lookup-key (keys &optional keymap)
+(defun doom-lookup-key (keys &rest keymaps)
   "Like `lookup-key', but search active keymaps if KEYMAP is omitted."
-  (if keymap
-      (lookup-key keymap keys)
+  (if keymaps
+      (cl-some (doom-rpartial #'lookup-key keys) keymaps)
     (cl-loop for keymap
              in (append (cl-loop for alist in emulation-mode-map-alists
                                  append (mapcar #'cdr
@@ -260,9 +260,18 @@ See `general-key-dispatch' for what other arguments it accepts in BRANCHES."
     (when (cl-oddp (length branches))
       (setq fallback (car (last branches))
             branches (butlast branches)))
-    `(general-predicate-dispatch ,fallback
-       :docstring ,docstring
-       ,@branches)))
+    (let ((defs (cl-loop for (key value) on branches by 'cddr
+                         unless (keywordp key)
+                         collect (list key value))))
+      `'(menu-item
+         ,(or docstring "") nil
+         :filter (lambda (&optional _)
+                   (let (it)
+                     (cond ,@(mapcar (lambda (pred-def)
+                                       `((setq it ,(car pred-def))
+                                         ,(cadr pred-def)))
+                                     defs)
+                           (t ,fallback))))))))
 
 (defalias 'kbd! 'general-simulate-key)
 
@@ -352,13 +361,10 @@ This is a wrapper around `eval-after-load' that:
                       (require package nil 'noerror))
                   #'progn
                 #'with-no-warnings)
-              (let ((body (macroexp-progn body)))
-                `(if (featurep ',package)
-                     ,body
-                   ;; We intentionally avoid `with-eval-after-load' to prevent
-                   ;; eager macro expansion from pulling (or failing to pull) in
-                   ;; autoloaded macros/packages.
-                   (eval-after-load ',package ',body)))))
+              ;; We intentionally avoid `with-eval-after-load' to prevent eager
+              ;; macro expansion from pulling (or failing to pull) in autoloaded
+              ;; macros/packages.
+              `(eval-after-load ',package ',(macroexp-progn body))))
     (let ((p (car package)))
       (cond ((not (keywordp p))
              `(after! (:and ,@package) ,@body))
@@ -749,47 +755,7 @@ made obsolete, for example a date or a release number.
 See the docstrings of `defalias' and `make-obsolete' for more details."
     (declare (doc-string 4))
     `(progn (defalias ,obsolete-name ,current-name ,docstring)
-            (make-obsolete ,obsolete-name ,current-name ,when)))
-
-  (defadvice! doom--fix-wrong-number-of-args-during-byte-compile (recipe)
-    :override #'straight--build-compile
-    (let* ((package (plist-get recipe :package))
-           (dir (straight--build-dir package))
-           (program (concat invocation-directory invocation-name))
-           (args
-            `("-Q" "-L" ,dir
-              ,@(apply #'append
-                       (mapcar (lambda (d)
-                                 (let ((d (straight--build-dir d)))
-                                   (when (file-exists-p d) (list "-L" d))))
-                               (straight--get-dependencies package)))
-              "--batch"
-              "--eval"
-              ,(prin1-to-string
-                '(progn
-                   (defmacro define-obsolete-face-alias (obsolete-face current-face &optional when)
-                     `(progn (put ,obsolete-face 'face-alias ,current-face)
-                             (put ,obsolete-face 'obsolete-face (or (purecopy ,when) t))))
-                   (defmacro define-obsolete-function-alias (obsolete-name current-name &optional when docstring)
-                     `(progn (defalias ,obsolete-name ,current-name ,docstring)
-                             (make-obsolete ,obsolete-name ,current-name ,when)))
-                   (defmacro define-obsolete-variable-alias (obsolete-name current-name &optional when docstring)
-                     `(progn (defvaralias ,obsolete-name ,current-name ,docstring)
-                             (dolist (prop '(saved-value saved-variable-comment))
-                               (and (get ,obsolete-name prop)
-                                    (null (get ,current-name prop))
-                                    (put ,current-name prop (get ,obsolete-name prop))))
-                             (make-obsolete-variable ,obsolete-name ,current-name ,when)))))
-              "--eval"
-              ,(format "(byte-recompile-directory %S 0 'force)" dir))))
-      (when straight-byte-compilation-buffer
-        (with-current-buffer (get-buffer-create straight-byte-compilation-buffer)
-          (insert "\n$ " (replace-regexp-in-string
-                          "\\(-L [^z-a]*? \\)"
-                          "\\1\\\\ \n  "
-                          (string-join `(,program ,@args) " "))
-                  "\n")))
-      (apply #'call-process program nil straight-byte-compilation-buffer nil args))))
+            (make-obsolete ,obsolete-name ,current-name ,when))))
 
 (provide 'core-lib)
 ;;; core-lib.el ends here

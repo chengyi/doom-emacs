@@ -361,7 +361,8 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
 
 
 (after! comint
-  (setq comint-prompt-read-only t))
+  (setq comint-prompt-read-only t
+        comint-buffer-maximum-size 2048)) ; double the default
 
 
 (after! compile
@@ -369,7 +370,11 @@ windows, switch to `doom-fallback-buffer'. Otherwise, delegate to original
         compilation-ask-about-save nil  ; save all buffers on `compile'
         compilation-scroll-output 'first-error)
   ;; Handle ansi codes in compilation buffer
-  (add-hook 'compilation-filter-hook #'doom-apply-ansi-color-to-compilation-buffer-h))
+  (add-hook 'compilation-filter-hook #'doom-apply-ansi-color-to-compilation-buffer-h)
+  ;; Automatically truncate compilation buffers so they don't accumulate too
+  ;; much data and bog down the rest of Emacs.
+  (autoload 'comint-truncate-buffer "comint" nil t)
+  (add-hook 'compilation-filter-hook #'comint-truncate-buffer))
 
 
 (after! ediff
@@ -599,7 +604,7 @@ behavior). Do not set this directly, this is let-bound in `doom-init-theme-h'.")
         (when doom-variable-pitch-font
           (set-face-attribute 'variable-pitch nil :font doom-variable-pitch-font))
         (when (fboundp 'set-fontset-font)
-          (dolist (font (cons doom-unicode-font doom-unicode-extra-fonts))
+          (dolist (font (remq nil (cons doom-unicode-font doom-unicode-extra-fonts)))
             (set-fontset-font t 'unicode font nil 'prepend)))
         (run-hooks 'after-setting-font-hook))
     ((debug error)
@@ -637,7 +642,7 @@ behavior). Do not set this directly, this is let-bound in `doom-init-theme-h'.")
         ;; `load-theme' doesn't disable previously enabled themes, which seems
         ;; like what you'd want. You could always use `enable-theme' to activate
         ;; multiple themes instead.
-        (mapc #'disable-theme (remq theme (remq 'use-package custom-enabled-themes)))
+        (mapc #'disable-theme (remq theme custom-enabled-themes))
         (run-hooks 'doom-load-theme-hook))
       result)))
 
@@ -649,7 +654,7 @@ behavior). Do not set this directly, this is let-bound in `doom-init-theme-h'.")
     "Disable other themes when loading a new one."
     :before #'load-theme
     (unless no-enable
-      (mapc #'disable-theme (remq 'use-package custom-enabled-themes))))
+      (mapc #'disable-theme custom-enabled-themes)))
 
   ;; DEPRECATED Not needed in Emacs 27
   (defadvice! doom--prefer-compiled-theme-a (orig-fn &rest args)

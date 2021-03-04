@@ -42,13 +42,24 @@
                            (bound-and-true-p yas-minor-mode)
                            (yas-maybe-expand-abbrev-key-filter 'yas-expand))
                       #'yas-expand
-                      (and (featurep! :completion company +tng)
-                           (+company-has-completion-p))
-                      #'company-complete-common)
-      :v [tab] (cmds! (and (bound-and-true-p yas-minor-mode)
+                      (featurep! :completion company +tng)
+                      #'company-indent-or-complete-common)
+      :m [tab] (cmds! (and (bound-and-true-p yas-minor-mode)
+                           (evil-visual-state-p)
                            (or (eq evil-visual-selection 'line)
                                (not (memq (char-after) (list ?\( ?\[ ?\{ ?\} ?\] ?\))))))
-                      #'yas-insert-snippet)
+                      #'yas-insert-snippet
+                      (and (featurep! :editor fold)
+                           (save-excursion (end-of-line) (invisible-p (point))))
+                      #'+fold/toggle
+                      ;; Fixes #4548: without this, this tab keybind overrides
+                      ;; mode-local ones for modes that don't have an evil
+                      ;; keybinding scheme or users who don't have :editor (evil
+                      ;; +everywhere) enabled.
+                      (doom-lookup-key [tab] (list (current-local-map)))
+                      it
+                      (fboundp 'evil-jump-item)
+                      #'evil-jump-item)
 
       (:after help :map help-mode-map
        :n "o"       #'link-hint-open-link)
@@ -107,8 +118,8 @@
 
 ;;; :completion
 (map! (:when (featurep! :completion company)
-       :i "C-@"      (cmds! (not (minibufferp)) #'+company/complete)
-       :i "C-SPC"    (cmds! (not (minibufferp)) #'+company/complete)
+       :i "C-@"    (cmds! (not (minibufferp)) #'company-complete-common)
+       :i "C-SPC"  (cmds! (not (minibufferp)) #'company-complete-common)
        (:after company
         (:map company-active-map
          "C-w"     nil  ; don't interfere with `evil-delete-backward-word'
@@ -392,7 +403,8 @@
        :desc "Save file as..."             "S"   #'write-file
        :desc "Sudo find file"              "u"   #'doom/sudo-find-file
        :desc "Sudo this file"              "U"   #'doom/sudo-this-file
-       :desc "Yank filename"               "y"   #'+default/yank-buffer-filename)
+       :desc "Yank file path"              "y"   #'+default/yank-buffer-path
+       :desc "Yank file path from project" "Y"   #'+default/yank-buffer-path-relative-to-project)
 
       ;;; <leader> g --- git/version control
       (:prefix-map ("g" . "git")
@@ -527,6 +539,7 @@
        :desc "Default browser"    "b"  #'browse-url-of-file
        :desc "Start debugger"     "d"  #'+debugger/start
        :desc "New frame"          "f"  #'make-frame
+       :desc "Select frame"       "F"  #'select-frame-by-name
        :desc "REPL"               "r"  #'+eval/open-repl-other-window
        :desc "REPL (same window)" "R"  #'+eval/open-repl-same-window
        :desc "Dired"              "-"  #'dired-jump
@@ -681,7 +694,8 @@
        (:when (featurep! :editor word-wrap)
         :desc "Soft line wrapping"         "w" #'+word-wrap-mode)
        (:when (featurep! :ui zen)
-        :desc "Zen mode"                   "z" #'writeroom-mode)))
+        :desc "Zen mode"                   "z" #'+zen/toggle
+        :desc "Zen mode (fullscreen)"      "Z" #'+zen/toggle-fullscreen)))
 
 (after! which-key
   (let ((prefix-re (regexp-opt (list doom-leader-key doom-leader-alt-key))))
