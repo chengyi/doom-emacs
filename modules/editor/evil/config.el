@@ -27,6 +27,7 @@ directives. By default, this only recognizes C directives.")
 (defvar evil-want-C-w-delete t)
 (defvar evil-want-Y-yank-to-eol t)
 (defvar evil-want-abbrev-expand-on-insert-exit nil)
+(defvar evil-respect-visual-line-mode t)
 
 (use-package! evil
   :hook (doom-init-modules . evil-mode)
@@ -530,6 +531,9 @@ directives. By default, this only recognizes C directives.")
        "C-k"     #'evil-window-up
        "C-l"     #'evil-window-right
        "C-w"     #'other-window
+       ;; Extra split commands
+       "S"       #'+evil/window-split-and-follow
+       "V"       #'+evil/window-vsplit-and-follow
        ;; Swapping windows
        "H"       #'+evil/window-move-left
        "J"       #'+evil/window-move-down

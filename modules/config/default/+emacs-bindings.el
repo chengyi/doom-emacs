@@ -78,7 +78,8 @@
        :desc "Recent project files"        "R"   #'projectile-recentf
        :desc "Sudo this file"              "u"   #'doom/sudo-this-file
        :desc "Sudo find file"              "U"   #'doom/sudo-find-file
-       :desc "Yank filename"               "y"   #'+default/yank-buffer-filename
+       :desc "Yank file path"              "y"   #'+default/yank-buffer-path
+       :desc "Yank file path from project" "Y"   #'+default/yank-buffer-path-relative-to-project
        :desc "Open scratch buffer"         "x"   #'doom/open-scratch-buffer
        :desc "Switch to scratch buffer"    "X"   #'doom/switch-to-scratch-buffer)
 
@@ -298,7 +299,7 @@
       ;;; <leader> v --- versioning
       (:prefix-map ("v" . "versioning")
        :desc "Git revert file"             "R"   #'vc-revert
-       :desc "Kill link to remote"         "y"   #'browse-at-remote-kill
+       :desc "Kill link to remote"         "y"   #'+vc/browse-at-remote-kill
        :desc "Kill link to homepage"       "Y"   #'+vc/browse-at-remote-kill-homepage
        (:when (featurep! :ui vc-gutter)
         :desc "Git revert hunk"            "r"   #'git-gutter:revert-hunk
@@ -326,7 +327,7 @@
          :desc "Find issue"                "i"   #'forge-visit-issue
          :desc "Find pull request"         "p"   #'forge-visit-pullreq)
         (:prefix ("o" . "open in browser")
-         :desc "Browse file or region"     "."   #'browse-at-remote
+         :desc "Browse file or region"     "."   #'+vc/browse-at-remote
          :desc "Browse homepage"           "h"   #'+vc/browse-at-remote-homepage
          :desc "Browse remote"             "r"   #'forge-browse-remote
          :desc "Browse commit"             "c"   #'forge-browse-commit

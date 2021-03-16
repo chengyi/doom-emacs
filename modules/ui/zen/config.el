@@ -1,6 +1,6 @@
 ;;; ui/zen/config.el -*- lexical-binding: t; -*-
 
-(defvar +zen-mixed-pitch-modes '(markdown-mode org-mode org-journal-mode)
+(defvar +zen-mixed-pitch-modes '(adoc-mode rst-mode markdown-mode org-mode)
   "What major-modes to enable `mixed-pitch-mode' in with `writeroom-mode'.")
 
 (defvar +zen-text-scale 2
@@ -8,7 +8,6 @@
 
 (defvar +zen-window-divider-size 4
   "Pixel size of window dividers when `writeroom-mode' is active.")
-
 
 (defvar +zen--old-window-divider-size nil)
 
@@ -39,8 +38,9 @@
                         window-divider-default-right-width)
                   window-divider-default-bottom-width +zen-window-divider-size
                   window-divider-default-right-width +zen-window-divider-size)
-          (setq window-divider-default-bottom-width (car +zen--old-window-divider-size)
-                window-divider-default-right-width (cdr +zen--old-window-divider-size)))
+          (when +zen--old-window-divider-size
+            (setq window-divider-default-bottom-width (car +zen--old-window-divider-size)
+                  window-divider-default-right-width (cdr +zen--old-window-divider-size))))
         (window-divider-mode +1))))
 
   ;; Adjust margins when text size is changed
@@ -69,6 +69,4 @@
             'org-todo-keyword-outd
             'org-todo
             'org-done
-            'font-lock-comment-face
-            'line-number
-            'line-number-current-line))
+            'font-lock-comment-face))
