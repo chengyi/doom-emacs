@@ -212,11 +212,15 @@ This can be passed nil as its second argument to unset handlers for MODES. e.g.
 
 (defun +lookup-xref-definitions-backend-fn (identifier)
   "Non-interactive wrapper for `xref-find-definitions'"
-  (+lookup--xref-show 'xref-backend-definitions identifier #'xref--show-defs))
+  (condition-case _
+      (+lookup--xref-show 'xref-backend-definitions identifier #'xref--show-defs)
+    (cl-no-applicable-method nil)))
 
 (defun +lookup-xref-references-backend-fn (identifier)
   "Non-interactive wrapper for `xref-find-references'"
-  (+lookup--xref-show 'xref-backend-references identifier #'xref--show-xrefs))
+  (condition-case _
+      (+lookup--xref-show 'xref-backend-references identifier #'xref--show-xrefs)
+    (cl-no-applicable-method nil)))
 
 (defun +lookup-dumb-jump-backend-fn (_identifier)
   "Look up the symbol at point (or selection) with `dumb-jump', which conducts a
@@ -258,7 +262,8 @@ current buffer."
   "Uses `find-file-at-point' to read file at point."
   (require 'ffap)
   (when (ffap-guesser)
-    (find-file-at-point)))
+    (find-file-at-point)
+    t))
 
 (defun +lookup-bug-reference-backend-fn (_identifier)
   "Searches for a bug reference in user/repo#123 or #123 format and opens it in
@@ -365,7 +370,11 @@ Otherwise, falls back on `find-file-at-point'."
 
         ((stringp path) (find-file-at-point path))
 
-        ((call-interactively #'find-file-at-point))))
+        ((featurep! :completion ivy)
+         (counsel-file-jump (thing-at-point 'filename t)
+                            (doom-project-root)))
+
+        ((ffap-prompter (thing-at-point 'filename t)))))
 
 
 ;;
